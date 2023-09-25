@@ -1,36 +1,45 @@
 #include <asm/biosdef.h>
 
-// os size location (os_size could be sectors [p1-task3] or bytes [p1-task4])
-.equ os_size_loc, 0x502001fc
+# os size location (os_size could be sectors [p1-task3] or bytes [p1-task4])
+.equ os_size_loc, 0x50200104 # address of kernel size, unit: sector
 
-// kernel address (move kernel to here, and jmp here to start kernel)
+# kernel address (move kernel to here, and jmp here to start kernel)
 .equ kernel, 0x50201000
 
-// BIOS function entry (jump here to use BIOS APIs)
+# BIOS function entry (jump here to use BIOS APIs)
 .equ bios_func_entry, 0x50150000
 
 .text
 .global main
 
 main:
-	// fence on all memory and I/O
+	# fence on all memory and I/O
 	fence
 
-	// TODO: [p1-task1] call BIOS to print string "It's bootblock!"
+	/* TODO: [p1-task1] call BIOS to print string "It's bootblock!" */
+	addi	a7, zero, BIOS_PUTSTR
+	la	a0, msg
+	jal	bios_func_entry
 
 
-	// TODO: [p1-task2] call BIOS to read kernel in SD card
+	/* TODO: [p1-task2] call BIOS to read kernel in SD card */
+	li	a0, os_size_loc
+	lhu	a1, 0(a0)	# num_of_blocks
+	li	a7, BIOS_SDREAD
+	li	a0, kernel	# mem_address
+	li	a2, 1		# block_id
+	jal	bios_func_entry
 
 
-	// TODO: [p1-task4] load task-related arguments and pass them to kernel
+	/* TODO: [p1-task4] load task-related arguments and pass them to kernel */
 
 
-	// TODO: [p1-task2] jump to kernel to start UCAS-OS
-
+	/* TODO: [p1-task2] jump to kernel to start UCAS-OS */
+	jal	kernel
 	/************************************************************/
 	/* Do not touch this comment. Reserved for future projects. */
 	/************************************************************/
-// while(1) --> stop here
+/* while(1) --> stop here */
 stop:
 	j stop
 	nop

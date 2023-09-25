@@ -43,6 +43,18 @@
 #define COLOR_CYAN     "\e[36m"
 #define COLOR_RESET    "\e[0m"
 
+#ifndef NULL
+#define NULL ((void *)0)
+#endif
+
+/*
+ * 2023-09-15: this OS is named "GlucOS"
+*/
+#define OS_NAME "GlucOS"
+#define USER_NAME "glucose180"
+
+#define BOOTLOADER_ADDR 0x50200000
+
 // enter a char into serial port
 // use bios printch function
 void port_write_ch(char ch);

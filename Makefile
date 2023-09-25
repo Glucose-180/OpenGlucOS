@@ -97,7 +97,7 @@ ELF_USER    = $(patsubst %.c, %, $(foreach file, $(SRC_USER), $(DIR_BUILD)/$(not
 # Host Linux Tools Source Files
 # -----------------------------------------------------------------------
 
-SRC_CREATEIMAGE = ./tools/createimage.c
+SRC_CREATEIMAGE = ./tools/createimage/createimage.c
 ELF_CREATEIMAGE = $(DIR_BUILD)/$(notdir $(SRC_CREATEIMAGE:.c=))
 
 # -----------------------------------------------------------------------
@@ -114,7 +114,7 @@ clean:
 
 floppy:
 	sudo fdisk -l $(DISK)
-	sudo dd if=$(DIR_BUILD)/image of=$(DISK)3 conv=notrunc
+	sudo dd if=$(DIR_BUILD)/image of=$(DISK)2 conv=notrunc
 
 asm: $(ELF_BOOT) $(ELF_MAIN) $(ELF_USER)
 	for elffile in $^; do $(OBJDUMP) -d $$elffile > $(notdir $$elffile).txt; done
