@@ -1,9 +1,0 @@
-{
-	"files.associations": {
-		"common.h": "c",
-		"kernel.h": "c",
-		"loader.h": "c",
-		"imagedef.h": "c"
-	},
-	"C_Cpp.errorSquiggles": "disabled"
-}

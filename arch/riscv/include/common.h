@@ -24,6 +24,8 @@
 #ifndef INCLUDE_COMMON_H_
 #define INCLUDE_COMMON_H_
 
+#include <type.h>
+
 #define REG_DAT     0x00
 #define REG_IER     0x01
 #define REG_IIR     0x02
@@ -54,6 +56,13 @@
 #define USER_NAME "glucose180"
 
 #define BOOTLOADER_ADDR 0x50200000
+enum FDT_TYPE {
+    TIMEBASE,
+    SLCR_BADE_ADDR,
+    ETHERNET_ADDR,
+    PLIC_ADDR,
+    NR_IRQS
+};
 
 // enter a char into serial port
 // use bios printch function
@@ -72,7 +81,21 @@ int port_read_ch(void);
 int sd_read(unsigned mem_address, unsigned num_of_blocks, unsigned block_id);
 
 /************************************************************/
-/* Do not touch this comment. Reserved for future projects. */
+// write blocks to sd card
+// use bios bios_sdwrite function
+int sd_write(unsigned mem_address, unsigned num_of_blocks, unsigned block_id);
+
+// set timer
+// use bios set_timer function
+void set_timer(uint64_t stime_value);
+
+// read flat device tree
+// use bios read_fdt function
+uint64_t read_fdt(enum FDT_TYPE type);
+
+// write debug information to logfile, this function is realized via qemu dump
+// use bios logging function
+void qemu_logging(char *str);
 /************************************************************/
 
 #endif
