@@ -11,6 +11,7 @@
 #include <os/loader.h>
 #include <os/glucose.h>
 #include <os/mm.h>
+#include <os/malloc-g.h>
 #include <os/time.h>
 #include <sys/syscall.h>
 #include <screen.h>
@@ -121,6 +122,9 @@ int main(void)
 
 	// Init task information (〃'▽'〃)
 	init_taskinfo();
+
+	// Init memory alloc
+	malloc_init();
 
 	// Init Process Control Blocks |•'-'•) ✧
 	init_pcb();
