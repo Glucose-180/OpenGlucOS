@@ -27,7 +27,19 @@ void malloc_init()
 	q = foot_loc(p);
 
 	p->next = p;
-	p->size = SL;
+	p->size = KSL;
+	p->tag = FREE;
+	p->last = p;
+
+	q->head = p;
+	q->tag = FREE;
+
+	upav = (header*)uallocbuf;
+	p = upav;
+	q = foot_loc(p);
+
+	p->next = p;
+	p->size = USL;
 	p->tag = FREE;
 	p->last = p;
 
