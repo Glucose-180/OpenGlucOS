@@ -19,8 +19,8 @@ void malloc_init()
 {
 	header* p, *q;
 
-	kallocbuf = allocKernelPage(KSL);
-	uallocbuf = allocUserPage(USL);
+	kallocbuf = (void *)allocKernelPage(KSL);
+	uallocbuf = (void *)allocUserPage(USL);
 
 	kpav = (header*)kallocbuf;
 	p = kpav;
@@ -181,7 +181,7 @@ void kprint_avail_table()
 	}
 	p = kpav;
 	do {
-		printk("Start: %lld, Size: %u, End: %lld, Tag: %d;\n", (int8_t*)p - kallocbuf, p->size, (int8_t*)p - kallocbuf + (ptrdiff_t)p->size - 1, p->tag);
+		printk("Start: %ld, Size: %u, End: %ld, Tag: %d;\n", (int8_t*)p - kallocbuf, p->size, (long)p - (long)kallocbuf + p->size - 1, p->tag);
 	} while ((p = p->next) != kpav);
 }
 

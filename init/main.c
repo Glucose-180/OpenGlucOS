@@ -99,8 +99,8 @@ static void init_pcb_stack(
 	//switchto_context_t *pt_switchto =
 		//(switchto_context_t *)((ptr_t)pt_regs - sizeof(switchto_context_t));
 
-	pcb->context[SR_RA] = entry_point;
-	pcb->context[SR_SP] = user_stack;
+	pcb->context.regs[SR_RA] = entry_point;
+	pcb->context.regs[SR_SP] = user_stack;
 	pcb->kernel_sp = kernel_stack;
 	pcb->user_sp = user_stack;
 	pcb->status = TASK_READY;
@@ -167,7 +167,9 @@ int main(void)
 	while (1)
 	{
 		// If you do non-preemptive scheduling, it's used to surrender control
-		do_scheduler();
+		//do_scheduler();
+
+		printk("%s", getcmd());	// ONLY for TEST !!!
 
 		// If you do preemptive scheduling, they're used to enable CSR_SIE and wfi
 		// enable_preempt();

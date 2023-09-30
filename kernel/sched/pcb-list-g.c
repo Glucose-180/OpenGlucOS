@@ -91,11 +91,11 @@ clist_node_t *del_node(clist_node_t * const Head, clist_node_t * const T, clist_
 	for (p = Head; p->next != Head; p = p->next)
 		if (p->next == T)
 		{	/* Find the prior */
-			**ppdel = T;
+			*ppdel = T;
 			p->next = T->next;
 			return Head;
 		}
 	/* Not found */
-	**ppdel = NULL;
+	*ppdel = NULL;
 	return Head;
 }

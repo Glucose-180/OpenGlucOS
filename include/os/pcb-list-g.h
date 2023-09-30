@@ -2,7 +2,7 @@
 #ifndef __PCB_LIST_G_H__
 #define __PCB_LIST_G_H__
 
-#include <sched.h>
+#include <os/sched.h>
 
 typedef pcb_t clist_node_t;
 
