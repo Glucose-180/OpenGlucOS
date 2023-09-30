@@ -17,6 +17,7 @@ pcb_t pid0_pcb = {
 };
 
 //LIST_HEAD(ready_queue);
+pcb_t *ready_queue;
 //LIST_HEAD(sleep_queue);
 
 /* current running task PCB */

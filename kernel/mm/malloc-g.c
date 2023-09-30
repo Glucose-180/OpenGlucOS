@@ -176,12 +176,12 @@ void kprint_avail_table()
 
 	if (kpav == NULL)
 	{
-		printf("NULL\n");
+		printk("NULL\n");
 		return;
 	}
 	p = kpav;
 	do {
-		printf("Start: %lld, Size: %u, End: %lld, Tag: %d;\n", (int8_t*)p - kallocbuf, p->size, (int8_t*)p - kallocbuf + (ptrdiff_t)p->size - 1, p->tag);
+		printk("Start: %lld, Size: %u, End: %lld, Tag: %d;\n", (int8_t*)p - kallocbuf, p->size, (int8_t*)p - kallocbuf + (ptrdiff_t)p->size - 1, p->tag);
 	} while ((p = p->next) != kpav);
 }
 

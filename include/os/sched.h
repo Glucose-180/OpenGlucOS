@@ -55,7 +55,7 @@ typedef struct switchto_context
 } switchto_context_t;
 
 typedef enum {
-	TASK_BLOCKED,
+	TASK_SLEEPING,
 	TASK_RUNNING,
 	TASK_READY,
 	TASK_EXITED,
@@ -77,7 +77,7 @@ typedef struct pcb
 	/* process id */
 	pid_t pid;
 
-	/* BLOCK | READY | RUNNING */
+	/* SLEEPING | READY | RUNNING */
 	task_status_t status;
 
 	/* cursor position */
@@ -91,6 +91,7 @@ typedef struct pcb
 
 /* ready queue to run */
 //extern list_head ready_queue;
+extern pcb_t *ready_queue;
 
 /* sleep queue to be blocked in */
 //extern list_head sleep_queue;
