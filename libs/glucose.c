@@ -4,6 +4,8 @@
  */
 #include <os/kernel.h>
 #include <os/glucose.h>
+#include <stdarg.h>
+#include <printk.h>
 
 /*
  * Remove white spaces at the beginning and end of Str
@@ -114,4 +116,22 @@ char *getcmd()
 	trim(cbuf);
 	return cbuf;
 #undef CS
+}
+
+/*
+ * Print error information
+ */
+void panic_g(const char *fmt, ...)
+{
+	va_list va;
+
+	printk("**Panic: ");
+
+	va_start(va, fmt);
+	printk(fmt, va);
+	va_end(va);
+
+	printk("\n");
+	while (1)
+		;
 }

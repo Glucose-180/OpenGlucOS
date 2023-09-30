@@ -45,5 +45,6 @@ void trim(char *const Str);
 int getchar(void);
 int getline(char* str, const int Len);
 char *getcmd(void);
+void panic_g(const char *fmt, ...);
 
 #endif

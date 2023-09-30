@@ -54,7 +54,7 @@ void* kmalloc_g(const uint32_t Size)
 	header* h, *f;
 
 	n = Size + 2U * sizeof(header);
-	n = ROUND(n, 8);	/* ensure that n%8==0 */
+	n = ROUND(n, ADDR_ALIGN);	/* ensure that n%8==0 */
 	for (h = kpav; h != NULL && h->size < n && h->next != kpav; h = h->next)
 		;
 	if (h == NULL || h->size < n)
@@ -84,6 +84,8 @@ void* kmalloc_g(const uint32_t Size)
 		h->size = n;
 		h->tag = OCCUPIED;
 	}
+	if (((int64_t)(h + 1) & (ADDR_ALIGN - 1)) != 0)
+		panic_g("kmalloc_g: addr %x is not %d-byte aligned", (int32_t)(int64_t)(h + 1), ADDR_ALIGN);
 	/* return the true address(after the header) */
 	return (void*)(h + 1);
 }
@@ -106,7 +108,7 @@ void kfree_g(void* const P)
 		lf_tag = lf->tag;
 
 	rh = f + 1;	/* head of the right block */
-	if ((int8_t*)rh - kallocbuf >= SL)
+	if ((int8_t*)rh - kallocbuf >= KSL)
 		rh_tag = 1;
 	else
 		rh_tag = rh->tag;
@@ -190,7 +192,7 @@ void* umalloc_g(const uint32_t Size)
 	header* h, *f;
 
 	n = Size + 2U * sizeof(header);
-	n = ROUND(n, 8);	/* ensure that n%8==0 */
+	n = ROUND(n, ADDR_ALIGN);	/* ensure that n%8==0 */
 	for (h = upav; h != NULL && h->size < n && h->next != upav; h = h->next)
 		;
 	if (h == NULL || h->size < n)
@@ -220,6 +222,8 @@ void* umalloc_g(const uint32_t Size)
 		h->size = n;
 		h->tag = OCCUPIED;
 	}
+	if (((int64_t)(h + 1) & (ADDR_ALIGN - 1)) != 0)
+		panic_g("umalloc_g: addr %x is not %d-byte aligned", (int32_t)(int64_t)(h + 1), ADDR_ALIGN);
 	/* return the true address(after the header) */
 	return (void*)(h + 1);
 }
@@ -242,7 +246,7 @@ void ufree_g(void* const P)
 		lf_tag = lf->tag;
 
 	rh = f + 1;	/* head of the right block */
-	if ((int8_t*)rh - kallocbuf >= SL)
+	if ((int8_t*)rh - kallocbuf >= USL)
 		rh_tag = 1;
 	else
 		rh_tag = rh->tag;

@@ -7,6 +7,8 @@
 
 #include <type.h>
 #include <os/mm.h>
+#include <printk.h>
+#include <os/glucose.h>
 
 /* Total memory size: unit: PAGE (default: 4 KiB) */
 #ifndef KSL
@@ -19,6 +21,9 @@
 #ifndef EU
 	#define EU 64U
 #endif
+
+/* Alignment of address returned from Xmalloc_g */
+#define ADDR_ALIGN 0x8
 
 enum Tag_t { FREE,OCCUPIED };
 
