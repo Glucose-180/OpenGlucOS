@@ -116,7 +116,8 @@ extern pcb_t pcb[NUM_MAX_TASK];
 extern pcb_t pid0_pcb;
 extern const ptr_t pid0_stack;
 
-extern void switch_to(pcb_t *prev, pcb_t *next);
+/* The type of arguments has been modified from pcb_t* to switchto_context_t* */
+extern void switch_to(switchto_context_t *prev, switchto_context_t *next);
 
 pid_t alloc_pid(void);
 

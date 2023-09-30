@@ -49,17 +49,56 @@ ENDPROC(disable_interrupt)
 
 // NOTE: the address of previous pcb in a0
 // NOTE: the address of next pcb in a1
+/* The type of arguments has been modified from pcb_t* to switchto_context_t* */
+// extern void switch_to(switchto_context_t *prev, switchto_context_t *next);
 ENTRY(switch_to)
-	addi sp, sp, -(SWITCH_TO_SIZE)
+	//addi sp, sp, -(SWITCH_TO_SIZE)
 
 	/* TODO: [p2-task1] save all callee save registers on kernel stack,
 	 * see the definition of `struct switchto_context` in sched.h*/
+	beq	zero, a0, RS	// a0 (&current_running->context) is NULL
+	sd	ra, SWITCH_TO_RA(a0)
+	sd	sp, SWITCH_TO_SP(a0)
+	sd	s0, SWITCH_TO_S0(a0)
+	sd	s1, SWITCH_TO_S1(a0)
+	sd	s2, SWITCH_TO_S2(a0)
+	sd	s3, SWITCH_TO_S3(a0)
+	sd	s4, SWITCH_TO_S4(a0)
+	sd	s5, SWITCH_TO_S5(a0)
+	sd	s6, SWITCH_TO_S6(a0)
+	sd	s7, SWITCH_TO_S7(a0)
+	sd	s8, SWITCH_TO_S8(a0)
+	sd	s9, SWITCH_TO_S9(a0)
+	sd	s10, SWITCH_TO_S10(a0)
+	sd	s11, SWITCH_TO_S11(a0)
 
 	/* TODO: [p2-task1] restore all callee save registers from kernel stack,
 	 * see the definition of `struct switchto_context` in sched.h*/
-
-	addi sp, sp, SWITCH_TO_SIZE
-	jr ra
+RS:
+	ld	ra, SWITCH_TO_RA(a1)
+	ld	sp, SWITCH_TO_SP(a1)
+	ld	s0, SWITCH_TO_S0(a1)
+	ld	s1, SWITCH_TO_S1(a1)
+	ld	s2, SWITCH_TO_S2(a1)
+	ld	s3, SWITCH_TO_S3(a1)
+	ld	s4, SWITCH_TO_S4(a1)
+	ld	s5, SWITCH_TO_S5(a1)
+	ld	s6, SWITCH_TO_S6(a1)
+	ld	s7, SWITCH_TO_S7(a1)
+	ld	s8, SWITCH_TO_S8(a1)
+	ld	s9, SWITCH_TO_S9(a1)
+	ld	s10, SWITCH_TO_S10(a1)
+	ld	s11, SWITCH_TO_S11(a1)
+/*
+ * The guide_book_p2 Page5.2 says that current_running
+ * should be saved to tp.
+ * NOTE: please ensure that the current_running points to
+ * the new process's PCB before calling switch_to.
+ */
+	la	t0, current_running
+	ld	tp, 0(t0)
+	//addi sp, sp, SWITCH_TO_SIZE
+	jr	ra
 ENDPROC(switch_to)
 
 ENTRY(ret_from_exception)
