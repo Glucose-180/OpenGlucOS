@@ -1,4 +1,5 @@
 #include <os/list.h>
+#include <os/pcb-list-g.h>
 #include <os/lock.h>
 #include <os/sched.h>
 #include <os/time.h>
@@ -15,8 +16,8 @@ pcb_t pid0_pcb = {
 	.user_sp = (ptr_t)pid0_stack
 };
 
-LIST_HEAD(ready_queue);
-LIST_HEAD(sleep_queue);
+//LIST_HEAD(ready_queue);
+//LIST_HEAD(sleep_queue);
 
 /* current running task PCB */
 pcb_t * volatile current_running;

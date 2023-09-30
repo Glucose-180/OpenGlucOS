@@ -70,7 +70,9 @@ typedef struct pcb
 	reg_t user_sp;
 
 	/* previous, next pointer */
-	list_node_t list;
+	//list_node_t list;
+	/* next pointer */
+	struct pcb *next;
 
 	/* process id */
 	pid_t pid;
@@ -88,10 +90,10 @@ typedef struct pcb
 } pcb_t;
 
 /* ready queue to run */
-extern list_head ready_queue;
+//extern list_head ready_queue;
 
 /* sleep queue to be blocked in */
-extern list_head sleep_queue;
+//extern list_head sleep_queue;
 
 /* current running task PCB */
 extern pcb_t * volatile current_running;
