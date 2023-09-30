@@ -26,6 +26,22 @@ pcb_t * volatile current_running;
 /* global process id */
 pid_t process_id = 1;
 
+/*
+ * alloc_pid: find a free PID.
+ * INVALID_PID will be returned if no free PID is found.
+ * NOTE: It can be improved as the algorithm is NOT efficient.
+ */
+pid_t alloc_pid(void)
+{
+	pid_t i;
+	const pid_t Pid_min = 1, Pid_max = 2 * NUM_MAX_TASK;
+
+	for (i = Pid_min; i <= Pid_max; ++i)
+		if (search_node_pid(ready_queue, i) == NULL)
+			return i;
+	return INVALID_PID;
+}
+
 void do_scheduler(void)
 {
 	// TODO: [p2-task3] Check sleep queue to wake up PCBs

@@ -88,26 +88,33 @@ static void init_pcb_stack(
 	  * NOTE: To run the task in user mode, you should set corresponding bits
 	  *     of sstatus(SPP, SPIE, etc.).
 	  */
-	regs_context_t *pt_regs =
-		(regs_context_t *)(kernel_stack - sizeof(regs_context_t));
+	//regs_context_t *pt_regs =
+		//(regs_context_t *)(kernel_stack - sizeof(regs_context_t));
 
 
 	/* TODO: [p2-task1] set sp to simulate just returning from switch_to
 	 * NOTE: you should prepare a stack, and push some values to
 	 * simulate a callee-saved context.
 	 */
-	switchto_context_t *pt_switchto =
-		(switchto_context_t *)((ptr_t)pt_regs - sizeof(switchto_context_t));
+	//switchto_context_t *pt_switchto =
+		//(switchto_context_t *)((ptr_t)pt_regs - sizeof(switchto_context_t));
 
+	pcb->context[SR_RA] = entry_point;
+	pcb->context[SR_SP] = user_stack;
+	pcb->kernel_sp = kernel_stack;
+	pcb->user_sp = user_stack;
+	pcb->status = TASK_READY;
+	pcb->cursor_x = pcb->cursor_y = 0;
+	if ((pcb->pid = alloc_pid()) == INVALID_PID)
+		panic_g("No invalid PID can be used");
 }
 
 static void init_pcb(void)
 {
 	/* TODO: [p2-task1] load needed tasks and init their corresponding PCB */
-
-
 	/* TODO: [p2-task1] remember to initialize 'current_running' */
 
+	ready_queue = NULL;
 }
 
 static void init_syscall(void)

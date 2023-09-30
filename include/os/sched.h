@@ -33,6 +33,7 @@
 #include <os/list.h>
 
 #define NUM_MAX_TASK 16
+#define INVALID_PID (-1)
 
 /* used to save register infomation */
 typedef struct regs_context
@@ -50,9 +51,17 @@ typedef struct regs_context
 /* used to save register infomation in switch_to */
 typedef struct switchto_context
 {
-	/* Callee saved registers.*/
+	/*
+	 * Callee saved registers:
+	 * ra, sp, s0~s11.
+	 */
 	reg_t regs[14];
 } switchto_context_t;
+
+enum Saved_regs {
+	SR_RA,SR_SP,SR_S0,SR_S1,SR_S2,SR_S3,SR_S4,
+	SR_S5,SR_S6,SR_S7,SR_S8,SR_S9,SR_S10,SR_S11
+};
 
 typedef enum {
 	TASK_SLEEPING,
@@ -87,6 +96,9 @@ typedef struct pcb
 	/* time(seconds) to wake up sleeping PCB */
 	uint64_t wakeup_time;
 
+	/* Saved regs */
+	switchto_context_t context;
+
 } pcb_t;
 
 /* ready queue to run */
@@ -105,6 +117,9 @@ extern pcb_t pid0_pcb;
 extern const ptr_t pid0_stack;
 
 extern void switch_to(pcb_t *prev, pcb_t *next);
+
+pid_t alloc_pid(void);
+
 void do_scheduler(void);
 void do_sleep(uint32_t);
 
