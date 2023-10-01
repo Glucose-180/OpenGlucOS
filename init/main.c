@@ -4,6 +4,7 @@
 #include <os/loader.h>
 #include <os/irq.h>
 #include <os/sched.h>
+#include <os/pcb-list-g.h>
 #include <os/lock.h>
 #include <os/kernel.h>
 #include <os/task.h>
@@ -106,15 +107,26 @@ static void init_pcb_stack(
 	pcb->status = TASK_READY;
 	pcb->cursor_x = pcb->cursor_y = 0;
 	if ((pcb->pid = alloc_pid()) == INVALID_PID)
-		panic_g("No invalid PID can be used");
+		panic_g("init_pcb_stack: No invalid PID can be used");
 }
 
 static void init_pcb(void)
 {
 	/* TODO: [p2-task1] load needed tasks and init their corresponding PCB */
 	/* TODO: [p2-task1] remember to initialize 'current_running' */
+	pcb_t *temp;
 
 	ready_queue = NULL;
+	ready_queue = add_node_to_tail(ready_queue, &current_running);
+	if (ready_queue == NULL)
+		panic_g("init_pcb: Failed to init ready_queue");
+	/*
+	 * I'm not sure whether "*current_running = pid0_pcb;" will
+	 * change its member "next" or not. So I use "temp" to save it.
+	 */
+	temp = current_running->next;
+	*current_running = pid0_pcb;
+	current_running->next = temp;
 }
 
 static void init_syscall(void)

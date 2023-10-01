@@ -10,13 +10,24 @@
 
 pcb_t pcb[NUM_MAX_TASK];
 const ptr_t pid0_stack = INIT_KERNEL_STACK + PAGE_SIZE;
+
+/*
+ * It is used to represent main.c:main()
+ */
 pcb_t pid0_pcb = {
 	.pid = 0,
 	.kernel_sp = (ptr_t)pid0_stack,
-	.user_sp = (ptr_t)pid0_stack
+	.user_sp = (ptr_t)pid0_stack,
+	/* Add more info */
+	.status = TASK_RUNNING,
+	.cursor_x = 0,
+	.cursor_y = 0
 };
 
 //LIST_HEAD(ready_queue);
+/*
+ * Circular queue (linked list) of all READY and RUNNING processes
+ */
 pcb_t *ready_queue;
 //LIST_HEAD(sleep_queue);
 

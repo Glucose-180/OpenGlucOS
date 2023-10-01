@@ -107,10 +107,11 @@ char *getcmd()
 #define CS 30
 	static char cbuf[CS];
 
-	bios_putstr(USER_NAME);
+	/*bios_putstr(USER_NAME);
 	bios_putchar('@');
 	bios_putstr(OS_NAME);
-	bios_putstr(":~$ ");
+	bios_putstr(":~$ ");*/
+	printk("%s@%s:~$ ", USER_NAME, OS_NAME);
 
 	getline(cbuf, CS);
 	trim(cbuf);
