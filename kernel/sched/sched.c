@@ -11,7 +11,10 @@
 #include <os/loader.h>
 
 pcb_t pcb[NUM_MAX_TASK];
-const ptr_t pid0_stack = INIT_KERNEL_STACK + PAGE_SIZE;
+/*
+ * Has been modified by Glucose180
+ */
+const ptr_t pid0_stack = INIT_KERNEL_STACK;// + PAGE_SIZE;
 
 /*
  * The default size for a user stack.

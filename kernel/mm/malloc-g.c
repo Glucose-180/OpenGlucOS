@@ -26,25 +26,25 @@ void malloc_init()
 
 	kpav = (header*)kallocbuf;
 	p = kpav;
-	q = foot_loc(p);
 
 	p->next = p;
 	p->size = KSL * PAGE_SIZE;
 	p->tag = FREE;
 	p->last = p;
 
+	q = foot_loc(p);
 	q->head = p;
 	q->tag = FREE;
 
 	upav = (header*)uallocbuf;
 	p = upav;
-	q = foot_loc(p);
 
 	p->next = p;
 	p->size = USL * PAGE_SIZE;
 	p->tag = FREE;
 	p->last = p;
 
+	q = foot_loc(p);
 	q->head = p;
 	q->tag = FREE;
 }
