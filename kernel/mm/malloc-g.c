@@ -27,7 +27,7 @@ void malloc_init()
 	q = foot_loc(p);
 
 	p->next = p;
-	p->size = KSL;
+	p->size = KSL * PAGE_SIZE;
 	p->tag = FREE;
 	p->last = p;
 
@@ -39,7 +39,7 @@ void malloc_init()
 	q = foot_loc(p);
 
 	p->next = p;
-	p->size = USL;
+	p->size = USL * PAGE_SIZE;
 	p->tag = FREE;
 	p->last = p;
 

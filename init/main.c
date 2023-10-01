@@ -153,7 +153,21 @@ int main(void)
 		// If you do non-preemptive scheduling, it's used to surrender control
 		//do_scheduler();
 
-		printk("%s", getcmd());	// ONLY for TEST !!!
+		// ONLY for TEST !!!
+		if (strcmp(getcmd(), "t3") == 0)
+		{
+			if (create_proc("print1") == INVALID_PID)
+				printk("Failed to start print1\n");
+			else if (create_proc("print2") == INVALID_PID)
+				printk("Failed to start print2\n");
+			else if (create_proc("fly") == INVALID_PID)
+				printk("Failed to start fly\n");
+			else
+			{
+				while (1)
+					do_scheduler();
+			}
+		}
 
 		// If you do preemptive scheduling, they're used to enable CSR_SIE and wfi
 		// enable_preempt();
