@@ -164,6 +164,7 @@ int main(void)
 				printk("Failed to start fly\n");
 			else
 			{
+				screen_clear();
 				while (1)
 					do_scheduler();
 			}
