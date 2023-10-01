@@ -1,3 +1,9 @@
+/*
+ * Callings of vt100_move_cursor has been modified by Glucose180.
+ * As I find that the cursor on the screen is started from 1 rather than 0,
+ * the arguments for calling vt100_move_cursor should be 1 greater than
+ * current_running->cursor_x/y.
+ */
 #include <screen.h>
 #include <printk.h>
 #include <os/string.h>
@@ -34,13 +40,24 @@ static void vt100_hidden_cursor()
 	printv("%c[?25l", 27);
 }
 
+/* Show cursor: added by Glucose180 */
+static void vt100_show_cursor()
+{
+	printv("%c[?25h", 27);
+}
+
 /* write a char */
-static void screen_write_ch(char ch)
+void screen_write_ch(char ch)
 {
 	if (ch == '\n')
 	{
 		current_running->cursor_x = 0;
 		current_running->cursor_y++;
+	}
+	else if (ch == '\b')
+	{	/* Backspace: by Glucose180 */
+		if (current_running->cursor_x > 0)
+			current_running->cursor_x--;
 	}
 	else
 	{
@@ -54,6 +71,7 @@ void init_screen(void)
 	vt100_hidden_cursor();
 	vt100_clear();
 	screen_clear();
+	vt100_show_cursor();	// Added by Glucose180
 }
 
 void screen_clear(void)
@@ -75,7 +93,7 @@ void screen_move_cursor(int x, int y)
 {
 	current_running->cursor_x = x;
 	current_running->cursor_y = y;
-	vt100_move_cursor(x, y);
+	vt100_move_cursor(x + 1, y + 1);
 }
 
 void screen_write(char *buff)
@@ -115,5 +133,5 @@ void screen_reflush(void)
 	}
 
 	/* recover cursor position */
-	vt100_move_cursor(current_running->cursor_x, current_running->cursor_y);
+	vt100_move_cursor(current_running->cursor_x + 1, current_running->cursor_y + 1);
 }

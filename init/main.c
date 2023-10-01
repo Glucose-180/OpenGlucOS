@@ -145,10 +145,14 @@ int main(void)
 
 	// Init memory alloc
 	malloc_init();
-
+	
 	// Init Process Control Blocks |•'-'•) ✧
 	init_pcb();
 	printk("> [INIT] PCB initialization succeeded.\n");
+
+	// Init screen (QAQ)
+	init_screen();
+	printk("> [INIT] SCREEN initialization succeeded.\n");
 
 	// Read CPU frequency (｡•ᴗ-)_
 	time_base = bios_read_fdt(TIMEBASE);
@@ -165,9 +169,6 @@ int main(void)
 	init_syscall();
 	printk("> [INIT] System call initialized successfully.\n");
 
-	// Init screen (QAQ)
-	init_screen();
-	printk("> [INIT] SCREEN initialization succeeded.\n");
 
 	// TODO: [p2-task4] Setup timer interrupt and enable all interrupt globally
 	// NOTE: The function of sstatus.sie is different from sie's

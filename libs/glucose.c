@@ -52,13 +52,15 @@ int getchar()
 			{
 				/* Remove the char at end of buffer */
 				qtail = (qtail + QS - 1) % QS;
-				bios_putstr("\b \b");
+				//bios_putstr("\b \b");
+				printk("\b \b");
 			}
 			continue;
 		}
 		else if ((iscrlf(ch) && !QEMPTY) || (!iscrlf(ch) && QFULL))
 		{	/* Get CR/LF when buffer is not empty, or buffer is full */
-			bios_putchar('\n');
+			//bios_putchar('\n');
+			printk("\n");
 			ch = ibuf[qhead];	/* Depart */
 			qhead = (qhead + 1) % QS;
 			ibuf[qtail] = '\n';	/* Enter */
@@ -67,14 +69,16 @@ int getchar()
 		}
 		else if (iscrlf(ch))
 		{	/* Get CR/LF but buffer is empty */
-			bios_putchar('\n');
+			//bios_putchar('\n');
+			printk("\n");
 			return '\n';
 		}
 		else
 		{	/* Get normal char and buffer is not full */
 			ibuf[qtail] = ch;	/* Enter */
 			qtail = (qtail + 1) % QS;
-			bios_putchar(ch);
+			//bios_putchar(ch);
+			printk("%c", ch);
 		}
 	}
 
