@@ -79,36 +79,7 @@ static void init_taskinfo(void)
 		taskinfo_size);
 }
 
-/************************************************************/
-static void init_pcb_stack(
-	ptr_t kernel_stack, ptr_t user_stack, ptr_t entry_point,
-	pcb_t *pcb)
-{
-	 /* TODO: [p2-task3] initialization of registers on kernel stack
-	  * HINT: sp, ra, sepc, sstatus
-	  * NOTE: To run the task in user mode, you should set corresponding bits
-	  *     of sstatus(SPP, SPIE, etc.).
-	  */
-	//regs_context_t *pt_regs =
-		//(regs_context_t *)(kernel_stack - sizeof(regs_context_t));
-
-
-	/* TODO: [p2-task1] set sp to simulate just returning from switch_to
-	 * NOTE: you should prepare a stack, and push some values to
-	 * simulate a callee-saved context.
-	 */
-	//switchto_context_t *pt_switchto =
-		//(switchto_context_t *)((ptr_t)pt_regs - sizeof(switchto_context_t));
-
-	pcb->context.regs[SR_RA] = entry_point;
-	pcb->context.regs[SR_SP] = user_stack;
-	pcb->kernel_sp = kernel_stack;
-	pcb->user_sp = user_stack;
-	pcb->status = TASK_READY;
-	pcb->cursor_x = pcb->cursor_y = 0;
-	if ((pcb->pid = alloc_pid()) == INVALID_PID)
-		panic_g("init_pcb_stack: No invalid PID can be used");
-}
+/* NOTE: static function "init_pcb_stack" has been moved to sched.c */
 
 static void init_pcb(void)
 {

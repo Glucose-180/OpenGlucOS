@@ -20,6 +20,9 @@
  * Then, *ppnew will points to the new node.
  * NULL will be returned on error.
  */
+/*
+ * TODO: Check NUM_MAX_TASK.
+ */
 clist_node_t *add_node_to_tail(clist_node_t * const Head, clist_node_t * volatile *ppnew)
 {
 	clist_node_t *p;

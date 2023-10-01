@@ -4,12 +4,20 @@
 #include <os/sched.h>
 #include <os/time.h>
 #include <os/mm.h>
+#include <os/malloc-g.h>
 #include <screen.h>
 #include <printk.h>
 #include <assert.h>
+#include <os/loader.h>
 
 pcb_t pcb[NUM_MAX_TASK];
 const ptr_t pid0_stack = INIT_KERNEL_STACK + PAGE_SIZE;
+
+/*
+ * The default size for a user stack.
+ * 4 KiB.
+ */
+static const uint32_t Ustack_size = 4 * 1024;
 
 /*
  * It is used to represent main.c:main()
@@ -53,8 +61,34 @@ pid_t alloc_pid(void)
 	return INVALID_PID;
 }
 
+/*
+ * Use the name of a task to load it and add it in ready_queue.
+ * INVALID_PID will be returned on error.
+ */
+pid_t create_proc(const char *taskname)
+{
+	ptr_t entry, user_stack;
+	pcb_t *pnew, *temp;
+
+	entry = load_task_img(taskname);
+	if (entry == 0U)
+		return INVALID_PID;
+	user_stack = (ptr_t)umalloc_g(Ustack_size);
+	if (user_stack == 0)
+		return INVALID_PID;
+	if ((temp = add_node_to_tail(ready_queue, &pnew)) == NULL)
+	{
+		ufree_g((void *)user_stack);
+		return INVALID_PID;
+	}
+	ready_queue = temp;
+	init_pcb_stack(0, user_stack, entry, pnew);
+	return pnew->pid;
+}
+
 void do_scheduler(void)
 {
+	pcb_t *p, *q;
 	// TODO: [p2-task3] Check sleep queue to wake up PCBs
 
 	/************************************************************/
@@ -62,9 +96,20 @@ void do_scheduler(void)
 	/************************************************************/
 
 	// TODO: [p2-task1] Modify the current_running pointer.
-
-
 	// TODO: [p2-task1] switch_to current_running
+
+	for (p = current_running->next; p != current_running; p = p->next)
+	{	/* Search the linked list and find a READY process */
+		if (p->status == TASK_READY)
+		{
+			current_running->status = TASK_READY;
+			q = current_running;
+			current_running = p;
+			current_running->status = TASK_RUNNING;
+			switch_to(&(q->context), &(current_running->context));
+			return;
+		}
+	}
 
 }
 
@@ -85,4 +130,35 @@ void do_block(list_node_t *pcb_node, list_head *queue)
 void do_unblock(list_node_t *pcb_node)
 {
 	// TODO: [p2-task2] unblock the `pcb` from the block queue
+}
+
+/************************************************************/
+void init_pcb_stack(
+	ptr_t kernel_stack, ptr_t user_stack, ptr_t entry_point,
+	pcb_t *pcb)
+{
+	 /* TODO: [p2-task3] initialization of registers on kernel stack
+	  * HINT: sp, ra, sepc, sstatus
+	  * NOTE: To run the task in user mode, you should set corresponding bits
+	  *     of sstatus(SPP, SPIE, etc.).
+	  */
+	//regs_context_t *pt_regs =
+		//(regs_context_t *)(kernel_stack - sizeof(regs_context_t));
+
+
+	/* TODO: [p2-task1] set sp to simulate just returning from switch_to
+	 * NOTE: you should prepare a stack, and push some values to
+	 * simulate a callee-saved context.
+	 */
+	//switchto_context_t *pt_switchto =
+		//(switchto_context_t *)((ptr_t)pt_regs - sizeof(switchto_context_t));
+
+	pcb->context.regs[SR_RA] = entry_point;
+	pcb->context.regs[SR_SP] = user_stack;
+	pcb->kernel_sp = kernel_stack;
+	pcb->user_sp = user_stack;
+	pcb->status = TASK_READY;
+	pcb->cursor_x = pcb->cursor_y = 0;
+	if ((pcb->pid = alloc_pid()) == INVALID_PID)
+		panic_g("init_pcb_stack: No invalid PID can be used");
 }
