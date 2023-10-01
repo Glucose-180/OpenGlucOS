@@ -1,6 +1,8 @@
 /*
  * Memory allocation without compression.
  * Modified from the program of "Data Structure" course by Glucose180.
+ * NOTE: You'd better add checking code in the xfree_g() functions,
+ * to check whether the memory is allocated by xmalloc_g().
  */
 #include <os/malloc-g.h>
 
