@@ -60,3 +60,14 @@ typedef enum {
 #### 2. 紧急修复`malloc-g.c`中的 Bug
 
 ​	`malloc-g.c`是魔改的以前写的存储分配程序，这次突然发现它有个严重的 Bug，在初始化空闲分配区的`size`之前就尝试调用`foot_loc`获取其尾部标签的指针，这非常危险！
+
+#### 3. 优化`malloc-g.c`中的释放函数`xfree_g`
+
+​	释放非动态分配的内存是非常危险的操作。为了使我的 GlucOS 尽可能稳定，需要让相关程序更加严密。为此修改了`malloc-g.c`中的分配与释放函数，在分配后让新分配的块的尾部`head`指针指向头部，这样`xfree_g`函数就可以检查待释放的块是否为动态分配的，否则就 panic。
+
+```c
+	/* Check whether the block is allocated by xmalloc_g */
+	if (((int64_t)P & (ADDR_ALIGN - 1)) != 0 || f->head != h)
+		panic_g("kfree_g: Addr 0x%lx is not allocated by xmalloc_g\n", (int64_t)P);
+```
+
