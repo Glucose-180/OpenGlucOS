@@ -107,7 +107,9 @@ void kfree_g(void* const P)
 	n = h->size;
 
 	/* Check whether the block is allocated by xmalloc_g */
-	if (((int64_t)P & (ADDR_ALIGN - 1)) != 0 || f->head != h)
+	if (((int64_t)P & (ADDR_ALIGN - 1)) != 0 ||
+		((int64_t)f & (ADDR_ALIGN - 1)) != 0 ||
+		f->head != h)
 		panic_g("kfree_g: Addr 0x%lx is not allocated by xmalloc_g\n", (int64_t)P);
 
 	lf = h - 1;	/* foot of the left block */
@@ -252,7 +254,9 @@ void ufree_g(void* const P)
 	n = h->size;
 
 	/* Check whether the block is allocated by xmalloc_g */
-	if (((int64_t)P & (ADDR_ALIGN - 1)) != 0 || f->head != h)
+	if (((int64_t)P & (ADDR_ALIGN - 1)) != 0 ||
+		((int64_t)f & (ADDR_ALIGN - 1)) != 0 ||
+		f->head != h)
 		panic_g("ufree_g: Addr 0x%lx is not allocated by xmalloc_g\n", (int64_t)P);
 
 	lf = h - 1;	/* foot of the left block */

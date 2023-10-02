@@ -101,22 +101,32 @@ void do_scheduler(void)
 	/* Do not touch this comment. Reserved for future projects. */
 	/************************************************************/
 
+	/*
+	// It is used to test whether kfree_g can detect invalid address
+	static int tested = 0;
+	if (tested == 0 && current_running->pid > 0)
+	{
+		kfree_g(current_running->user_sp - Ustack_size + 8);
+		// Test whether panic will happen
+		tested = 1;
+	}
+	*/
+
 	// TODO: [p2-task1] Modify the current_running pointer.
 	// TODO: [p2-task1] switch_to current_running
-
-	for (p = current_running->next; p != current_running; p = p->next)
-	{	/* Search the linked list and find a READY process */
-		if (p->status == TASK_READY)
-		{
-			current_running->status = TASK_READY;
-			q = current_running;
-			current_running = p;
-			current_running->status = TASK_RUNNING;
-			switch_to(&(q->context), &(current_running->context));
-			return;
+	while (1)
+		for (p = current_running->next; p != current_running; p = p->next)
+		{	/* Search the linked list and find a READY process */
+			if (p->status == TASK_READY)
+			{
+				current_running->status = TASK_READY;
+				q = current_running;
+				current_running = p;
+				current_running->status = TASK_RUNNING;
+				switch_to(&(q->context), &(current_running->context));
+				return;
+			}
 		}
-	}
-
 }
 
 void do_sleep(uint32_t sleep_time)
