@@ -87,6 +87,7 @@ pid_t create_proc(const char *taskname)
 	ready_queue = temp;
 	/*
 	 * NOTE: Use 0 as kernel stack address TEMPorarily
+	 * NOTE: the arg "user_stack" is ERROR!
 	 */
 	init_pcb_stack(0, user_stack, entry, pnew);
 	return pnew->pid;

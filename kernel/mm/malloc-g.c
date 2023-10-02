@@ -85,6 +85,9 @@ void* kmalloc_g(const uint32_t Size)
 		h = f + 1;
 		h->size = n;
 		h->tag = OCCUPIED;
+		f = foot_loc(h);
+		f->head = h;
+		/* Set f->head = h for checking in xfree_g */
 	}
 	if (((int64_t)(h + 1) & (ADDR_ALIGN - 1)) != 0)
 		panic_g("kmalloc_g: addr %x is not %d-byte aligned", (int32_t)(int64_t)(h + 1), ADDR_ALIGN);
@@ -102,6 +105,10 @@ void kfree_g(void* const P)
 	h = (header*)P - 1;
 	f = foot_loc(h);
 	n = h->size;
+
+	/* Check whether the block is allocated by xmalloc_g */
+	if (((int64_t)P & (ADDR_ALIGN - 1)) != 0 || f->head != h)
+		panic_g("kfree_g: Addr 0x%lx is not allocated by xmalloc_g\n", (int64_t)P);
 
 	lf = h - 1;	/* foot of the left block */
 	if ((int8_t*)h - kallocbuf <= 0)
@@ -223,6 +230,9 @@ void* umalloc_g(const uint32_t Size)
 		h = f + 1;
 		h->size = n;
 		h->tag = OCCUPIED;
+		f = foot_loc(h);
+		f->head = h;
+		/* Set f->head = h for checking in xfree_g */
 	}
 	if (((int64_t)(h + 1) & (ADDR_ALIGN - 1)) != 0)
 		panic_g("umalloc_g: addr %x is not %d-byte aligned", (int32_t)(int64_t)(h + 1), ADDR_ALIGN);
@@ -240,6 +250,10 @@ void ufree_g(void* const P)
 	h = (header*)P - 1;
 	f = foot_loc(h);
 	n = h->size;
+
+	/* Check whether the block is allocated by xmalloc_g */
+	if (((int64_t)P & (ADDR_ALIGN - 1)) != 0 || f->head != h)
+		panic_g("ufree_g: Addr 0x%lx is not allocated by xmalloc_g\n", (int64_t)P);
 
 	lf = h - 1;	/* foot of the left block */
 	if ((int8_t*)h - kallocbuf <= 0)
