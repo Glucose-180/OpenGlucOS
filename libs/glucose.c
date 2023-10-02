@@ -130,7 +130,7 @@ void panic_g(const char *fmt, ...)
 {
 	va_list va;
 
-	printk("**Panic: ");
+	printk("\n**Panic: ");
 
 	va_start(va, fmt);
 	printk(fmt, va);

@@ -87,9 +87,8 @@ pid_t create_proc(const char *taskname)
 	ready_queue = temp;
 	/*
 	 * NOTE: Use 0 as kernel stack address TEMPorarily
-	 * NOTE: the arg "user_stack" is ERROR!
 	 */
-	init_pcb_stack(0, user_stack, entry, pnew);
+	init_pcb_stack(0, user_stack + ROUND(Ustack_size, ADDR_ALIGN), entry, pnew);
 	return pnew->pid;
 }
 
@@ -141,7 +140,7 @@ void do_unblock(list_node_t *pcb_node)
 
 /************************************************************/
 void init_pcb_stack(
-	ptr_t kernel_stack, ptr_t user_stack, ptr_t entry_point,
+	ptr_t kernel_stack, ptr_t user_sp, ptr_t entry_point,
 	pcb_t *pcb)
 {
 	 /* TODO: [p2-task3] initialization of registers on kernel stack
@@ -161,9 +160,9 @@ void init_pcb_stack(
 		//(switchto_context_t *)((ptr_t)pt_regs - sizeof(switchto_context_t));
 
 	pcb->context.regs[SR_RA] = entry_point;
-	pcb->context.regs[SR_SP] = user_stack;
+	pcb->context.regs[SR_SP] = user_sp;
 	pcb->kernel_sp = kernel_stack;
-	pcb->user_sp = user_stack;
+	pcb->user_sp = user_sp;
 	pcb->status = TASK_READY;
 	pcb->cursor_x = pcb->cursor_y = 0;
 	if ((pcb->pid = alloc_pid()) == INVALID_PID)
