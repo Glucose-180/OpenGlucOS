@@ -153,22 +153,25 @@ int main(void)
 		// If you do non-preemptive scheduling, it's used to surrender control
 		//do_scheduler();
 
-		// ONLY for TEST !!!
-		if (strcmp(getcmd(), "t3") == 0)
+		char **cmds, flag_success = 0;
+		while (flag_success == 0)
 		{
-			if (create_proc("print1") == INVALID_PID)
-				printk("Failed to start print1\n");
-			else if (create_proc("print2") == INVALID_PID)
-				printk("Failed to start print2\n");
-			else if (create_proc("fly") == INVALID_PID)
-				printk("Failed to start fly\n");
-			else
+			cmds = split(getcmd(), '&');
+			while (*cmds != NULL)
 			{
-				screen_clear();
-				while (1)
-					do_scheduler();
+				trim(*cmds);
+				if (strcmp(*cmds, "exit") == 0)
+					goto loc_wfi;
+				else if (create_proc(*cmds) == INVALID_PID)
+					printk("Failed to start %s\n", *cmds);
+				else
+					flag_success = 1;
+				++cmds;
 			}
 		}
+		screen_clear();
+		while (1)
+			do_scheduler();
 
 		// If you do preemptive scheduling, they're used to enable CSR_SIE and wfi
 		// enable_preempt();
@@ -177,6 +180,8 @@ int main(void)
 
 
 	// Infinite while loop, where CPU stays in a low-power state (QAQQQQQQQQQQQ)
+loc_wfi:
+	printk("logout\n");
 	while (1)
 	{
 		asm volatile("wfi");

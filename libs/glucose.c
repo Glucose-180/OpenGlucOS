@@ -132,7 +132,8 @@ char **split(char *src, const char Sep)
 {
 #define CM 5U
 	unsigned int i;
-	char *rt[CM + 1], *p;
+	static char *rt[CM + 1];
+	char *p;
 	char flag_new = 1;
 
 	for (i = 0U, p = src; *p != '\0'; ++p)
