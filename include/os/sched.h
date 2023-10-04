@@ -112,7 +112,7 @@ extern pcb_t *ready_queue;
 extern pcb_t * volatile current_running;
 extern pid_t process_id;
 
-extern pcb_t pcb[NUM_MAX_TASK];
+//extern pcb_t pcb[NUM_MAX_TASK];
 extern pcb_t pid0_pcb;
 extern const ptr_t pid0_stack;
 

@@ -52,8 +52,12 @@
 /*
  * 2023-09-15: this OS is named "GlucOS"
 */
+#ifndef OS_NAME
 #define OS_NAME "GlucOS"
+#endif
+#ifndef USER_NAME
 #define USER_NAME "glucose180"
+#endif
 
 #define BOOTLOADER_ADDR 0x50200000
 enum FDT_TYPE {

@@ -10,7 +10,7 @@
 #include <assert.h>
 #include <os/loader.h>
 
-pcb_t pcb[NUM_MAX_TASK];
+//pcb_t pcb[NUM_MAX_TASK];
 /*
  * Has been modified by Glucose180
  */
