@@ -124,6 +124,34 @@ char *getcmd()
 }
 
 /*
+ * Split the string src using Sep as seperator and
+ * return an array of pointers with end NULL.
+ * NOTE: src may be modified!
+ */
+char **split(char *src, const char Sep)
+{
+#define CM 5U
+	unsigned int i;
+	char *rt[CM + 1], *p;
+	char flag_new = 1;
+
+	for (i = 0U, p = src; *p != '\0'; ++p)
+	{
+		if (flag_new != 0)
+			rt[i++] = p, flag_new = 0;
+		if (*p == Sep)
+		{
+			*p = '\0', flag_new = 1;
+			if (i >= CM)
+				break;
+		}
+	}
+	rt[i] = NULL;
+	return rt;
+#undef CM
+}
+
+/*
  * Print error information
  */
 void panic_g(const char *fmt, ...)
