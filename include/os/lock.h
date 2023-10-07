@@ -33,20 +33,20 @@
 #define LOCK_NUM 16
 
 typedef enum {
-    UNLOCKED,
-    LOCKED,
+	UNLOCKED,
+	LOCKED,
 } lock_status_t;
 
 typedef struct spin_lock
 {
-    volatile lock_status_t status;
+	volatile lock_status_t status;
 } spin_lock_t;
 
 typedef struct mutex_lock
 {
-    spin_lock_t lock;
-    list_head block_queue;
-    int key;
+	spin_lock_t lock;
+	list_head block_queue;
+	int key;
 } mutex_lock_t;
 
 void init_locks(void);
