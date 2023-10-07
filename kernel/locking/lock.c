@@ -86,11 +86,12 @@ int do_mutex_lock_acquire(int mlock_idx)
 			/* Insert to tail */
 			ptlock->block_queue = insert_node(ptlock->block_queue, p, NULL);
 			switch_to(&(p->context), &(current_running->context));
-			return;
+			return mlock_idx;
 		}
 	}
 	panic_g("do_mutex_lock_acquire: lock %d is LOCKED"
 		" but no ready process is found", mlock_idx);
+	return -1;
 }
 
 /*
