@@ -29,6 +29,7 @@
 #define INCLUDE_LOCK_H_
 
 #include <os/list.h>
+#include <os/pcb-list-g.h>
 
 #define LOCK_NUM 16
 
@@ -45,8 +46,10 @@ typedef struct spin_lock
 typedef struct mutex_lock
 {
 	spin_lock_t lock;
-	list_head block_queue;
+	//list_head block_queue;
+	pcb_t* block_queue;
 	int key;
+	pid_t opid;	/* Owner's PID */
 } mutex_lock_t;
 
 void init_locks(void);

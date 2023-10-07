@@ -51,13 +51,13 @@ int sys_mutex_init(int key)
 	return 0;
 }
 
-void sys_mutex_acquire(int mutex_idx)
+int sys_mutex_acquire(int mutex_idx)
 {
 	/* TODO: [p2-task2] call call_jmptab to implement sys_mutex_acquire */
 	/* TODO: [p2-task3] call invoke_syscall to implement sys_mutex_acquire */
 }
 
-void sys_mutex_release(int mutex_idx)
+int sys_mutex_release(int mutex_idx)
 {
 	/* TODO: [p2-task2] call call_jmptab to implement sys_mutex_release */
 	/* TODO: [p2-task3] call invoke_syscall to implement sys_mutex_release */

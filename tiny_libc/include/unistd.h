@@ -11,8 +11,8 @@ void sys_reflush(void);
 long sys_get_timebase(void);
 long sys_get_tick(void);
 int sys_mutex_init(int key);
-void sys_mutex_acquire(int mutex_idx);
-void sys_mutex_release(int mutex_idx);
+int sys_mutex_acquire(int mutex_idx);
+int sys_mutex_release(int mutex_idx);
 
 /************************************************************/
 /* Do not touch this comment. Reserved for future projects. */
