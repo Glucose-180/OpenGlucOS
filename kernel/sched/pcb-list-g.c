@@ -43,6 +43,33 @@ clist_node_t *add_node_to_tail(clist_node_t * const Head, clist_node_t * volatil
 }
 
 /*
+ * insert_node: insert a node after the node pointed by Pprior.
+ * If Pprior is NULL, *Pnew will be inserted to tail.
+ * Otherwise, if Pprior is not found in this list, NULL will be returned.
+ */
+clist_node_t *insert_node(clist_node_t * const Head, clist_node_t * const Pnew, clist_node_t * const Pprior)
+{
+	clist_node_t *p;
+
+	if (Head == NULL)
+	{	/* Empty list */
+		if (Pprior == NULL)
+			return Pnew->next = Pnew;
+		else
+			return NULL;
+	}
+	/* Search the list */
+	for (p = Head; p->next != Head; p = p->next)
+		if (p == Pprior)
+			break;
+	if (p != Pprior && Pprior != NULL)
+		return NULL;
+	Pnew->next = p->next;
+	p->next = Pnew;
+	return Head;
+}
+
+/*
  * search_node_pid: Search a node according to member "pid".
  * Return pointer to it, or NULL if not found.
  */
