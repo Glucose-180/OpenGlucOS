@@ -25,6 +25,8 @@
 #ifndef INCLUDE_REGS_H_
 #define INCLUDE_REGS_H_
 
+// NOTE by Glucose180: The comment below seems like an issue left over from history
+
 /* This is for struct TrapFrame in scheduler.h
  * Stack layout for all exceptions:
  *
@@ -92,6 +94,7 @@
 
 #define PCB_KERNEL_SP          0
 #define PCB_USER_SP            8
+#define PCB_TRAPFRAME		   16
 
 /* offset in switch_to */
 #define SWITCH_TO_RA     0

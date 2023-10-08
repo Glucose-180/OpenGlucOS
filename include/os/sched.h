@@ -77,6 +77,7 @@ typedef struct pcb
 	// NOTE: this order must be preserved, which is defined in regs.h!!
 	reg_t kernel_sp;
 	reg_t user_sp;
+	regs_context_t *trapframe;
 
 	/* previous, next pointer */
 	//list_node_t list;
