@@ -75,7 +75,6 @@ int do_mutex_lock_acquire(int mlock_idx)
 	{
 		if (p->status == TASK_READY)
 		{
-			current_running->status = TASK_READY;
 			q = current_running;
 			current_running = p;
 			current_running->status = TASK_RUNNING;
@@ -83,8 +82,7 @@ int do_mutex_lock_acquire(int mlock_idx)
 			if (p != q)
 				panic_g("do_mutex_lock_acquire: Failed to remove"
 					" current_running from ready_queue");
-			/* Insert to tail */
-			ptlock->block_queue = insert_node(ptlock->block_queue, p, NULL);
+			ptlock->block_queue = do_block(p, ptlock->block_queue);
 			switch_to(&(p->context), &(current_running->context));
 			return mlock_idx;
 		}
@@ -102,7 +100,7 @@ int do_mutex_lock_release(int mlock_idx)
 {
 	/* TODO: [p2-task2] release mutex lock */
 	mutex_lock_t *ptlock;
-	pcb_t *prec, *temp;
+	pcb_t *temp;
 
 	if (mlock_idx >= LOCK_NUM || mlock_idx < 0)
 		return -1;	/* Invalid mlock_idx */
@@ -117,16 +115,10 @@ int do_mutex_lock_release(int mlock_idx)
 		ptlock->lock.status = UNLOCKED;
 	else
 	{
-		/* Remove the head of ptlock->block_queue and let prec point to it */
-		ptlock->block_queue = del_node(ptlock->block_queue, ptlock->block_queue, &prec);
-		temp = insert_node(ready_queue, prec, current_running);
-		if (temp == NULL)
-			panic_g("do_mutex_lock_release: Failed to insert the process"
-				" who acquires the lock %d to ready_queue", mlock_idx);
-		else
-			ready_queue = temp;
-		/* Now *prec acquires the lock */
-		ptlock->opid = prec->pid;
+		temp = ptlock->block_queue;	/* Points to the head */
+		ptlock->block_queue = do_unblock(ptlock->block_queue);
+		/* Now *temp acquires the lock */
+		ptlock->opid = temp->pid;
 	}
 	return mlock_idx;
 }

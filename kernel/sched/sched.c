@@ -138,14 +138,38 @@ void do_sleep(uint32_t sleep_time)
 	// 3. reschedule because the current_running is blocked.
 }
 
-void do_block(list_node_t *pcb_node, list_head *queue)
+//void do_block(list_node_t *pcb_node, list_head *queue)
+/*
+ * Insert *Pt to tail of Queue and return the new head of Queue.
+ * NULL will be returned on error (It is unlike to happen).
+ */
+pcb_t *do_block(pcb_t * const Pt, pcb_t * const Queue)
 {
 	// TODO: [p2-task2] block the pcb task into the block queue
+	Pt->status = TASK_SLEEPING;
+	return insert_node(Queue, Pt, NULL);
 }
 
-void do_unblock(list_node_t *pcb_node)
+//void do_unblock(list_node_t *pcb_node)
+/*
+ * Remove the head from Queue, set its status to be READY
+ * and insert it into ready_queue AFTER current_running.
+ * Return: new head of Queue.
+ */
+pcb_t *do_unblock(pcb_t * const Queue)
 {
 	// TODO: [p2-task2] unblock the `pcb` from the block queue
+	pcb_t *prec, *nq, *temp;
+
+	nq = del_node(Queue, Queue, &prec);
+	if (prec == NULL)
+		panic_g("do_unblock: Failed to remove the head of queue 0x%lx", (long)Queue);
+	prec->status = TASK_READY;
+	temp = insert_node(ready_queue, prec, current_running);
+	if (temp == NULL)
+		panic_g("do_unblock: Failed to insert process (PID=%d) to ready_queue", prec->pid);
+	ready_queue = temp;
+	return nq;
 }
 
 /************************************************************/

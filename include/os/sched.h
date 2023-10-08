@@ -125,8 +125,8 @@ pid_t create_proc(const char *taskname);
 void do_scheduler(void);
 void do_sleep(uint32_t);
 
-void do_block(list_node_t *, list_head *queue);
-void do_unblock(list_node_t *);
+pcb_t *do_block(pcb_t * const Pt, pcb_t * const Queue);
+pcb_t *do_unblock(pcb_t * const Queue);
 
 void init_pcb_stack(
 	ptr_t kernel_stack, ptr_t user_sp, ptr_t entry_point,
