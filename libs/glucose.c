@@ -162,7 +162,7 @@ void panic_g(const char *fmt, ...)
 	printk("\n**Panic: ");
 
 	va_start(va, fmt);
-	printk(fmt, va);
+	vprintk(fmt, va);
 	va_end(va);
 
 	printk("\n");
