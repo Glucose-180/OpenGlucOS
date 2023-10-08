@@ -17,10 +17,11 @@
 const ptr_t pid0_stack = INIT_KERNEL_STACK;// + PAGE_SIZE;
 
 /*
- * The default size for a user stack.
- * 4 KiB.
+ * The default size for a user stack and kernel stack.
+ * 4 KiB, 2 KiB.
  */
-static const uint32_t Ustack_size = 4 * 1024;
+static const uint32_t Ustack_size = 4 * 1024,
+	Kstask_size = 2 * 1024;
 
 /*
  * It is used to represent main.c:main()
@@ -70,14 +71,15 @@ pid_t alloc_pid(void)
  */
 pid_t create_proc(const char *taskname)
 {
-	ptr_t entry, user_stack;
+	ptr_t entry, user_stack, kernel_stack;
 	pcb_t *pnew, *temp;
 
 	entry = load_task_img(taskname);
 	if (entry == 0U)
 		return INVALID_PID;
 	user_stack = (ptr_t)umalloc_g(Ustack_size);
-	if (user_stack == 0)
+	kernel_stack = (ptr_t)kmalloc_g(Kstask_size);
+	if (user_stack == 0 || kernel_stack == 0)
 		return INVALID_PID;
 	if ((temp = add_node_to_tail(ready_queue, &pnew)) == NULL)
 	{
@@ -85,10 +87,8 @@ pid_t create_proc(const char *taskname)
 		return INVALID_PID;
 	}
 	ready_queue = temp;
-	/*
-	 * NOTE: Use 0 as kernel stack address TEMPorarily
-	 */
-	init_pcb_stack(0, user_stack + ROUND(Ustack_size, ADDR_ALIGN), entry, pnew);
+	init_pcb_stack(kernel_stack + ROUND(Kstask_size, ADDR_ALIGN),
+		user_stack + ROUND(Ustack_size, ADDR_ALIGN), entry, pnew);
 	return pnew->pid;
 }
 
@@ -174,7 +174,7 @@ pcb_t *do_unblock(pcb_t * const Queue)
 
 /************************************************************/
 void init_pcb_stack(
-	ptr_t kernel_stack, ptr_t user_sp, ptr_t entry_point,
+	ptr_t kernel_sp, ptr_t user_sp, ptr_t entry_point,
 	pcb_t *pcb)
 {
 	 /* TODO: [p2-task3] initialization of registers on kernel stack
@@ -195,7 +195,7 @@ void init_pcb_stack(
 
 	pcb->context.regs[SR_RA] = entry_point;
 	pcb->context.regs[SR_SP] = user_sp;
-	pcb->kernel_sp = kernel_stack;
+	pcb->kernel_sp = kernel_sp;
 	pcb->user_sp = user_sp;
 	pcb->status = TASK_READY;
 	pcb->cursor_x = pcb->cursor_y = 0;

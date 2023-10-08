@@ -129,7 +129,7 @@ pcb_t *do_block(pcb_t * const Pt, pcb_t * const Queue);
 pcb_t *do_unblock(pcb_t * const Queue);
 
 void init_pcb_stack(
-	ptr_t kernel_stack, ptr_t user_sp, ptr_t entry_point,
+	ptr_t kernel_sp, ptr_t user_sp, ptr_t entry_point,
 	pcb_t *pcb);
 
 /************************************************************/

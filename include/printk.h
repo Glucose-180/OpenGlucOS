@@ -3,6 +3,8 @@
 
 #include <stdarg.h>
 
+int vprintk(const char *fmt, va_list _va);
+
 /* kernel print */
 int printk(const char *fmt, ...);
 

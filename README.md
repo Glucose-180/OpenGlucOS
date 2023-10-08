@@ -40,4 +40,4 @@ Project 2。
 
 #### [2023-10-08]
 
-​	修改了 Task2，使用`do_block()`与`do_unblock()`。使用`vprintk()`修复了`panic_g()`读取参数异常的问题。
+​	修改了 Task2，使用`do_block()`与`do_unblock()`。使用`vprintk()`修复了`panic_g()`读取参数异常的问题。初始化了用户程序的内核栈`kernel_sp`，以备后面的任务使用。
