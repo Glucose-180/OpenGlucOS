@@ -6,6 +6,7 @@
 #include <printk.h>
 #include <assert.h>
 #include <screen.h>
+#include <os/glucose.h>
 
 handler_t irq_table[IRQC_COUNT];
 handler_t exc_table[EXCC_COUNT];
@@ -14,6 +15,21 @@ void interrupt_helper(regs_context_t *regs, uint64_t stval, uint64_t scause)
 {
 	// TODO: [p2-task3] & [p2-task4] interrupt handler.
 	// call corresponding handler by the value of `scause`
+	if ((int)scause < 0)
+	{	/* Interrupt */
+		scause &= (((uint64_t)~0UL) >> 1);
+		if (scause >= IRQC_COUNT)
+			panic_g("interrupt_helper: exception code of "
+				"Interrupt is error: 0x%lx", scause);
+		irq_table[scause](regs, stval, scause);
+	}
+	else
+	{
+		if (scause >= EXCC_COUNT)
+			panic_g("interrupt_helper: exception code of "
+				"non-interrupt is error: 0x%lx", scause);
+		exc_table[scause](regs, stval, scause);
+	}
 }
 
 void handle_irq_timer(regs_context_t *regs, uint64_t stval, uint64_t scause)
@@ -26,11 +42,16 @@ void init_exception()
 {
 	/* TODO: [p2-task3] initialize exc_table */
 	/* NOTE: handle_syscall, handle_other, etc.*/
+	int i;
 
+	for (i = 0; i < EXCC_COUNT; ++i)
+		exc_table[i] = handle_other;
+	exc_table[EXCC_SYSCALL] = handle_syscall;
 	/* TODO: [p2-task4] initialize irq_table */
 	/* NOTE: handle_int, handle_other, etc.*/
 
 	/* TODO: [p2-task3] set up the entrypoint of exceptions */
+	setup_exception();
 }
 
 void handle_other(regs_context_t *regs, uint64_t stval, uint64_t scause)

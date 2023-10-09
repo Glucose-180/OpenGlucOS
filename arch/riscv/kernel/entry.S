@@ -221,7 +221,7 @@ ENTRY(ret_from_exception)
 	ld	t0, 0(t0)	/* $t0 := c.r. */
 	ld	t0, PCB_TRAPFRAME(t0)	/* $t0 := c.r.->trapframe */
 	ld	t0, OFFSET_REG_SCAUSE(t0)	/* $t0 := c.r.->trapframe->scause */
-	li	t1, 9
+	li	t1, 8
 	/*
 	 * 9 or 8? To be confirmed...
 	 */
