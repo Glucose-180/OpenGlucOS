@@ -25,7 +25,7 @@ void trim(char *const Str)
 
 int getchar()
 {
-#define QS 32	/* Size of queue */
+#define QS 64	/* Size of queue */
 #define QEMPTY (qhead == qtail)
 #define QFULL ((qhead - qtail) % QS == 1)
 
@@ -108,13 +108,9 @@ int getline(char* str, const int Len)
  */
 char *getcmd()
 {
-#define CS 30
+#define CS 62
 	static char cbuf[CS];
 
-	/*bios_putstr(USER_NAME);
-	bios_putchar('@');
-	bios_putstr(OS_NAME);
-	bios_putstr(":~$ ");*/
 	printk("%s@%s:~$ ", USER_NAME, OS_NAME);
 
 	getline(cbuf, CS);

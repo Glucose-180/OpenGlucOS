@@ -230,7 +230,7 @@ ENTRY(ret_from_exception)
 	/* $sepc += 4 */
 	csrr	t0, CSR_SEPC
 	addi	t0, t0, 4
-	csrw	t0, CSR_SEPC
+	csrw	CSR_SEPC, t0
 NOT_SYSCALL:
 	RESTORE_CONTEXT
 	sret

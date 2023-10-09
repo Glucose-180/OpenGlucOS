@@ -11,7 +11,7 @@ void handle_syscall(regs_context_t *regs, uint64_t interrupt, uint64_t cause)
 	 * and pay attention to the return value and sepc
 	 */
 	long sysno = regs->regs[17];	/* Use a7 as syscall number */
-	long *args = regs->regs + 10;
+	long *args = (long *)(regs->regs + 10);
 	long (*func)(long, long , long, long, long);
 	long rt;
 	if (sysno >= NUM_SYSCALLS)
