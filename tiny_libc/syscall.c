@@ -78,7 +78,7 @@ int sys_mutex_acquire(int mutex_idx)
 	/* TODO: [p2-task2] call call_jmptab to implement sys_mutex_acquire */
 	//return call_jmptab(MUTEX_ACQ, mutex_idx, 0, 0, 0, 0);
 	/* TODO: [p2-task3] call invoke_syscall to implement sys_mutex_acquire */
-	return call_jmptab(SYSCALL_LOCK_ACQ, mutex_idx, 0, 0, 0, 0);
+	return invoke_syscall(SYSCALL_LOCK_ACQ, mutex_idx, 0, 0, 0, 0);
 }
 
 int sys_mutex_release(int mutex_idx)

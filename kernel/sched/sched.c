@@ -30,6 +30,7 @@ pcb_t pid0_pcb = {
 	.pid = 0,
 	.kernel_sp = (ptr_t)pid0_stack,
 	.user_sp = (ptr_t)pid0_stack,
+	.trapframe = (void *)pid0_stack,
 	/* Add more info */
 	.status = TASK_RUNNING,
 	.cursor_x = 0,
@@ -197,6 +198,7 @@ void init_pcb_stack(
 	pcb->context.regs[SR_SP] = user_sp;
 	pcb->kernel_sp = kernel_sp;
 	pcb->user_sp = user_sp;
+	pcb->trapframe = NULL;	/* Flag for a new task */
 	pcb->status = TASK_READY;
 	pcb->cursor_x = pcb->cursor_y = 0;
 	if ((pcb->pid = alloc_pid()) == INVALID_PID)

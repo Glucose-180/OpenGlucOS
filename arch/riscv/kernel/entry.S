@@ -164,7 +164,6 @@ ENDPROC(disable_interrupt)
 /* The type of arguments has been modified from pcb_t* to switchto_context_t* */
 // extern void switch_to(switchto_context_t *prev, switchto_context_t *next);
 ENTRY(switch_to)
-	//addi sp, sp, -(SWITCH_TO_SIZE)
 
 	/* TODO: [p2-task1] save all callee save registers on kernel stack,
 	 * see the definition of `struct switchto_context` in sched.h*/
@@ -209,8 +208,20 @@ RS:
  */
 	la	t0, current_running
 	ld	tp, 0(t0)
-	//addi sp, sp, SWITCH_TO_SIZE
+
+	mv	t0, tp	/* $t0 := c.r. */
+	ld	t1, PCB_TRAPFRAME(t0)
+	beq	zero, t1, New_task
+	/*
+	 * c.r.->trapframe being NULL means it is a new process.
+	 * So sret is used to change to User Mode from Supervisor Mode.
+	 */
+
 	jr	ra
+New_task:
+	csrw	CSR_SEPC, ra
+	sret
+
 ENDPROC(switch_to)
 
 ENTRY(ret_from_exception)

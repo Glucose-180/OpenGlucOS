@@ -16,9 +16,9 @@ void handle_syscall(regs_context_t *regs, uint64_t interrupt, uint64_t cause)
 	long rt;
 	if (sysno >= NUM_SYSCALLS)
 		invalid_syscall(sysno, args[0], args[1], args[2], args[3], args[4]);
-	else if (interrupt != regs->sepc)
-		panic_g("handle_syscall: stval %lx is not equals to trapframe->sepc %lx",
-			interrupt, regs->sepc);
+	/*else if (interrupt != regs->sepc)
+		panic_g("handle_syscall: stval 0x%lx is not equals to trapframe->sepc 0x%lx",
+			interrupt, regs->sepc);*/
 	func = (long (*)(long, long, long, long, long))(syscall[sysno]);
 	rt = func(args[0], args[1], args[2], args[3], args[4]);
 	args[0] = rt;	/* a0 := return value */

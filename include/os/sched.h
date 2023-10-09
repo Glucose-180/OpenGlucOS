@@ -78,6 +78,11 @@ typedef struct pcb
 	reg_t kernel_sp;
 	reg_t user_sp;
 	regs_context_t *trapframe;
+	/*
+	 * NOTE: trapframe being NULL means that this
+	 * process is new (hasn't run). It is used in
+	 * switch_to(). See entry.S.
+	 */
 
 	/* previous, next pointer */
 	//list_node_t list;
