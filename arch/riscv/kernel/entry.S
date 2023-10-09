@@ -12,7 +12,7 @@
 
 	sd	sp, PCB_USER_SP(t0)	/* c.r.->user_sp := $sp */
 	ld	sp, PCB_KERNEL_SP(t0)	/* $sp := c.r.->kernel_sp */
-	addi	sp, OFFSET_SIZE		/* $sp := $sp - sizeof(regs_context_t) */
+	addi	sp, sp, -OFFSET_SIZE		/* $sp := $sp - sizeof(regs_context_t) */
 
 	/* Save GPRs */
 	sd	zero, OFFSET_REG_ZERO(sp)
@@ -56,7 +56,7 @@
 	csrr	t1, CSR_STVAL
 	sd	t1, OFFSET_REG_SBADADDR(sp)
 	csrr	t1, CSR_SCAUSE
-	sd	t1, OFFSET_REG_SCAUSE
+	sd	t1, OFFSET_REG_SCAUSE(sp)
 
 	ld	t1, PCB_USER_SP(t0)	/* $t1 := c.r.->user_sp */
 	sd	t1, OFFSET_REG_SP(sp)
@@ -68,6 +68,7 @@
 	//ld	t0, PCB_USER_SP(t0)	/* $t0 := c.r.->user_sp */
 	mv	t0, t1	/* $t0 := c.r.->user_sp */
 	ld	t0, -8(t0)
+	sd	t0, OFFSET_REG_T0(sp)
 
 	/*
 	 * Disable user-mode memory access as it should only be set in the
@@ -87,6 +88,52 @@
 .macro RESTORE_CONTEXT
 	/* TODO: Restore all general purpose registers and sepc, sstatus */
 	/* HINT: Pay attention to sp again! */
+	la	t0, current_running
+	ld	t0, 0(t0)	/* $t0 := c.r. */
+
+	ld	sp, PCB_TRAPFRAME(t0)	/* $sp := c.r.->trapframe */
+
+	/* Restore GPRs */
+	//ld	zero, OFFSET_REG_ZERO(t0)
+	ld	ra, OFFSET_REG_RA(sp)
+	//ld	sp, OFFSET_REG_SP(sp)
+	ld	gp, OFFSET_REG_GP(sp)
+	ld	tp, OFFSET_REG_TP(sp)
+	//ld	t0, OFFSET_REG_T0(sp)
+	ld	t1, OFFSET_REG_T1(sp)
+	ld	t2, OFFSET_REG_T2(sp)
+	ld	s0, OFFSET_REG_S0(sp)
+	ld	s1, OFFSET_REG_S1(sp)
+	ld	a0, OFFSET_REG_A0(sp)
+	ld	a1, OFFSET_REG_A1(sp)
+	ld	a2, OFFSET_REG_A2(sp)
+	ld	a3, OFFSET_REG_A3(sp)
+	ld	a4, OFFSET_REG_A4(sp)
+	ld	a5, OFFSET_REG_A5(sp)
+	ld	a6, OFFSET_REG_A6(sp)
+	ld	a7, OFFSET_REG_A7(sp)
+	ld	s2, OFFSET_REG_S2(sp)
+	ld	s3, OFFSET_REG_S3(sp)
+	ld	s4, OFFSET_REG_S4(sp)
+	ld	s5, OFFSET_REG_S5(sp)
+	ld	s6, OFFSET_REG_S6(sp)
+	ld	s7, OFFSET_REG_S7(sp)
+	ld	s8, OFFSET_REG_S8(sp)
+	ld	s9, OFFSET_REG_S9(sp)
+	ld	s10, OFFSET_REG_S10(sp)
+	ld	s11, OFFSET_REG_S11(sp)
+	ld	t3, OFFSET_REG_T3(sp)
+	ld	t4, OFFSET_REG_T4(sp)
+	ld	t5, OFFSET_REG_T5(sp)
+	ld	t6, OFFSET_REG_T6(sp)
+
+	addi	sp, sp, OFFSET_SIZE	/* $sp := $sp + sizeof(regs_context_t) */
+	sd	sp, PCB_KERNEL_SP(t0)	/* c.r.->kernel_sp := $sp */
+	ld	sp, PCB_USER_SP(t0)	/* $sp := c.r.->user_sp */
+
+	ld	t0, PCB_TRAPFRAME(t0)	/* $t0 := c.r.->trapframe */
+	ld	t0, OFFSET_REG_T0(t0)	/* $t0 := c.r.->trapframe->regs[#t0] */
+
 .endm
 
 ENTRY(enable_preempt)

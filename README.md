@@ -8,7 +8,7 @@ Project 2。
 
 #### 最新更改
 
-[2023-10-08] 初步完成了`entry.S`中的`SAVE_CONTEXT`。
+[2023-10-09] 修了一下`entry.S`中的`SAVE_CONTEXT`，然后初步完成了`RESTORE_CONTEXT`。
 
 #### 可做的优化
 
