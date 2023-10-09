@@ -36,5 +36,6 @@
 /* syscall function pointer */
 extern long (*syscall[NUM_SYSCALLS])();
 extern void handle_syscall(regs_context_t *regs, uint64_t stval, uint64_t scause);
+extern void invalid_syscall(long sysno, long arg0, long arg1, long arg2, long arg3, long arg4);
 
 #endif
