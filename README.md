@@ -8,7 +8,7 @@ Project 2。
 
 #### 最新更改
 
-[2023-10-09] 修了一下`entry.S`中的`SAVE_CONTEXT`，然后初步完成了`RESTORE_CONTEXT`。
+[2023-10-09] 初步填充了`trap.S`和`entry.S`中的汇编代码。
 
 #### 可做的优化
 

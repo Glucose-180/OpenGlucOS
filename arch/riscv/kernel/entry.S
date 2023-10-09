@@ -216,21 +216,50 @@ ENDPROC(switch_to)
 ENTRY(ret_from_exception)
 	/* TODO: [p2-task3] restore context via provided macro and return to sepc */
 	/* HINT: remember to check your sp, does it point to the right address? */
+
+	la	t0, current_running
+	ld	t0, 0(t0)	/* $t0 := c.r. */
+	ld	t0, PCB_TRAPFRAME(t0)	/* $t0 := c.r.->trapframe */
+	ld	t0, OFFSET_REG_SCAUSE(t0)	/* $t0 := c.r.->trapframe->scause */
+	li	t1, 9
+	/*
+	 * 9 or 8? To be confirmed...
+	 */
+	bne	t0, t1, NOT_SYSCALL
+//IS_SYSCALL:
+	/* $sepc += 4 */
+	csrr	t0, CSR_SEPC
+	addi	t0, t0, 4
+	csrw	t0, CSR_SEPC
+NOT_SYSCALL:
+	RESTORE_CONTEXT
+	sret
+
 ENDPROC(ret_from_exception)
 
 ENTRY(exception_handler_entry)
 
 	/* TODO: [p2-task3] save context via the provided macro */
-
+	SAVE_CONTEXT
 
 	/* TODO: [p2-task3] load ret_from_exception into $ra so that we can return to
 	 * ret_from_exception when interrupt_help complete.
 	 */
-
+	la	ra, ret_from_exception
+	addi	sp, sp, -16
+	sd	ra, 0(sp)
 
 	/* TODO: [p2-task3] call interrupt_helper
 	 * NOTE: don't forget to pass parameters for it.
 	 */
+	la	t0, current_running
+	ld	t0, 0(t0)	/* $t0 := c.r. */
+	ld	a0, PCB_TRAPFRAME(t0)	/* $a0 := c.r.->trapframe */
+	ld	a1, OFFSET_REG_SBADADDR(a0)
+	ld	a2, OFFSET_REG_SCAUSE(a0)
+	call	interrupt_helper
 
-
+	ld	ra, 0(sp)
+	addi	sp, sp, 16
+	jr	ra
 ENDPROC(exception_handler_entry)
