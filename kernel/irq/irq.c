@@ -15,7 +15,7 @@ void interrupt_helper(regs_context_t *regs, uint64_t stval, uint64_t scause)
 {
 	// TODO: [p2-task3] & [p2-task4] interrupt handler.
 	// call corresponding handler by the value of `scause`
-	if ((int)scause < 0)
+	if ((int64_t)scause < 0)
 	{	/* Interrupt */
 		scause &= (((uint64_t)~0UL) >> 1);
 		if (scause >= IRQC_COUNT)
@@ -52,6 +52,8 @@ void init_exception()
 
 	/* TODO: [p2-task3] set up the entrypoint of exceptions */
 	setup_exception();
+	enable_preempt();
+	enable_interrupt();
 }
 
 void handle_other(regs_context_t *regs, uint64_t stval, uint64_t scause)
