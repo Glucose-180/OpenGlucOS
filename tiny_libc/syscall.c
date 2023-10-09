@@ -11,9 +11,26 @@ static long invoke_syscall(long sysno, long arg0, long arg1, long arg2,
 						   long arg3, long arg4)
 {
 	/* TODO: [p2-task3] implement invoke_syscall via inline assembly */
-	asm volatile("nop");
+	//asm volatile("nop");
+	long rt;
 
-	return 0;
+	__asm__ volatile
+	(
+		"mv		a7, %1\n\t"
+		"mv		a0, %2\n\t"
+		"mv		a1, %3\n\t"
+		"mv		a2, %4\n\t"
+		"mv		a3, %5\n\t"
+		"mv		a4, %6\n\t"
+		"ecall\n\t"
+		"mv		%0, a0"
+		: "=r" (rt)
+		: "r"(sysno), "r"(arg0), "r"(arg1),
+		"r"(arg2), "r"(arg3), "r"(arg4)
+		: "a0", "a1", "a2", "a3", "a4", "a5", "a7"
+	);
+
+	return rt;
 }
 
 void sys_yield(void)
