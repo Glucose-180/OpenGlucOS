@@ -6,6 +6,7 @@
 void sys_sleep(uint32_t time);
 void sys_yield(void);
 void sys_write(char *buff);
+int sys_bios_getchar(void);
 void sys_move_cursor(int x, int y);
 void sys_reflush(void);
 long sys_get_timebase(void);

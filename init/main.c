@@ -110,6 +110,7 @@ static void init_syscall(void)
 	syscall[SYSCALL_SLEEP] = (long (*)())do_sleep;
 	syscall[SYSCALL_YIELD] = (long (*)())do_scheduler;
 	syscall[SYSCALL_WRITE] = (long (*)())screen_write;
+	syscall[SYSCALL_BIOS_GETCHAR] = (long (*)())bios_getchar;
 	syscall[SYSCALL_CURSOR] = (long (*)())screen_move_cursor;
 	syscall[SYSCALL_REFLUSH] = (long (*)())screen_reflush;
 	syscall[SYSCALL_GET_TIMEBASE] = (long(*)())get_time_base;

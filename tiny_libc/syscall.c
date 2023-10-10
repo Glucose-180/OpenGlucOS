@@ -57,6 +57,11 @@ void sys_write(char *buff)
 	invoke_syscall(SYSCALL_WRITE, (long)buff, 0, 0, 0, 0);
 }
 
+int sys_bios_getchar(void)
+{
+	return invoke_syscall(SYSCALL_BIOS_GETCHAR, 0, 0, 0, 0, 0);
+}
+
 void sys_reflush(void)
 {
 	/* TODO: [p2-task1] call call_jmptab to implement sys_reflush */

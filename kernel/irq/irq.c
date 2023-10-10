@@ -26,8 +26,9 @@ void interrupt_helper(regs_context_t *regs, uint64_t stval, uint64_t scause)
 	else
 	{
 		if (scause >= EXCC_COUNT)
-			panic_g("interrupt_helper: exception code of "
-				"non-interrupt is error: 0x%lx", scause);
+			//panic_g("interrupt_helper: exception code of "
+				//"non-interrupt is error: 0x%lx", scause);
+			handle_other(regs, stval, scause);
 		exc_table[scause](regs, stval, scause);
 	}
 }
