@@ -5,6 +5,12 @@
 uint64_t time_elapsed = 0;
 uint64_t time_base = 0;
 
+/*
+ * The maximum time (seconds).
+ * It equals max(uint64_t)/time_base.
+ */
+uint64_t time_max_sec = 0;
+
 uint64_t get_ticks()
 {
 	__asm__ __volatile__(
@@ -29,9 +35,4 @@ void latency(uint64_t time)
 
 	while (get_timer() - begin_time < time);
 	return;
-}
-
-void check_sleeping(void)
-{
-	// TODO: [p2-task3] Pick out tasks that should wake up from the sleep queue
 }

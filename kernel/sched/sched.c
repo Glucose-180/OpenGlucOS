@@ -155,6 +155,11 @@ void do_sleep(uint32_t sleep_time)
 	// 3. reschedule because the current_running is blocked.
 }
 
+void check_sleeping(void)
+{
+	// TODO: [p2-task3] Pick out tasks that should wake up from the sleep queue
+}
+
 //void do_block(list_node_t *pcb_node, list_head *queue)
 /*
  * Insert *Pt to tail of Queue and return the new head of Queue.

@@ -130,6 +130,7 @@ pid_t create_proc(const char *taskname);
 
 void do_scheduler(void);
 void do_sleep(uint32_t);
+void check_sleeping(void);
 
 pcb_t *do_block(pcb_t * const Pt, pcb_t * const Queue);
 pcb_t *do_unblock(pcb_t * const Queue);

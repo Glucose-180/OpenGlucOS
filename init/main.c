@@ -142,6 +142,7 @@ int main(void)
 
 	// Read CPU frequency (｡•ᴗ-)_
 	time_base = bios_read_fdt(TIMEBASE);
+	time_max_sec = UINT64_MAX / time_base;
 
 	// Init lock mechanism o(´^｀)o
 	init_locks();
