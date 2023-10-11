@@ -8,7 +8,7 @@ Project 2。
 
 #### 最新更改
 
-[2023-10-10] 修改了`sched.c`中的相关代码，使得添加用户程序时，会从移除代表内核`main()`函数的 0 号 PCB（PID 为 0）使之不参与调度。具体做法是先移除 0 号 PCB，再使其`next`指向`ready_queue`，这样就形成了一个“只出不进”的结构，当`current_running`顺着其`next`进入`ready_queue`循环队列后就再也不会出去、回到 0 号 PCB 了。
+[2023-10-11] 在`~Record/README.md`中添加了调试记录。
 
 #### 可做的优化
 
