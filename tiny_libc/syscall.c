@@ -97,18 +97,19 @@ int sys_mutex_release(int mutex_idx)
 long sys_get_timebase(void)
 {
 	/* TODO: [p2-task3] call invoke_syscall to implement sys_get_timebase */
-	return 0;
+	return invoke_syscall(SYSCALL_GET_TIMEBASE, 0, 0, 0, 0, 0);
 }
 
 long sys_get_tick(void)
 {
 	/* TODO: [p2-task3] call invoke_syscall to implement sys_get_tick */
-	return 0;
+	return invoke_syscall(SYSCALL_GET_TICK, 0, 0, 0, 0, 0);
 }
 
 void sys_sleep(uint32_t time)
 {
 	/* TODO: [p2-task3] call invoke_syscall to implement sys_sleep */
+	invoke_syscall(SYSCALL_SLEEP, (long)time, 0, 0, 0, 0);
 }
 
 /************************************************************/

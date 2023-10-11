@@ -187,10 +187,18 @@ static int mini_vsnprintf(
                     break;
 
                 case 'u':
-                case 'd':
                     len = mini_itoa(
                         longflag == 0 ? (unsigned long)va_arg(
                                             va, unsigned int) :
+                                        va_arg(va, unsigned long),
+                        10, 0, (ch == 'u'), bf, zero_pad);
+                    _puts(bf, len, &b);
+                    longflag = 0;
+                    break;
+                case 'd':
+                    len = mini_itoa(
+                        longflag == 0 ? (long)va_arg(
+                                            va, int) :
                                         va_arg(va, unsigned long),
                         10, 0, (ch == 'u'), bf, zero_pad);
                     _puts(bf, len, &b);

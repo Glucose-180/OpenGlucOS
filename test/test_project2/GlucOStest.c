@@ -12,6 +12,8 @@
 void test_access_kernel(void);
 void test_syscall(void);
 void test_unaligned(void);
+void test_zerodivision(void);
+void test_printf(void);
 
 int main()
 {
@@ -23,6 +25,8 @@ int main()
 		"\t0 - Try to access kernel memory\n"
 		"\t1 - Check GPRs after a Syscall\n"
 		"\t2 - Try to access an unaligned address\n"
+		"\t3 - Try to divide an integer by ZERO\n"
+		"\t4 - printf different kinds of integers\n"
 	);
 	while (1)
 	{
@@ -39,6 +43,12 @@ int main()
 			break;
 		case 2:
 			test_unaligned();
+			break;
+		case 3:
+			test_zerodivision();
+			break;
+		case 4:
+			test_printf();
 			break;
 		default:
 			flag_retry = 1;
@@ -126,4 +136,32 @@ void test_unaligned(void)
 		: "t0"
 	);
 	printf("Test failed! No exception happened.\n");
+}
+
+void test_zerodivision(void)
+{
+	int dividend = 5, quo;
+
+	quo = dividend / 0;
+	if (quo == -1)
+		printf("Test passed! The quotient is -1.\n");
+	else
+		printf("Test failed! No exception happened "
+			"and the quotient is %d.\n", quo);
+}
+
+void test_printf(void)
+{
+	int iv = -5033;
+	unsigned int uiv = 2147483648;
+	long lv = -4294967296;
+	unsigned long ulv = 4294967296;
+
+	printf(
+		"(int)-5033                 : %d\n"
+		"(unsigned)2147483648       : %u\n"
+		"(long)-4294967296          : %ld\n"
+		"(unsigned long)4294967296  : %lu\n",
+		iv, uiv, lv, ulv
+		);
 }
