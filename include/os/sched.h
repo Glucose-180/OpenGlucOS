@@ -113,6 +113,7 @@ extern pcb_t *ready_queue;
 
 /* sleep queue to be blocked in */
 //extern list_head sleep_queue;
+extern pcb_t *sleep_queue;
 
 /* current running task PCB */
 extern pcb_t * volatile current_running;
@@ -131,6 +132,7 @@ pid_t create_proc(const char *taskname);
 void do_scheduler(void);
 void do_sleep(uint32_t);
 void check_sleeping(void);
+void wake_up(pcb_t * const T);
 
 pcb_t *do_block(pcb_t * const Pt, pcb_t * const Queue);
 pcb_t *do_unblock(pcb_t * const Queue);

@@ -25,7 +25,7 @@ void trim(char *const Str)
 
 int getchar()
 {
-#define QS 64	/* Size of queue */
+#define QS 128	/* Size of queue */
 #define QEMPTY (qhead == qtail)
 #define QFULL ((qhead - qtail) % QS == 1)
 
@@ -108,7 +108,7 @@ int getline(char* str, const int Len)
  */
 char *getcmd()
 {
-#define CS 62
+#define CS 126
 	static char cbuf[CS];
 
 	printk("%s@%s:~$ ", USER_NAME, OS_NAME);
@@ -126,7 +126,7 @@ char *getcmd()
  */
 char **split(char *src, const char Sep)
 {
-#define CM 5U
+#define CM 10U
 	unsigned int i;
 	static char *rt[CM + 1];
 	char *p;
@@ -154,14 +154,15 @@ char **split(char *src, const char Sep)
 void panic_g(const char *fmt, ...)
 {
 	va_list va;
+	int _vprint(const char *fmt, va_list _va, void (*output)(char*));
 
-	printk("\n**Panic: ");
+	printv("\n**Panic: ");
 
 	va_start(va, fmt);
-	vprintk(fmt, va);
+	_vprint(fmt, va, bios_putstr);
 	va_end(va);
 
-	printk("\n");
+	printv("**\n");
 	while (1)
 		;
 }

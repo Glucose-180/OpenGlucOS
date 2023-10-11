@@ -8,7 +8,7 @@ Project 2。
 
 #### 最新更改
 
-[2023-10-11] 在`~Record/README.md`中添加了调试记录。
+[2023-10-11] 首次完成了 Task 3，修复了`glucose.c`中`panic_g()`使用`printk()`存在的问题（当`current_running`无效时，无法正确打印错误信息），修复了`printf/k`不能打印负数的问题。
 
 #### 可做的优化
 
@@ -53,3 +53,8 @@ Project 2。
 ​	新增`bios_getchar()`作为系统调用 21，并新增了`genshin.c`用于测试系统例外处理的功能。
 
 ​	修改了`sched.c`中的相关代码，使得添加用户程序时，会从移除代表内核`main()`函数的 0 号 PCB（PID 为 0）使之不参与调度。
+
+#### [2023-10-11]
+
+​	首次完成了 Task 3，修复了`glucose.c`中`panic_g()`使用`printk()`存在的问题（当`current_running`无效时，无法正确打印错误信息），修复了`printf/k`不能打印负数的问题。
+

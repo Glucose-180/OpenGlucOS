@@ -43,6 +43,10 @@ pcb_t pid0_pcb = {
  */
 pcb_t *ready_queue;
 //LIST_HEAD(sleep_queue);
+/*
+ * Circular queue (linked list) of all processes that have called sys_sleep()
+ */
+pcb_t *sleep_queue;
 
 /* current running task PCB */
 pcb_t * volatile current_running;
@@ -130,19 +134,23 @@ void do_scheduler(void)
 	// TODO: [p2-task1] switch_to current_running
 	while (1)
 	{
-		for (p = current_running->next; p != current_running; p = p->next)
-		{	/* Search the linked list and find a READY process */
-			if (p->status == TASK_READY)
-			{
-				current_running->status = TASK_READY;
-				q = current_running;
-				current_running = p;
-				current_running->status = TASK_RUNNING;
-				switch_to(&(q->context), &(current_running->context));
-				return;
+		check_sleeping();
+		if (current_running != NULL)
+		{
+			for (p = current_running->next; p != current_running; p = p->next)
+			{	/* Search the linked list and find a READY process */
+				if (p->status == TASK_READY)
+				{
+					current_running->status = TASK_READY;
+					q = current_running;
+					current_running = p;
+					current_running->status = TASK_RUNNING;
+					switch_to(&(q->context), &(current_running->context));
+					return;
+				}
 			}
+			return;
 		}
-		return;
 	}
 }
 
@@ -153,11 +161,98 @@ void do_sleep(uint32_t sleep_time)
 	// 1. block the current_running
 	// 2. set the wake up time for the blocked task
 	// 3. reschedule because the current_running is blocked.
+	pcb_t *temp, *psleep;
+
+	temp = current_running->next;
+	ready_queue = del_node(ready_queue, current_running, &psleep);
+	if (psleep != current_running)
+		panic_g("do_sleep: Failed to remove current_running");
+	if (ready_queue == NULL)
+		current_running = NULL;
+	else
+		current_running = temp;
+	if ((sleep_queue = insert_node(sleep_queue, psleep, NULL)) == NULL)
+		panic_g("do_sleep: Failed to insert proc %d to sleep_queue", psleep->pid);
+	psleep->status = TASK_SLEEPING;
+	if ((psleep->wakeup_time = get_timer() + sleep_time) > time_max_sec)
+		/* Avoid creating a sleeping task that would never be woken up */
+		psleep->wakeup_time = time_max_sec;
+	if (current_running == NULL)
+		do_scheduler();
+	else
+		switch_to(&(psleep->context), &(current_running->context));
 }
 
+/*
+ * check_sleeping: Scan sleep_queue, find tasks
+ * that should wake up and wake up them.
+ */
 void check_sleeping(void)
 {
 	// TODO: [p2-task3] Pick out tasks that should wake up from the sleep queue
+	pcb_t *pw, *temp_next, *temp_sleep;
+	uint64_t time_now_sec;
+
+	if (sleep_queue == NULL)
+		return;
+	time_now_sec = get_timer();
+
+	pw = sleep_queue;
+	do {
+		if (pw->status != TASK_SLEEPING)
+			goto err;
+		/*
+		 * The wake_up function would change the sleep_queue,
+		 * so two temp_x pointers are needed to keep the original
+		 * condition about whether the loop should end.
+		 */
+		temp_next = pw->next;
+		temp_sleep = sleep_queue;
+		if (time_now_sec >= pw->wakeup_time)
+			wake_up(pw);
+		pw = temp_next;
+
+		/*
+		 * When sleep_queue is NULL, the loop must end.
+		 * Otherwise, there must be something wrong while
+		 * operating the linked list.
+		 */
+		if (sleep_queue == NULL && pw != temp_sleep)
+			panic_g("check_sleeping: Linked list operation failed");
+	} while (pw != temp_sleep);
+	return;
+err:
+	panic_g("check_sleeping: proc %d in sleep_queue is not SLEEPING", pw->pid);
+}
+
+/*
+ * wake_up: remove *T from sleep_queue and insert it
+ * to ready_queue after *current_running.
+ */
+void wake_up(pcb_t * const T)
+{
+	pcb_t *pw;
+
+	if (T->status != TASK_SLEEPING)
+		goto err;
+	sleep_queue = del_node(sleep_queue, T, &pw);
+	if (pw != T)
+		goto err;
+	pw->status = TASK_READY;
+	ready_queue = insert_node(ready_queue, pw, current_running);
+	if (ready_queue == NULL)
+		goto err;
+	if (current_running == NULL)
+		/*
+		 * current_running == NULL means that *pw is joining
+		 * an empty ready_queue, so run it just now by setting
+		 * current_running = ready_queue. Or no task will be
+		 * run and the system will loop forever.
+		 */
+		current_running = ready_queue;
+	return;
+err:
+	panic_g("wake_up: Failed to wake up proc %d", T->pid);
 }
 
 //void do_block(list_node_t *pcb_node, list_head *queue)

@@ -234,7 +234,7 @@ end:
     return b.pbuffer - b.buffer;
 }
 
-static int _vprint(const char *fmt, va_list _va,
+int _vprint(const char *fmt, va_list _va,
                    void (*output)(char*))
 {
     va_list va;
