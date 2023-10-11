@@ -6,6 +6,11 @@
 	/* TODO: [p2-task3] save all general purpose registers here! */
 	/* HINT: Pay attention to the function of tp and sp, and save them carefully! */
 
+	/*
+	 * NOTE: pay attention to the NOTE at the beginning
+	 * of exception_handler_entry!!!
+	 */
+
 	sd	t0, -8(sp)	/* Save t0 in user stack temporarily */
 	la	t0, current_running
 	ld	t0, 0(t0)	/* Now t0 equals current_running, or c.r. */
@@ -233,9 +238,6 @@ ENTRY(ret_from_exception)
 	ld	t0, PCB_TRAPFRAME(t0)	/* $t0 := c.r.->trapframe */
 	ld	t0, OFFSET_REG_SCAUSE(t0)	/* $t0 := c.r.->trapframe->scause */
 	li	t1, 8
-	/*
-	 * 9 or 8? To be confirmed...
-	 */
 	bne	t0, t1, NOT_SYSCALL
 //IS_SYSCALL:
 	/* $sepc += 4 */
@@ -249,6 +251,12 @@ NOT_SYSCALL:
 ENDPROC(ret_from_exception)
 
 ENTRY(exception_handler_entry)
+	/*
+	 * NOTE: Pay attention to current_running.
+	 * If its PID is 0, which means it represents
+	 * the kernel's main() function, then maybe we should
+	 * NOT load sp from c.r.->kernel_sp as it is not right.
+	 */
 
 	/* TODO: [p2-task3] save context via the provided macro */
 	SAVE_CONTEXT

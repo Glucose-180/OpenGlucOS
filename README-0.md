@@ -8,7 +8,7 @@ Project 2。
 
 #### 最新更改
 
-[2023-10-11] 首次完成了 Task 3，修复了`glucose.c`中`panic_g()`使用`printk()`存在的问题（当`current_running`无效时，无法正确打印错误信息），修复了`printf/k`不能打印负数的问题。
+[2023-10-11] 首次完成了 Task 3，修复了多处问题。
 
 #### 可做的优化
 
@@ -57,4 +57,8 @@ Project 2。
 #### [2023-10-11]
 
 ​	首次完成了 Task 3，修复了`glucose.c`中`panic_g()`使用`printk()`存在的问题（当`current_running`无效时，无法正确打印错误信息），修复了`printf/k`不能打印负数的问题。
+
+​	**注意：**再次修改了调度器，现在又不允许`current_running`为`NULL`了，添加用户程序时不再移除内核所属的 0 号进程。因为，`current_running`为`NULL`可能在遇到中断时导致灾难，形象地说就是“没有人来处理中断”了。此外，今后做中断实验时，**请留意`entry.S`中`exception_handler_entry`开头的注释**！
+
+
 
