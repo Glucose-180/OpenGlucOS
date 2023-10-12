@@ -53,7 +53,6 @@ void init_exception()
 
 	/* TODO: [p2-task3] set up the entrypoint of exceptions */
 	setup_exception();
-	enable_preempt();
 	enable_interrupt();
 }
 
