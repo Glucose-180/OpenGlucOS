@@ -98,6 +98,13 @@
 
 	ld	sp, PCB_TRAPFRAME(t0)	/* $sp := c.r.->trapframe */
 
+	/*
+	 * It seems that $sstatus should
+	 * also be restored.
+	 */
+	ld	t1, OFFSET_REG_SSTATUS(sp)
+	csrw	CSR_SSTATUS, t1
+
 	/* Restore GPRs */
 	//ld	zero, OFFSET_REG_ZERO(t0)
 	ld	ra, OFFSET_REG_RA(sp)
@@ -232,6 +239,12 @@ ENDPROC(switch_to)
 ENTRY(ret_from_exception)
 	/* TODO: [p2-task3] restore context via provided macro and return to sepc */
 	/* HINT: remember to check your sp, does it point to the right address? */
+
+	/*
+	 * Should I enable interrupt by setting
+	 * SIE of $sstatus manully?
+	 */
+	//call	enable_interrupt
 
 	la	t0, current_running
 	ld	t0, 0(t0)	/* $t0 := c.r. */
