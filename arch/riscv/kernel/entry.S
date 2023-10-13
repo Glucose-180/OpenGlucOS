@@ -232,6 +232,19 @@ RS:
 	jr	ra
 New_task:
 	csrw	CSR_SEPC, ra
+
+	/*
+	 * Make SPIE of $sstatus equal SIE of $sstatus
+	 * before using sret to run a new task, so that
+	 * SIE will not be modified.
+	 */
+	csrr	t2, CSR_SSTATUS
+	and	t1, t2, SR_SIE
+	slli	t1, t1, 4
+	and	t2, t2, ~SR_SPIE
+	or	t2, t2, t1
+	csrw	CSR_SSTATUS, t2
+
 	sret
 
 ENDPROC(switch_to)

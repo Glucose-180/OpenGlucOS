@@ -86,7 +86,8 @@ typedef enum {
   为了让 GlucOS 在运行用户程序时切换特权级到 User，我选用的方法是在新进程创建时将其 PCB 的`trapframe`设为 `NULL`，一旦它触发过系统调用该指针就不会为`NULL`，并且保证再也不会被改回`NULL`。这样，它就成了新进程的标志。在`switch_to()`函数中多加一层判断，对于非新进程使用常规的`jr`指令跳转过去，而对于新进程则将`ra`写入`sepc`后使用`sret`指令跳转，从而使新进程第一次运行时能处于 User 模式。
 
 ```assembly
-    /* Now $t0 equals current_running */
+	 ...
+ 	/* Now $t0 equals current_running */
     ld	t1, PCB_TRAPFRAME(t0)
     beq	zero, t1, New_task
     /*
@@ -105,5 +106,42 @@ New_task:
 
   啊好吧！都怪我没有读完任务书就开始做实验。不过，在没有看到这条注意事项的条件下遇到错误自己调试得出这个结论，也算是一次有效的训练。
 
+#### 2. `sstatus`中的 SPIE 位不能正确设置
 
+  虽然 Task 3 已经测试成功了，但为了理解 RISC-V 体系结构的异常处理过程，我还是启动了 GDB 大法来跟踪研究一次`ecall`系统调用中的各 CSR 的变化情况，然后就发现了奇怪的问题：尽管我在内核启动时调用了`enable_interrupt`将`sstatus`的 SIE 置`1`了，在发生系统调用时用 GDB 显示`sstatus`的值却看到其 SPIE 不为`1`。然而根据 RISC-V 手册中的说法，发生异常时硬件会将 SPIE 设为与 SIE 相同并将 SIE 置`0`。理论上讲，我可以用 GDB 一直跟踪`sstatus`的变化，但遗憾的是一旦进入了 User Mode，GDB 就看不到`sstatus`的值了，这给这个问题的解决造成了一定的麻烦。
+
+  后来我意识到一个问题，那就是我在异常返回恢复现场的`RESTORE_CONTEXT`中没有恢复`sstatus`。但在我修复了这个问题之后，原有的问题仍然没有解决。就在我一筹莫展的时候，2023 年 10 月 13 日的凌晨 4 点左右，我从睡眠态自动唤醒了（虽然这在计算机中通常是不允许的，睡眠态的进程只能被其它进程或操作系统唤醒），前一天晚上睡觉前的上下文立即恢复。在我重新进入睡眠态之前我突然意识到第一个用户进程启动时使用了`sret`指令（前面 1 刚说的），那么这时候 SIE 是不是就会被设为 SPIE 呢？可是 SPIE 为`0`啊！所以第一个用户进程启动后 SIE 就已经是`0`了，那么当它执行系统调用的时候自然 SPIE 也是`0`了。想到这里我赶紧保存了上下文之后再进入睡眠态。终于在清晨，我修复了这个问题，具体方法就是在`switch_to()`函数中启动第一个用户进程的`sret`指令之前，将 SPIE 设为与 SIE 相同。
+
+```assembly
+	...
+New_task:
+    csrw	CSR_SEPC, ra
+
+    /*
+    * Make SPIE of $sstatus equal SIE of $sstatus
+    * before using sret to run a new task, so that
+    * SIE will not be modified.
+    */
+    csrr	t2, CSR_SSTATUS
+    and	t1, t2, SR_SIE
+    slli	t1, t1, 4
+    and	t2, t2, ~SR_SPIE
+    or	t2, t2, t1
+    csrw	CSR_SSTATUS, t2
+
+    sret
+```
+
+#### 3. 系统调用的误触发
+
+  按照任务书中的说法，我们要使用`loadbootd`命令来启动内核，使得某种检查功能启用，当用户程序试图访问内核的主存空间时会触发例外。我编写了一个新的用户程序叫`GlucOStest`用于测试我的操作系统（它具备测试访问内核是否会报例外、执行系统调用能否正确恢复现场、`printf()`函数能否正常打印有符号数值等功能），其源代码在`test/test_project2/GlucOStest.c`。在`loadbootd`的条件下，尝试访问内核确实会报例外。然而在`loadboot`下，尝试访问内核却触发了我内核的`invalid_syscall()`中的 PANIC。
+
+  所谓 PANIC，是指我为了使自己的操作系统在开发过程中更稳定、减少安全隐患、降低调试的难度，在内核的代码中插入了大量的检查代码，一旦发现某操作的执行发生了异常则“**紧急制动**”，调用`panic_g()`函数（目前放在`libs/glucose.c`中）打印报错信息并立即使系统停下，避免程序跑飞而大大增加调试难度。其思想很简单，基本上与`assert()`一样，但**在缩小错误范围、降低调试难度上已经发挥了非常显著的作用**。`invalid_syscall()`的 PANIC，则是处理系统调用时遇到了无效的系统调用号导致的。
+
+  `GlucOStest`尝试访问内核的做法是直接通过跳转表调用内核函数`port_write_ch()`。为什么这会导致无效系统调用呢？我启动 GDB 大法，查看`port_write_ch()`调用的`BIOS_FUNC_ENTRY`（在`arch/riscv/bios/common.c`）处的指令……啊好吧，那没事了。
+
+```bash
+(gdb) x/i 0x50150000
+   0x50150000:	ecall
+```
 

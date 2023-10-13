@@ -5,7 +5,7 @@
 
 /* NOTE: size of long is 8 bytes. */
 
-static const long IGNORE = 0L;
+static const long Ignore = 0L;
 
 static long invoke_syscall(long sysno, long arg0, long arg1, long arg2,
 						   long arg3, long arg4)
@@ -36,80 +36,81 @@ static long invoke_syscall(long sysno, long arg0, long arg1, long arg2,
 void sys_yield(void)
 {
 	/* TODO: [p2-task1] call call_jmptab to implement sys_yield */
-	//call_jmptab(YIELD, 0, 0, 0, 0, 0);
+	//call_jmptab(YIELD, Ignore, Ignore, Ignore, Ignore, Ignore);
 	/* TODO: [p2-task3] call invoke_syscall to implement sys_yield */
-	invoke_syscall(SYSCALL_YIELD, 0, 0, 0, 0, 0);
+	invoke_syscall(SYSCALL_YIELD, Ignore, Ignore, Ignore, Ignore, Ignore);
 }
 
 void sys_move_cursor(int x, int y)
 {
 	/* TODO: [p2-task1] call call_jmptab to implement sys_move_cursor */
-	//call_jmptab(MOVE_CURSOR, x, y, 0, 0, 0);
+	//call_jmptab(MOVE_CURSOR, x, y, Ignore, Ignore, Ignore);
 	/* TODO: [p2-task3] call invoke_syscall to implement sys_move_cursor */
-	invoke_syscall(SYSCALL_CURSOR, x, y, 0, 0, 0);
+	invoke_syscall(SYSCALL_CURSOR, x, y, Ignore, Ignore, Ignore);
 }
 
 void sys_write(char *buff)
 {
 	/* TODO: [p2-task1] call call_jmptab to implement sys_write */
-	//call_jmptab(WRITE, (long)buff, 0, 0, 0, 0);
+	//call_jmptab(WRITE, (long)buff, Ignore, Ignore, Ignore, Ignore);
 	/* TODO: [p2-task3] call invoke_syscall to implement sys_write */
-	invoke_syscall(SYSCALL_WRITE, (long)buff, 0, 0, 0, 0);
+	invoke_syscall(SYSCALL_WRITE, (long)buff, Ignore, Ignore, Ignore, Ignore);
 }
 
 int sys_bios_getchar(void)
 {
-	return invoke_syscall(SYSCALL_BIOS_GETCHAR, 0, 0, 0, 0, 0);
+	return invoke_syscall(SYSCALL_BIOS_GETCHAR,
+		Ignore, Ignore, Ignore, Ignore, Ignore);
 }
 
 void sys_reflush(void)
 {
 	/* TODO: [p2-task1] call call_jmptab to implement sys_reflush */
-	//call_jmptab(REFLUSH, 0, 0, 0, 0, 0);
+	//call_jmptab(REFLUSH, Ignore, Ignore, Ignore, Ignore, Ignore);
 	/* TODO: [p2-task3] call invoke_syscall to implement sys_reflush */
-	invoke_syscall(SYSCALL_REFLUSH, 0, 0, 0, 0, 0);
+	invoke_syscall(SYSCALL_REFLUSH, Ignore, Ignore, Ignore, Ignore, Ignore);
 }
 
 int sys_mutex_init(int key)
 {
 	/* TODO: [p2-task2] call call_jmptab to implement sys_mutex_init */
-	//return call_jmptab(MUTEX_INIT, key, 0, 0, 0, 0);
+	//return call_jmptab(MUTEX_INIT, key, Ignore, Ignore, Ignore, Ignore);
 	/* TODO: [p2-task3] call invoke_syscall to implement sys_mutex_init */
-	return invoke_syscall(SYSCALL_LOCK_INIT, key, 0, 0, 0, 0);
+	return invoke_syscall(SYSCALL_LOCK_INIT, key, Ignore, Ignore, Ignore, Ignore);
 }
 
 int sys_mutex_acquire(int mutex_idx)
 {
 	/* TODO: [p2-task2] call call_jmptab to implement sys_mutex_acquire */
-	//return call_jmptab(MUTEX_ACQ, mutex_idx, 0, 0, 0, 0);
+	//return call_jmptab(MUTEX_ACQ, mutex_idx, Ignore, Ignore, Ignore, Ignore);
 	/* TODO: [p2-task3] call invoke_syscall to implement sys_mutex_acquire */
-	return invoke_syscall(SYSCALL_LOCK_ACQ, mutex_idx, 0, 0, 0, 0);
+	return invoke_syscall(SYSCALL_LOCK_ACQ, mutex_idx, Ignore, Ignore, Ignore, Ignore);
 }
 
 int sys_mutex_release(int mutex_idx)
 {
 	/* TODO: [p2-task2] call call_jmptab to implement sys_mutex_release */
-	//return call_jmptab(MUTEX_RELEASE, mutex_idx, 0, 0, 0, 0);
+	//return call_jmptab(MUTEX_RELEASE, mutex_idx, Ignore, Ignore, Ignore, Ignore);
 	/* TODO: [p2-task3] call invoke_syscall to implement sys_mutex_release */
-	return invoke_syscall(SYSCALL_LOCK_RELEASE, mutex_idx, 0, 0, 0, 0);
+	return invoke_syscall(SYSCALL_LOCK_RELEASE, mutex_idx, Ignore, Ignore, Ignore, Ignore);
 }
 
 long sys_get_timebase(void)
 {
 	/* TODO: [p2-task3] call invoke_syscall to implement sys_get_timebase */
-	return invoke_syscall(SYSCALL_GET_TIMEBASE, 0, 0, 0, 0, 0);
+	return invoke_syscall(SYSCALL_GET_TIMEBASE, Ignore, Ignore, Ignore, Ignore, Ignore);
 }
 
 long sys_get_tick(void)
 {
 	/* TODO: [p2-task3] call invoke_syscall to implement sys_get_tick */
-	return invoke_syscall(SYSCALL_GET_TICK, 0, 0, 0, 0, 0);
+	return invoke_syscall(SYSCALL_GET_TICK, Ignore, Ignore, Ignore, Ignore, Ignore);
 }
 
 void sys_sleep(uint32_t time)
 {
 	/* TODO: [p2-task3] call invoke_syscall to implement sys_sleep */
-	invoke_syscall(SYSCALL_SLEEP, (long)time, 0, 0, 0, 0);
+	invoke_syscall(SYSCALL_SLEEP, (long)time, Ignore, Ignore, Ignore, Ignore);
 }
 
 /************************************************************/

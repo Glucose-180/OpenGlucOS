@@ -8,7 +8,7 @@ Project 2。
 
 #### 最新更改
 
-[2023-10-12] 修复了`RESOTRE_CONTEXT`，但仍然存在问题。
+[2023-10-13] 修复了多处问题。
 
 #### 可做的优化
 
@@ -63,6 +63,10 @@ Project 2。
 #### [2023-10-12]
 
 ​	修改了`entry.S `的`RESOTRE_CONTEXT`，在恢复上下文时把`sstatus`也恢复。但发现即使这样，在一次系统调用返回后`sstatus`的 SIE 位仍然不能恢复为`1`。为什么？需要手动恢复吗？
+
+#### [2023-10-13]
+
+​	修复了在用户态执行`ecall`系统调用时`sstatus`的 SPIE 位不为`1`的问题（详见`~Record`中的记录）。修改了`Makefile`，使之在`make gdb`时加上`-q`选项让它安静一点。修复了`tiny_libc/syscall.c`中`Ignore`（原来叫`IGNORE`）变量未使用导致的 warning。
 
 
 
