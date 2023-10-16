@@ -8,11 +8,11 @@ Project 2。
 
 #### 最新更改
 
-[2023-10-13] 修复了多处问题。
+[2023-10-16] 修复了多处问题。
 
 #### 可做的优化
 
-命令提示符格式，启动界面，……
+  给用户程序提供`getchar()`等函数。
 
 #### [2023-09-29]
 
@@ -68,5 +68,10 @@ Project 2。
 
 ​	修复了在用户态执行`ecall`系统调用时`sstatus`的 SPIE 位不为`1`的问题（详见`~Record`中的记录）。修改了`Makefile`，使之在`make gdb`时加上`-q`选项让它安静一点。修复了`tiny_libc/syscall.c`中`Ignore`（原来叫`IGNORE`）变量未使用导致的 warning。
 
+#### [2023-10-16]
 
+  修复了多处问题：
 
+  `SAVE_CONTEXT`中，把`t0`临时保存到`sscratch`中，而不是用户栈。
+
+  系统启动初始化`init_exception()`时，将`sstatus`的`SPIE`置`1`，`SPP`置`0`，而不是在`switch_to()`里做这个工作。考虑使用 XV6 的`riscv.h`文件。

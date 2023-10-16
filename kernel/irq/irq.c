@@ -7,6 +7,8 @@
 #include <assert.h>
 #include <screen.h>
 #include <os/glucose.h>
+#include <riscv.h>
+#include <csr.h>
 
 handler_t irq_table[IRQC_COUNT];
 handler_t exc_table[EXCC_COUNT];
@@ -44,6 +46,7 @@ void init_exception()
 	/* TODO: [p2-task3] initialize exc_table */
 	/* NOTE: handle_syscall, handle_other, etc.*/
 	int i;
+	reg_t sstatus;
 
 	for (i = 0; i < EXCC_COUNT; ++i)
 		exc_table[i] = handle_other;
@@ -54,6 +57,11 @@ void init_exception()
 	/* TODO: [p2-task3] set up the entrypoint of exceptions */
 	setup_exception();
 	enable_interrupt();
+
+	sstatus = r_sstatus();
+	sstatus |= SR_SPIE;
+	sstatus &= ~SR_SPP;
+	w_sstatus(sstatus);
 }
 
 void handle_other(regs_context_t *regs, uint64_t stval, uint64_t scause)

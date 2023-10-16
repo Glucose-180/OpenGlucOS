@@ -11,9 +11,10 @@
 	 * of exception_handler_entry!!!
 	 */
 
-	sd	t0, -8(sp)	/* Save t0 in user stack temporarily */
+	//sd	t0, -8(sp)	/* Save t0 in user stack temporarily */
+	csrw	CSR_SSCRATCH, t0	/* Save $t0 in $sscratch */
 	la	t0, current_running
-	ld	t0, 0(t0)	/* Now t0 equals current_running, or c.r. */
+	ld	t0, 0(t0)	/* Now $t0 equals current_running, or c.r. */
 
 	sd	sp, PCB_USER_SP(t0)	/* c.r.->user_sp := $sp */
 	ld	sp, PCB_KERNEL_SP(t0)	/* $sp := c.r.->kernel_sp */
@@ -71,8 +72,9 @@
 
 	/* Restore $t0 and save it */
 	//ld	t0, PCB_USER_SP(t0)	/* $t0 := c.r.->user_sp */
-	mv	t0, t1	/* $t0 := c.r.->user_sp */
-	ld	t0, -8(t0)
+	//mv	t0, t1	/* $t0 := c.r.->user_sp */
+	//ld	t0, -8(t0)
+	csrr	t0, CSR_SSCRATCH
 	sd	t0, OFFSET_REG_T0(sp)
 
 	/*
@@ -238,12 +240,16 @@ New_task:
 	 * before using sret to run a new task, so that
 	 * SIE will not be modified.
 	 */
-	csrr	t2, CSR_SSTATUS
-	and	t1, t2, SR_SIE
-	slli	t1, t1, 4
-	and	t2, t2, ~SR_SPIE
-	or	t2, t2, t1
-	csrw	CSR_SSTATUS, t2
+	//csrr	t2, CSR_SSTATUS
+	//and	t1, t2, SR_SIE
+	//slli	t1, t1, 4
+	//and	t2, t2, ~SR_SPIE
+	//or	t2, t2, t1
+	//csrw	CSR_SSTATUS, t2
+	/*
+	 * This work is done in irq.c:init_exception(),
+	 * so it is no need to do here.
+	 */
 
 	sret
 
