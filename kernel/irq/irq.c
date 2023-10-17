@@ -40,6 +40,7 @@ void handle_irq_timer(regs_context_t *regs, uint64_t stval, uint64_t scause)
 	// TODO: [p2-task4] clock interrupt handler.
 	// Note: use bios_set_timer to reset the timer and remember to reschedule
 	printk("Timer interrupt comes!\n");	//Only for TEST
+	set_preempt();	/* Reset timer */
 }
 
 void init_exception()
