@@ -8,7 +8,7 @@ Project 2。
 
 #### 最新更改
 
-[2023-10-16] 修复了多处问题。
+[2023-10-17] 正式开始 Task 4。
 
 #### 可做的优化
 
@@ -75,3 +75,7 @@ Project 2。
   `SAVE_CONTEXT`中，把`t0`临时保存到`sscratch`中，而不是用户栈。
 
   系统启动初始化`init_exception()`时，将`sstatus`的`SPIE`置`1`，`SPP`置`0`，而不是在`switch_to()`里做这个工作。考虑使用 XV6 的`riscv.h`文件。
+
+#### [2023-10-17]
+
+  正式开始 Task 4。将`init_exception()`中对`enable_interrupt()`的调用改到`setup_exception()`中。修改了多个文件，铺好了进入时钟中断的路。已经可以进入时钟中断了，但在`handle_irq_timer()`里什么也不做。但好像只要执行到`wfi`就会不断地进入时钟中断，莫非只要不去 reset timer，这个中断请求就会始终存在？

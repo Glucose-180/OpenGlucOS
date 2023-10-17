@@ -198,6 +198,7 @@ int main(void)
 	// Infinite while loop, where CPU stays in a low-power state (QAQQQQQQQQQQQ)
 loc_wfi:
 	printk("logout\n");
+	set_preempt();	// ONLY for TEST!!!
 	while (1)
 	{
 		asm volatile("wfi");

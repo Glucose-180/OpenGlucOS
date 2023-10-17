@@ -77,6 +77,13 @@ typedef struct pcb
 	// NOTE: this order must be preserved, which is defined in regs.h!!
 	reg_t kernel_sp;
 	reg_t user_sp;
+	/*
+	 * NOTE: user_sp and kernel_sp of PCB of PID 0:
+	 * After SAVE_CONTEXT, user_sp and trapframe->sp equal
+	 * $sp just at the beginning of the trap, and kernel_sp
+	 * equals $sp after SAVE_CONTEXT. After RESTORE_CONTEXT,
+	 * they three are all equal to $sp just at the beginning.
+	 */
 	regs_context_t *trapframe;
 	/*
 	 * NOTE: trapframe being NULL means that this
@@ -140,6 +147,7 @@ pcb_t *do_unblock(pcb_t * const Queue);
 void init_pcb_stack(
 	ptr_t kernel_sp, ptr_t user_sp, ptr_t entry_point,
 	pcb_t *pcb);
+void set_preempt(void);
 
 /************************************************************/
 /* Do not touch this comment. Reserved for future projects. */

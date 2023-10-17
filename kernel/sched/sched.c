@@ -5,6 +5,7 @@
 #include <os/time.h>
 #include <os/mm.h>
 #include <os/malloc-g.h>
+#include <os/kernel.h>
 #include <screen.h>
 #include <printk.h>
 #include <assert.h>
@@ -325,4 +326,27 @@ void init_pcb_stack(
 	pcb->cursor_x = pcb->cursor_y = 0;
 	if ((pcb->pid = alloc_pid()) == INVALID_PID)
 		panic_g("init_pcb_stack: No invalid PID can be used");
+}
+
+void set_preempt(void)
+{
+#define INTERVAL 10000U /* unit: ms */
+	static char flag_first = 1;
+	static uint64_t timer_interval;
+	/* enable preempt */
+	__asm__ volatile
+	(
+		"not	t0, zero\n\t"
+		"csrw	0x104, t0"	/* SIE := ~0 */
+		:
+		:
+		: "t0"
+	);
+	if (flag_first != 0)
+	{
+		flag_first = 0;
+		timer_interval = time_base / 1000U * INTERVAL;
+	}
+	bios_set_timer(get_ticks() + timer_interval);
+#undef INTERVAL
 }

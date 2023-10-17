@@ -6,20 +6,35 @@
 	/* TODO: [p2-task3] save all general purpose registers here! */
 	/* HINT: Pay attention to the function of tp and sp, and save them carefully! */
 
-	/*
-	 * NOTE: pay attention to the NOTE at the beginning
-	 * of exception_handler_entry!!!
-	 */
-
-	//sd	t0, -8(sp)	/* Save t0 in user stack temporarily */
 	csrw	CSR_SSCRATCH, t0	/* Save $t0 in $sscratch */
+
+	csrr	t0, CSR_SSTATUS
+	andi	t0, t0, SR_SPP
+	/*
+	 * SPP of $sstatus being 1 means that the
+	 * trap(exception) is NOT from U-Mode.
+	 */
+	bne	t0, zero, Exc_from_S_mode
+
+Exc_from_U_mode:
 	la	t0, current_running
 	ld	t0, 0(t0)	/* Now $t0 equals current_running, or c.r. */
-
 	sd	sp, PCB_USER_SP(t0)	/* c.r.->user_sp := $sp */
 	ld	sp, PCB_KERNEL_SP(t0)	/* $sp := c.r.->kernel_sp */
 	addi	sp, sp, -OFFSET_SIZE		/* $sp := $sp - sizeof(regs_context_t) */
+	j	Save_gprs
 
+Exc_from_S_mode:
+	/*
+	 * Exception from S-Mode:
+	 * Don't load kernel_sp from PCB!
+	 */
+	la	t0, current_running
+	ld	t0, 0(t0)	/* Now $t0 equals current_running, or c.r. */
+	sd	sp, PCB_USER_SP(t0)	/* c.r.->user_sp := $sp */
+	addi	sp, sp, -OFFSET_SIZE		/* $sp := $sp - sizeof(regs_context_t) */
+
+Save_gprs:
 	/* Save GPRs */
 	sd	zero, OFFSET_REG_ZERO(sp)
 	sd	ra, OFFSET_REG_RA(sp)
@@ -144,6 +159,10 @@
 	addi	sp, sp, OFFSET_SIZE	/* $sp := $sp + sizeof(regs_context_t) */
 	sd	sp, PCB_KERNEL_SP(t0)	/* c.r.->kernel_sp := $sp */
 	ld	sp, PCB_USER_SP(t0)	/* $sp := c.r.->user_sp */
+	/*
+	 * For info about kernel_sp and user_sp of PCB of PID 0,
+	 * see the comments in struct pcb in sched.h.
+	 */
 
 	ld	t0, PCB_TRAPFRAME(t0)	/* $t0 := c.r.->trapframe */
 	ld	t0, OFFSET_REG_T0(t0)	/* $t0 := c.r.->trapframe->regs[#t0] */
@@ -283,12 +302,6 @@ NOT_SYSCALL:
 ENDPROC(ret_from_exception)
 
 ENTRY(exception_handler_entry)
-	/*
-	 * NOTE: Pay attention to current_running.
-	 * If its PID is 0, which means it represents
-	 * the kernel's main() function, then maybe we should
-	 * NOT load sp from c.r.->kernel_sp as it is not right.
-	 */
 
 	/* TODO: [p2-task3] save context via the provided macro */
 	SAVE_CONTEXT
