@@ -159,12 +159,7 @@ int main(void)
 
 	// TODO: [p2-task4] Setup timer interrupt and enable all interrupt globally
 	// NOTE: The function of sstatus.sie is different from sie's
-	
 
-
-
-	// Infinite while loop, where CPU stays in a low-power state (QAQQQQQQQQQQQ)
-	while (1)
 	{
 		// If you do non-preemptive scheduling, it's used to surrender control
 		//do_scheduler();
@@ -186,23 +181,20 @@ int main(void)
 			}
 		}
 		screen_clear();
-		while (1)
-			do_scheduler();
 
 		// If you do preemptive scheduling, they're used to enable CSR_SIE and wfi
-		// enable_preempt();
-		// asm volatile("wfi");
+		set_preempt();
+		while (1)
+			// Infinite while loop, where CPU stays in a low-power state (QAQQQQQQQQQQQ)
+			__asm__ volatile("wfi");
 	}
 
 
-	// Infinite while loop, where CPU stays in a low-power state (QAQQQQQQQQQQQ)
 loc_wfi:
 	printk("logout\n");
-	set_preempt();	// ONLY for TEST!!!
+	disable_interrupt();
 	while (1)
-	{
 		asm volatile("wfi");
-	}
 
 	return 0;
 }

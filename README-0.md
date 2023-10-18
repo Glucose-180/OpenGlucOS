@@ -8,7 +8,7 @@ Project 2。
 
 #### 最新更改
 
-[2023-10-17] 时钟中断测试成功。
+[2023-10-18] 尝试抢占式调度，但是失败了。
 
 #### 可做的优化
 
@@ -81,3 +81,19 @@ Project 2。
   正式开始 Task 4。将`init_exception()`中对`enable_interrupt()`的调用改到`setup_exception()`中。修改了多个文件，铺好了进入时钟中断的路。已经可以进入时钟中断了，但在`handle_irq_timer()`里什么也不做。但好像只要执行到`wfi`就会不断地进入时钟中断，莫非只要不去 reset timer，这个中断请求就会始终存在？
 
   经过测试了，确实是这样。如果在`handle_irq_timer()`里 reset timer，这个中断请求就会消失直到下一次时钟中断到来。
+
+#### [2023-10-18]
+
+  查阅 RISC-V 指令集手册（`riscv-privileged-20211203.pdf`）4.1.3，可以看到有这么一段话：
+
+> Bits `sip`.STIP and `sie`.STIE are the interrupt-pending and interrupt-enable bits for supervisor level timer interrupts. If implemented, STIP is read-only in `sip`, and is set and cleared by the execution environment.
+
+  原来`SIP`的定时器中断标志 STIP 是只读的，它只能被执行环境改变，这就不难解释前一天观察到的现象了，估计是只有当调用 BIOS 做 reset timer 后它才会被清零。
+
+  关于定时器的相关内容可参见上述指令集手册的 3.2.1。
+
+  尝试抢占式调度失败了。任务书的注意事项里有这么一句话：
+
+> 关于如何正确的开始一个任务的第一次调度，在抢占调度下是和非抢占调度是不同的，希望大家仔细思考如何在抢占调度模式下对一个任务发起第一次调度。
+
+  不同之处在于，抢占模式下定时器中断使`sstatus`的 SPP 为`1`，因此如果在`handle_irq_timer()`里直接调`do_scheduler()`的话，会导致第一个用户进程启动时由`sret`进入 Supervisor Mode，这是错误的，因为用户进程应该运行在 User Mode。
