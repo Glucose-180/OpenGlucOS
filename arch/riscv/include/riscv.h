@@ -19,4 +19,16 @@ static inline void w_sstatus(reg_t x)
   __asm__ volatile("csrw sstatus, %0" : : "r" (x));
 }
 
+static inline reg_t r_sepc()
+{
+  reg_t x;
+  __asm__ volatile("csrr %0, sepc" : "=r" (x) );
+  return x;
+}
+
+static inline void w_sepc(reg_t x)
+{
+  __asm__ volatile("csrw sepc, %0" : : "r" (x));
+}
+
 #endif

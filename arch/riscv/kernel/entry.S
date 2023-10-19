@@ -116,11 +116,15 @@ Save_gprs:
 	ld	sp, PCB_TRAPFRAME(t0)	/* $sp := c.r.->trapframe */
 
 	/*
-	 * It seems that $sstatus should
-	 * also be restored.
+	 * $sstatus, $sepc and $scause should also be restored.
+	 * $scause is not necessary UP TO NOW.
 	 */
 	ld	t1, OFFSET_REG_SSTATUS(sp)
+	ld	t2, OFFSET_REG_SEPC(sp)
+	ld	t3, OFFSET_REG_SCAUSE(sp)
 	csrw	CSR_SSTATUS, t1
+	csrw	CSR_SEPC, t2
+	csrw	CSR_SCAUSE, t3
 
 	/* Restore GPRs */
 	//ld	zero, OFFSET_REG_ZERO(t0)
@@ -287,14 +291,15 @@ ENTRY(ret_from_exception)
 	la	t0, current_running
 	ld	t0, 0(t0)	/* $t0 := c.r. */
 	ld	t0, PCB_TRAPFRAME(t0)	/* $t0 := c.r.->trapframe */
-	ld	t0, OFFSET_REG_SCAUSE(t0)	/* $t0 := c.r.->trapframe->scause */
+	ld	t2, OFFSET_REG_SCAUSE(t0)	/* $t2 := c.r.->trapframe->scause */
 	li	t1, 8
-	bne	t0, t1, NOT_SYSCALL
+	bne	t2, t1, NOT_SYSCALL
+
 //IS_SYSCALL:
-	/* $sepc += 4 */
-	csrr	t0, CSR_SEPC
-	addi	t0, t0, 4
-	csrw	CSR_SEPC, t0
+	/* sepc += 4 */
+	ld	t3, OFFSET_REG_SEPC(t0)	/* $t3:= c.r.->trapframe->sepc */
+	addi	t3, t3, 4
+	sd	t3, OFFSET_REG_SEPC(t0)
 NOT_SYSCALL:
 	RESTORE_CONTEXT
 	sret
