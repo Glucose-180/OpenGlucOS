@@ -204,7 +204,6 @@ ENTRY(switch_to)
 
 	/* TODO: [p2-task1] save all callee save registers on kernel stack,
 	 * see the definition of `struct switchto_context` in sched.h*/
-	beq	zero, a0, RS	// a0 (&current_running->context) is NULL
 	sd	ra, SWITCH_TO_RA(a0)
 	sd	sp, SWITCH_TO_SP(a0)
 	sd	s0, SWITCH_TO_S0(a0)
@@ -222,7 +221,6 @@ ENTRY(switch_to)
 
 	/* TODO: [p2-task1] restore all callee save registers from kernel stack,
 	 * see the definition of `struct switchto_context` in sched.h*/
-RS:
 	ld	ra, SWITCH_TO_RA(a1)
 	ld	sp, SWITCH_TO_SP(a1)
 	ld	s0, SWITCH_TO_S0(a1)
@@ -245,36 +243,7 @@ RS:
  */
 	la	t0, current_running
 	ld	tp, 0(t0)
-
-	mv	t0, tp	/* $t0 := c.r. */
-	ld	t1, PCB_TRAPFRAME(t0)
-	beq	zero, t1, New_task
-	/*
-	 * c.r.->trapframe being NULL means it is a new process.
-	 * So sret is used to change to User Mode from Supervisor Mode.
-	 */
-
 	jr	ra
-New_task:
-	csrw	CSR_SEPC, ra
-
-	/*
-	 * Make SPIE of $sstatus equal SIE of $sstatus
-	 * before using sret to run a new task, so that
-	 * SIE will not be modified.
-	 */
-	//csrr	t2, CSR_SSTATUS
-	//and	t1, t2, SR_SIE
-	//slli	t1, t1, 4
-	//and	t2, t2, ~SR_SPIE
-	//or	t2, t2, t1
-	//csrw	CSR_SSTATUS, t2
-	/*
-	 * This work is done in irq.c:init_exception(),
-	 * so it is no need to do here.
-	 */
-
-	sret
 
 ENDPROC(switch_to)
 

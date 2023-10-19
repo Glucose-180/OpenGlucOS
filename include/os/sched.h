@@ -35,7 +35,11 @@
 #define NUM_MAX_TASK 16
 #define INVALID_PID (-1)
 
-/* used to save register infomation */
+/*
+ * used to save register infomation:
+ * NOTE: this order must be preserved,
+ * which is defined in regs.h!!
+ */
 typedef struct regs_context
 {
 	/* Saved main processor registers.*/
@@ -85,11 +89,6 @@ typedef struct pcb
 	 * they three are all equal to $sp just at the beginning.
 	 */
 	regs_context_t *trapframe;
-	/*
-	 * NOTE: trapframe being NULL means that this
-	 * process is new (hasn't run). It is used in
-	 * switch_to(). See entry.S.
-	 */
 
 	/* previous, next pointer */
 	//list_node_t list;

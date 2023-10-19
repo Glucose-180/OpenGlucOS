@@ -66,6 +66,8 @@ extern handler_t exc_table[EXCC_COUNT];
 
 extern void interrupt_helper(regs_context_t *regs, uint64_t stval, uint64_t scause);
 
+extern void ret_from_exception(void);
+
 /* exception handler entery */
 extern void exception_handler_entry(void);
 extern void init_exception();

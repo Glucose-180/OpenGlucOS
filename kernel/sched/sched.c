@@ -10,6 +10,10 @@
 #include <printk.h>
 #include <assert.h>
 #include <os/loader.h>
+#include <riscv.h>
+#include <asm/regs.h>
+#include <csr.h>
+#include <os/irq.h>
 
 //pcb_t pcb[NUM_MAX_TASK];
 /*
@@ -120,41 +124,25 @@ void do_scheduler(void)
 	/* Do not touch this comment. Reserved for future projects. */
 	/************************************************************/
 
-	/*
-	// It is used to test whether kfree_g can detect invalid address
-	static int tested = 0;
-	if (tested == 0 && current_running->pid > 0)
+	check_sleeping();
+	if (current_running != NULL)
 	{
-		kfree_g(current_running->user_sp - Ustack_size + 8);
-		// Test whether panic will happen
-		tested = 1;
-	}
-	*/
-
-	// TODO: [p2-task1] Modify the current_running pointer.
-	// TODO: [p2-task1] switch_to current_running
-	while (1)
-	{
-		check_sleeping();
-		if (current_running != NULL)
-		{
-			for (p = current_running->next; p != current_running; p = p->next)
-			{	/* Search the linked list and find a READY process */
-				if (p->status == TASK_READY)
-				{
-					current_running->status = TASK_READY;
-					q = current_running;
-					current_running = p;
-					current_running->status = TASK_RUNNING;
-					switch_to(&(q->context), &(current_running->context));
-					return;
-				}
+		for (p = current_running->next; p != current_running; p = p->next)
+		{	/* Search the linked list and find a READY process */
+			if (p->status == TASK_READY)
+			{
+				current_running->status = TASK_READY;
+				q = current_running;
+				current_running = p;
+				current_running->status = TASK_RUNNING;
+				switch_to(&(q->context), &(current_running->context));
+				return;
 			}
-			return;
 		}
-		else
-			panic_g("do_scheduler: current_running is NULL");
+		return;
 	}
+	else
+		panic_g("do_scheduler: current_running is NULL");
 }
 
 void do_sleep(uint32_t sleep_time)
@@ -306,22 +294,35 @@ void init_pcb_stack(
 	  * NOTE: To run the task in user mode, you should set corresponding bits
 	  *     of sstatus(SPP, SPIE, etc.).
 	  */
-	//regs_context_t *pt_regs =
-		//(regs_context_t *)(kernel_stack - sizeof(regs_context_t));
-
-
-	/* TODO: [p2-task1] set sp to simulate just returning from switch_to
-	 * NOTE: you should prepare a stack, and push some values to
-	 * simulate a callee-saved context.
+	pcb->kernel_sp = kernel_sp - sizeof(regs_context_t);
+	/*
+	 * After switch_to(), it will
+	 * be switched to ret_from_exception.
 	 */
-	//switchto_context_t *pt_switchto =
-		//(switchto_context_t *)((ptr_t)pt_regs - sizeof(switchto_context_t));
+	pcb->context.regs[SR_RA] = (reg_t)ret_from_exception;
 
-	pcb->context.regs[SR_RA] = entry_point;
-	pcb->context.regs[SR_SP] = user_sp;
-	pcb->kernel_sp = kernel_sp;
+	/*
+	 * As the first run of a user process is through sret,
+	 * we simulate a trapframe just like it has been trapped.
+	 * This trapframe will be restored just before sret is executed.
+	 */
+	pcb->trapframe = (void *)(pcb->kernel_sp);
+	pcb->trapframe->sepc = entry_point;
+	if (((pcb->trapframe->sstatus = r_sstatus()) & SR_SPP) != 0UL)
+		/*
+		* SPP of $sstatus must be zero to ensure that after sret,
+		* the privilige is User Mode for user process.
+		*/
+		panic_g("init_pcb_stack: SPP is not zero");
+	pcb->trapframe->regs[OFFSET_REG_TP / sizeof(reg_t)] = (reg_t)pcb;
+	pcb->trapframe->regs[OFFSET_REG_SP / sizeof(reg_t)] = (reg_t)user_sp;
+	/*
+	 * scause must not be 8, which is the number of syscall.
+	 * Otherwise $sepc will be added 4 in ret_from_exception.
+	 */
+	pcb->trapframe->scause = ~(~(0UL) >> 1);
+
 	pcb->user_sp = user_sp;
-	pcb->trapframe = NULL;	/* Flag for a new task */
 	pcb->status = TASK_READY;
 	pcb->cursor_x = pcb->cursor_y = 0;
 	if ((pcb->pid = alloc_pid()) == INVALID_PID)

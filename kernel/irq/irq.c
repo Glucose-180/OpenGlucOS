@@ -40,17 +40,8 @@ void handle_irq_timer(regs_context_t *regs, uint64_t stval, uint64_t scause)
 	// TODO: [p2-task4] clock interrupt handler.
 	// Note: use bios_set_timer to reset the timer and remember to reschedule
 	//printk("Timer interrupt comes!\n");	//Only for TEST
-	reg_t sstatus0;
 
 	set_preempt();	/* Reset timer */
-	/*
-	 * Save old value of $sstatus in sstatus0, and then
-	 * clear SPP so that sret will return to User Mode
-	 * when switch to the user process.
-	 */
-	sstatus0 = r_sstatus();
-	w_sstatus(sstatus0 & ~SR_SPP);
-
 	do_scheduler();
 }
 

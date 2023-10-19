@@ -6,6 +6,7 @@
 #include <os/glucose.h>
 #include <stdarg.h>
 #include <printk.h>
+#include <os/irq.h>
 
 /*
  * Remove white spaces at the beginning and end of Str
@@ -156,6 +157,7 @@ void panic_g(const char *fmt, ...)
 	va_list va;
 	int _vprint(const char *fmt, va_list _va, void (*output)(char*));
 
+	disable_interrupt();
 	printv("\n**Panic: ");
 
 	va_start(va, fmt);
