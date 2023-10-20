@@ -17,6 +17,8 @@ TTYUSB1     = /dev/ttyUSB1
 DIR_OSLAB   = $(HOME)/OSLab-RISC-V
 DIR_QEMU    = $(DIR_OSLAB)/qemu
 DIR_UBOOT   = $(DIR_OSLAB)/u-boot
+# delay after "make minicom"
+MC_DELAY	= 13
 
 # -----------------------------------------------------------------------
 # Build and Debug Tools
@@ -145,6 +147,8 @@ debug:
 	$(QEMU) $(QEMU_OPTS) $(QEMU_DEBUG_OPT)
 
 minicom:
+	@echo "Delay $(MC_DELAY) s to skip long text..."
+	sleep $(MC_DELAY)
 	sudo $(MINICOM) -D $(TTYUSB1)
 
 .PHONY: all dirs clean floppy asm gdb run debug minicom
