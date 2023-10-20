@@ -331,7 +331,7 @@ void init_pcb_stack(
 
 void set_preempt(void)
 {
-#define INTERVAL 100U /* unit: ms */
+#define INTERVAL 40U /* unit: ms */
 	static char flag_first = 1;
 	static uint64_t timer_interval;
 	/* enable preempt */

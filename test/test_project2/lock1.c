@@ -27,7 +27,9 @@ int main(void)
         sys_move_cursor(0, print_location);
         printf("> [TASK] Applying for a lock.\n");
 
+#if YIELD_EN != 0
         sys_yield();
+#endif
 
         sys_mutex_acquire(mutex_id);
 
@@ -35,7 +37,9 @@ int main(void)
         {
             sys_move_cursor(0, print_location);
             printf("> [TASK] Has acquired lock and running.(%d)\n", i);
+#if YIELD_EN != 0
             sys_yield();
+#endif
         }
 
         sys_move_cursor(0, print_location);
@@ -46,7 +50,9 @@ int main(void)
 
         sys_mutex_release(mutex_id);
 
+#if YIELD_EN != 0
         sys_yield();
+#endif
     }
 
     return 0;

@@ -15,6 +15,8 @@ int main(void)
         sys_move_cursor(0, print_location);
         printf("> [TASK] This is a thread to timing! (%u/%u seconds).\n",
                 time, time_elapsed);
+#if YIELD_EN != 0
         sys_yield();
+#endif
     }
 }
