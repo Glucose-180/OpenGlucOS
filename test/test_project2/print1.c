@@ -13,6 +13,8 @@ int main(void)
     {
         sys_move_cursor(0, print_location);
         printf("> [TASK] This task is to test scheduler. (%d)", i);
+#if YIELD_EN != 0
         sys_yield();
+#endif
     }
 }

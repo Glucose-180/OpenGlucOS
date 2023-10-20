@@ -49,7 +49,9 @@ int main(void)
             sys_move_cursor(i, j + 6);
             printf("%s", plane7);
         }
+#if YIELD_EN != 0
         sys_yield();
+#endif
 
         sys_move_cursor(0, j + 0);
         printf("%s", blank);
