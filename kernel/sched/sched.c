@@ -26,7 +26,7 @@ const ptr_t pid0_stack = INIT_KERNEL_STACK;// + PAGE_SIZE;
  * 4 KiB, 2 KiB.
  */
 static const uint32_t Ustack_size = 4 * 1024,
-	Kstask_size = 2 * 1024;
+	Kstask_size = 4 * 1024;
 
 /*
  * It is used to represent main.c:main()

@@ -12,7 +12,7 @@
 
 /* Total memory size: unit: PAGE (default: 4 KiB) */
 #ifndef KSL
-	#define KSL 512	/* 2 MiB */
+	#define KSL 4096	/* 16 MiB */
 #endif
 #ifndef USL
 	#define USL 4096	/* 16 MiB */
