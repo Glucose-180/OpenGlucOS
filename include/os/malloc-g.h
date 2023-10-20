@@ -25,6 +25,9 @@
 /* Alignment of address returned from Xmalloc_g */
 #define ADDR_ALIGN 0x8
 
+/* Alignment of stack pointer in RISC-V 64 */
+#define SP_ALIGN 0x10
+
 enum Tag_t { FREE,OCCUPIED };
 
 typedef struct header {

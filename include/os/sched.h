@@ -90,6 +90,14 @@ typedef struct pcb
 	 */
 	regs_context_t *trapframe;
 
+	/*
+	 * the start (lowest) address of kernel and user stack.
+	 * Different from kernel/user_sp which are stack pointers,
+	 * as stack grows from high address to low.
+	 */
+	reg_t kernel_stack;
+	reg_t user_stack;
+
 	/* previous, next pointer */
 	//list_node_t list;
 	/* next pointer */

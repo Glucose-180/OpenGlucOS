@@ -110,8 +110,7 @@ pid_t create_proc(const char *taskname)
 		if (p0 != current_running)
 			panic_g("create_proc: Error happened while removing the proc 0");
 	}*/
-	init_pcb_stack(kernel_stack + ROUND(Kstask_size, ADDR_ALIGN),
-		user_stack + ROUND(Ustack_size, ADDR_ALIGN), entry, pnew);
+	init_pcb_stack(kernel_stack, user_stack, entry, pnew);
 	return pnew->pid;
 }
 
@@ -286,7 +285,7 @@ pcb_t *do_unblock(pcb_t * const Queue)
 
 /************************************************************/
 void init_pcb_stack(
-	ptr_t kernel_sp, ptr_t user_sp, ptr_t entry_point,
+	ptr_t kernel_stack, ptr_t user_stack, ptr_t entry_point,
 	pcb_t *pcb)
 {
 	 /* TODO: [p2-task3] initialization of registers on kernel stack
@@ -294,7 +293,13 @@ void init_pcb_stack(
 	  * NOTE: To run the task in user mode, you should set corresponding bits
 	  *     of sstatus(SPP, SPIE, etc.).
 	  */
-	pcb->kernel_sp = kernel_sp - sizeof(regs_context_t);
+	pcb->kernel_stack = kernel_stack;
+	pcb->kernel_sp = kernel_stack + ROUND(Kstask_size, ADDR_ALIGN)
+		 - sizeof(regs_context_t);
+	pcb->kernel_sp = ROUNDDOWN(pcb->kernel_sp, SP_ALIGN);
+	pcb->user_stack = user_stack;
+	pcb->user_sp = user_stack + ROUND(Ustack_size, ADDR_ALIGN);
+	pcb->user_sp = ROUNDDOWN(pcb->user_sp, SP_ALIGN);
 	/*
 	 * After switch_to(), it will
 	 * be switched to ret_from_exception.
@@ -315,14 +320,13 @@ void init_pcb_stack(
 		*/
 		panic_g("init_pcb_stack: SPP is not zero");
 	pcb->trapframe->regs[OFFSET_REG_TP / sizeof(reg_t)] = (reg_t)pcb;
-	pcb->trapframe->regs[OFFSET_REG_SP / sizeof(reg_t)] = (reg_t)user_sp;
+	pcb->trapframe->regs[OFFSET_REG_SP / sizeof(reg_t)] = (reg_t)(pcb->user_sp);
 	/*
 	 * scause must not be 8, which is the number of syscall.
 	 * Otherwise $sepc will be added 4 in ret_from_exception.
 	 */
 	pcb->trapframe->scause = ~(~(0UL) >> 1);
 
-	pcb->user_sp = user_sp;
 	pcb->status = TASK_READY;
 	pcb->cursor_x = pcb->cursor_y = 0;
 	if ((pcb->pid = alloc_pid()) == INVALID_PID)
