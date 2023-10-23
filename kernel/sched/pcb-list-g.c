@@ -23,11 +23,11 @@
 /*
  * TODO: Check NUM_MAX_TASK.
  */
-clist_node_t *add_node_to_tail(clist_node_t * const Head, clist_node_t * volatile *ppnew)
+pcb_t *add_node_to_tail(pcb_t * const Head, pcb_t * volatile *ppnew)
 {
-	clist_node_t *p;
+	pcb_t *p;
 
-	*ppnew = kmalloc_g(sizeof(clist_node_t));
+	*ppnew = kmalloc_g(sizeof(pcb_t));
 	if (*ppnew == NULL)
 		return NULL;
 	if (Head == NULL)
@@ -47,9 +47,9 @@ clist_node_t *add_node_to_tail(clist_node_t * const Head, clist_node_t * volatil
  * If Pprior is NULL, *Pnew will be inserted to tail.
  * Otherwise, if Pprior is not found in this list, NULL will be returned.
  */
-clist_node_t *insert_node(clist_node_t * const Head, clist_node_t * const Pnew, clist_node_t * const Pprior)
+pcb_t *insert_node(pcb_t * const Head, pcb_t * const Pnew, pcb_t * const Pprior)
 {
-	clist_node_t *p;
+	pcb_t *p;
 
 	if (Head == NULL)
 	{	/* Empty list */
@@ -73,9 +73,9 @@ clist_node_t *insert_node(clist_node_t * const Head, clist_node_t * const Pnew, 
  * search_node_pid: Search a node according to member "pid".
  * Return pointer to it, or NULL if not found.
  */
-clist_node_t *search_node_pid(clist_node_t * const Head, pid_t const Pid)
+pcb_t *search_node_pid(pcb_t * const Head, pid_t const Pid)
 {
-	clist_node_t *p;
+	pcb_t *p;
 
 	if (Head == NULL || Head->pid == Pid)
 		return Head;
@@ -92,9 +92,9 @@ clist_node_t *search_node_pid(clist_node_t * const Head, pid_t const Pid)
  * If the node is not found, *ppdel will be NULL.
  * (*ppdel)->next is NOT defined.
  */
-clist_node_t *del_node(clist_node_t * const Head, clist_node_t * const T, clist_node_t **ppdel)
+pcb_t *del_node(pcb_t * const Head, pcb_t * const T, pcb_t **ppdel)
 {
-	clist_node_t *p;
+	pcb_t *p;
 
 	if (Head == NULL)
 	{	/* Empty node */

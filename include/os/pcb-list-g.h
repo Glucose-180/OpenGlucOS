@@ -4,12 +4,10 @@
 
 #include <os/sched.h>
 
-typedef pcb_t clist_node_t;
-
-clist_node_t *add_node_to_tail(clist_node_t * const Head, clist_node_t * volatile *ppnew);
-clist_node_t *insert_node(clist_node_t * const Head, clist_node_t * const Pnew, clist_node_t * const Pprior);
-clist_node_t *search_node_pid(clist_node_t * const Head, pid_t const Pid);
-clist_node_t *del_node(clist_node_t * const Head, clist_node_t * const T, clist_node_t **ppdel);
+pcb_t *add_node_to_tail(pcb_t * const Head, pcb_t * volatile *ppnew);
+pcb_t *insert_node(pcb_t * const Head, pcb_t * const Pnew, pcb_t * const Pprior);
+pcb_t *search_node_pid(pcb_t * const Head, pid_t const Pid);
+pcb_t *del_node(pcb_t * const Head, pcb_t * const T, pcb_t **ppdel);
 
 
 #endif
