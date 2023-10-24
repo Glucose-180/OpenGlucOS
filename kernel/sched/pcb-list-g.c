@@ -2,16 +2,7 @@
  * pcb-list-g.c: by Glucose180
  * Operations for CIRCULAR linked list of PCB.
  */
-
-#include <os/list.h>
-#include <os/lock.h>
-#include <os/pcb-list-g.h>
 #include <os/sched.h>
-#include <os/time.h>
-#include <os/mm.h>
-#include <screen.h>
-#include <printk.h>
-#include <assert.h>
 #include <os/malloc-g.h>
 
 /*
