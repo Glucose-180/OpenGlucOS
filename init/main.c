@@ -88,7 +88,7 @@ static void init_pcb(void)
 	pcb_t *temp;
 
 	ready_queue = NULL;
-	ready_queue = add_node_to_tail(ready_queue, &current_running);
+	ready_queue = lpcb_add_node_to_tail(ready_queue, &current_running);
 	if (ready_queue == NULL)
 		panic_g("init_pcb: Failed to init ready_queue");
 	/*

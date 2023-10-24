@@ -70,7 +70,7 @@ pid_t alloc_pid(void)
 	const pid_t Pid_min = 1, Pid_max = 2 * NUM_MAX_TASK;
 
 	for (i = Pid_min; i <= Pid_max; ++i)
-		if (search_node_pid(ready_queue, i) == NULL)
+		if (lpcb_search_node(ready_queue, i) == NULL)
 			return i;
 	return INVALID_PID;
 }
@@ -94,11 +94,11 @@ pid_t create_proc(const char *taskname)
 		return INVALID_PID;
 	/*if (ready_queue->pid == pid0_pcb.pid)
 	{
-		ready_queue = del_node(ready_queue, ready_queue, &p0);
+		ready_queue = lpcb_del_node(ready_queue, ready_queue, &p0);
 		if (ready_queue != NULL || p0 == NULL || p0->pid != pid0_pcb.pid)
 			panic_g("create_proc: Failed to remove the proc whose ID is 0");
 	}*/
-	if ((temp = add_node_to_tail(ready_queue, &pnew)) == NULL)
+	if ((temp = lpcb_add_node_to_tail(ready_queue, &pnew)) == NULL)
 	{
 		ufree_g((void *)user_stack);
 		return INVALID_PID;
@@ -154,7 +154,7 @@ void do_sleep(uint32_t sleep_time)
 	pcb_t *temp, *psleep;
 
 	temp = current_running->next;
-	ready_queue = del_node(ready_queue, current_running, &psleep);
+	ready_queue = lpcb_del_node(ready_queue, current_running, &psleep);
 	if (psleep != current_running)
 		panic_g("do_sleep: Failed to remove current_running");
 	if (ready_queue == NULL)
@@ -165,7 +165,7 @@ void do_sleep(uint32_t sleep_time)
 		current_running = NULL;
 	else
 		current_running = temp;
-	if ((sleep_queue = insert_node(sleep_queue, psleep, NULL)) == NULL)
+	if ((sleep_queue = lpcb_insert_node(sleep_queue, psleep, NULL)) == NULL)
 		panic_g("do_sleep: Failed to insert proc %d to sleep_queue", psleep->pid);
 	psleep->status = TASK_SLEEPING;
 	if ((psleep->wakeup_time = get_timer() + sleep_time) > time_max_sec)
@@ -229,11 +229,11 @@ void wake_up(pcb_t * const T)
 
 	if (T->status != TASK_SLEEPING)
 		goto err;
-	sleep_queue = del_node(sleep_queue, T, &pw);
+	sleep_queue = lpcb_del_node(sleep_queue, T, &pw);
 	if (pw != T)
 		goto err;
 	pw->status = TASK_READY;
-	ready_queue = insert_node(ready_queue, pw, current_running);
+	ready_queue = lpcb_insert_node(ready_queue, pw, current_running);
 	if (ready_queue == NULL)
 		goto err;
 	if (current_running == NULL)
@@ -258,7 +258,7 @@ pcb_t *do_block(pcb_t * const Pt, pcb_t * const Queue)
 {
 	// TODO: [p2-task2] block the pcb task into the block queue
 	Pt->status = TASK_SLEEPING;
-	return insert_node(Queue, Pt, NULL);
+	return lpcb_insert_node(Queue, Pt, NULL);
 }
 
 //void do_unblock(list_node_t *pcb_node)
@@ -272,11 +272,11 @@ pcb_t *do_unblock(pcb_t * const Queue)
 	// TODO: [p2-task2] unblock the `pcb` from the block queue
 	pcb_t *prec, *nq, *temp;
 
-	nq = del_node(Queue, Queue, &prec);
+	nq = lpcb_del_node(Queue, Queue, &prec);
 	if (prec == NULL)
 		panic_g("do_unblock: Failed to remove the head of queue 0x%lx", (long)Queue);
 	prec->status = TASK_READY;
-	temp = insert_node(ready_queue, prec, current_running);
+	temp = lpcb_insert_node(ready_queue, prec, current_running);
 	if (temp == NULL)
 		panic_g("do_unblock: Failed to insert process (PID=%d) to ready_queue", prec->pid);
 	ready_queue = temp;

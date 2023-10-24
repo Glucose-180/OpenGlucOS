@@ -78,7 +78,7 @@ int do_mutex_lock_acquire(int mlock_idx)
 			q = current_running;
 			current_running = p;
 			current_running->status = TASK_RUNNING;
-			ready_queue = del_node(ready_queue, q, &p);
+			ready_queue = lpcb_del_node(ready_queue, q, &p);
 			if (p != q)
 				panic_g("do_mutex_lock_acquire: Failed to remove"
 					" current_running from ready_queue");

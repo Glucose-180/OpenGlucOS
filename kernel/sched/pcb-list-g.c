@@ -15,7 +15,7 @@
 #include <os/malloc-g.h>
 
 /*
- * add_node_to_tail: Add a new node to the tail of list pointed by Head,
+ * lpcb_add_node_to_tail: Add a new node to the tail of list pointed by Head,
  * and returns head pointer of new list.
  * Then, *ppnew will points to the new node.
  * NULL will be returned on error.
@@ -23,7 +23,7 @@
 /*
  * TODO: Check NUM_MAX_TASK.
  */
-pcb_t *add_node_to_tail(pcb_t * const Head, pcb_t * volatile *ppnew)
+pcb_t *lpcb_add_node_to_tail(pcb_t * const Head, pcb_t * volatile *ppnew)
 {
 	pcb_t *p;
 
@@ -43,11 +43,11 @@ pcb_t *add_node_to_tail(pcb_t * const Head, pcb_t * volatile *ppnew)
 }
 
 /*
- * insert_node: insert a node after the node pointed by Pprior.
+ * lpcb_insert_node: insert a node after the node pointed by Pprior.
  * If Pprior is NULL, *Pnew will be inserted to tail.
  * Otherwise, if Pprior is not found in this list, NULL will be returned.
  */
-pcb_t *insert_node(pcb_t * const Head, pcb_t * const Pnew, pcb_t * const Pprior)
+pcb_t *lpcb_insert_node(pcb_t * const Head, pcb_t * const Pnew, pcb_t * const Pprior)
 {
 	pcb_t *p;
 
@@ -70,10 +70,10 @@ pcb_t *insert_node(pcb_t * const Head, pcb_t * const Pnew, pcb_t * const Pprior)
 }
 
 /*
- * search_node_pid: Search a node according to member "pid".
+ * lpcb_search_node: Search a node according to member "pid".
  * Return pointer to it, or NULL if not found.
  */
-pcb_t *search_node_pid(pcb_t * const Head, pid_t const Pid)
+pcb_t *lpcb_search_node(pcb_t * const Head, pid_t const Pid)
 {
 	pcb_t *p;
 
@@ -86,13 +86,13 @@ pcb_t *search_node_pid(pcb_t * const Head, pid_t const Pid)
 }
 
 /*
- * del_node: Delete a node pointed by T,
+ * lpcb_del_node: Delete a node pointed by T,
  * and returns head pointer to new list.
  * Then, *ppdel will pointes to the deleted node.
  * If the node is not found, *ppdel will be NULL.
  * (*ppdel)->next is NOT defined.
  */
-pcb_t *del_node(pcb_t * const Head, pcb_t * const T, pcb_t **ppdel)
+pcb_t *lpcb_del_node(pcb_t * const Head, pcb_t * const T, pcb_t **ppdel)
 {
 	pcb_t *p;
 

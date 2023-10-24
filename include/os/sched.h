@@ -74,6 +74,14 @@ typedef enum {
 	TASK_EXITED,
 } task_status_t;
 
+typedef pid_t tid_t;
+/* Thread control block */
+typedef struct tcb {
+	tid_t tid;
+	switchto_context_t context;
+	struct tcb *next;
+} tcb_t;
+
 /* Process Control Block */
 typedef struct pcb
 {
@@ -119,6 +127,10 @@ typedef struct pcb
 	/* Saved regs */
 	switchto_context_t context;
 
+	/* Pointer to list of child threads */
+	tcb_t *pcthread;
+	/* Pointer to current thread */
+	tcb_t *cur_thread;
 } pcb_t;
 
 /* ready queue to run */
