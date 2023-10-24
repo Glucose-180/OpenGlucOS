@@ -243,7 +243,7 @@ ENTRY(switch_to)
  */
 	la	t0, current_running
 	ld	tp, 0(t0)
-	jr	ra
+	ret
 
 ENDPROC(switch_to)
 

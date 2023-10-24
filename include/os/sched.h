@@ -34,6 +34,7 @@
 
 #define NUM_MAX_TASK 16
 #define INVALID_PID (-1)
+#define INVALID_TID (-1)
 
 /*
  * used to save register infomation:
@@ -77,8 +78,15 @@ typedef enum {
 typedef pid_t tid_t;
 /* Thread control block */
 typedef struct tcb {
-	tid_t tid;
+	/*
+	 * This order must be preserved. That is,
+	 * arg must be after and next to context.
+	 */
 	switchto_context_t context;
+	reg_t arg;
+
+	tid_t tid;
+	ptr_t stack;	/* Base of stack */
 	struct tcb *next;
 } tcb_t;
 
@@ -127,9 +135,16 @@ typedef struct pcb
 	/* Saved regs */
 	switchto_context_t context;
 
-	/* Pointer to list of child threads */
+	/*
+	 * Pointer to list of child threads,
+	 * NULL means that no child threads.
+	 */
 	tcb_t *pcthread;
-	/* Pointer to current thread */
+	/*
+	 * Pointer to current thread,
+	 * NULL means that current thread is 
+	 * parent thread, or main().
+	 */
 	tcb_t *cur_thread;
 } pcb_t;
 

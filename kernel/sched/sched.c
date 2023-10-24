@@ -67,7 +67,7 @@ pid_t process_id = 1;
 pid_t alloc_pid(void)
 {
 	pid_t i;
-	const pid_t Pid_min = 1, Pid_max = 2 * NUM_MAX_TASK;
+	static const pid_t Pid_min = 1, Pid_max = 2 * NUM_MAX_TASK;
 
 	for (i = Pid_min; i <= Pid_max; ++i)
 		if (lpcb_search_node(ready_queue, i) == NULL)
@@ -331,6 +331,10 @@ void init_pcb_stack(
 	pcb->cursor_x = pcb->cursor_y = 0;
 	if ((pcb->pid = alloc_pid()) == INVALID_PID)
 		panic_g("init_pcb_stack: No invalid PID can be used");
+	
+	/* No child thread at the beginning. */
+	pcb->cur_thread = NULL;
+	pcb->pcthread = NULL;
 }
 
 void set_preempt(void)
