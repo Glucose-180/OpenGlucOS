@@ -83,7 +83,13 @@ int do_mutex_lock_acquire(int mlock_idx)
 				panic_g("do_mutex_lock_acquire: Failed to remove"
 					" current_running from ready_queue");
 			ptlock->block_queue = do_block(p, ptlock->block_queue);
+#if MULTITHREADING != 0
+			switch_to(p->cur_thread == NULL ? &(p->context) : &(p->cur_thread->context),
+				current_running->cur_thread == NULL ? &(current_running->context)
+				: &(current_running->cur_thread->context));
+#else
 			switch_to(&(p->context), &(current_running->context));
+#endif
 			return mlock_idx;
 		}
 	}

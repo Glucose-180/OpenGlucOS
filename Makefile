@@ -38,18 +38,22 @@ MINICOM         = minicom
 # Build/Debug Flags and Variables
 # -----------------------------------------------------------------------
 
+# Whether sys_yield() is invoked in user process
 YIELD_EN		= 0
 
-CFLAGS          = -O0 -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -ggdb3 -DOS_NAME=\"$(OS_NAME)\" -DUSER_NAME=\"$(USER_NAME)\" -DYIELD_EN=$(YIELD_EN)
+# Whether multithreading is supported in GlucOS
+MTHREAD			= 1
+
+CFLAGS          = -O0 -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -ggdb3 -DOS_NAME=\"$(OS_NAME)\" -DUSER_NAME=\"$(USER_NAME)\" -DMULTITHREADING=$(MTHREAD)
 
 BOOT_INCLUDE    = -I$(DIR_ARCH)/include
 BOOT_CFLAGS     = $(CFLAGS) $(BOOT_INCLUDE) -Wl,--defsym=TEXT_START=$(BOOTLOADER_ENTRYPOINT) -T riscv.lds
 
 KERNEL_INCLUDE  = -I$(DIR_ARCH)/include -Iinclude -Idrivers
-KERNEL_CFLAGS   = $(CFLAGS) $(KERNEL_INCLUDE) -Wl,--defsym=TEXT_START=$(KERNEL_ENTRYPOINT) -T riscv.lds
+KERNEL_CFLAGS   = $(CFLAGS) $(KERNEL_INCLUDE) -DMULTITHREADING=$(MTHREAD) -Wl,--defsym=TEXT_START=$(KERNEL_ENTRYPOINT) -T riscv.lds
 
 USER_INCLUDE    = -I$(DIR_TINYLIBC)/include
-USER_CFLAGS     = $(CFLAGS) $(USER_INCLUDE)
+USER_CFLAGS     = $(CFLAGS) $(USER_INCLUDE) -DYIELD_EN=$(YIELD_EN)
 USER_LDFLAGS    = -L$(DIR_BUILD) -ltinyc
 
 QEMU_LOG_FILE   = $(DIR_OSLAB)/oslab-log.txt
@@ -186,7 +190,7 @@ elf: $(ELF_BOOT) $(ELF_MAIN) $(LIB_TINYC) $(ELF_USER)
 
 $(ELF_CREATEIMAGE): $(SRC_CREATEIMAGE)
 	$(HOST_CC) $(SRC_CREATEIMAGE) -o $@ -ggdb -Wall
-
+	
 image: $(ELF_CREATEIMAGE) $(ELF_BOOT) $(ELF_MAIN) $(ELF_USER)
 	cd $(DIR_BUILD) && ./$(<F) --extended $(filter-out $(<F), $(^F))
 

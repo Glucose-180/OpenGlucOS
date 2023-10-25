@@ -134,7 +134,19 @@ void do_scheduler(void)
 				q = current_running;
 				current_running = p;
 				current_running->status = TASK_RUNNING;
+				/*
+				 * Define MULTITHREADING as 1 to support multithreading. When switch_to()
+				 * is called, we should first determine which thread will be switched from
+				 * and to. If multithreading is disabled, just keep switch_to() as normal.
+				 */
+#if MULTITHREADING != 0
+				switch_to(q->cur_thread == NULL ? &(q->context) : &(q->cur_thread->context),
+					current_running->cur_thread == NULL ? &(current_running->context)
+					: &(current_running->cur_thread->context)
+				);
+#else
 				switch_to(&(q->context), &(current_running->context));
+#endif
 				return;
 			}
 		}
@@ -174,7 +186,15 @@ void do_sleep(uint32_t sleep_time)
 	if (current_running == NULL)
 		do_scheduler();
 	else
+#if MULTITHREADING != 0
+		switch_to(psleep->cur_thread == NULL ? &(psleep->context)
+			: &(psleep->cur_thread->context),
+			current_running->cur_thread == NULL ? &(current_running->context)
+			: &(current_running->cur_thread->context)
+		);
+#else
 		switch_to(&(psleep->context), &(current_running->context));
+#endif
 }
 
 /*

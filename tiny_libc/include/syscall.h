@@ -1,16 +1,19 @@
 #ifndef __SYSCALL_H__
 #define __SYSCALL_H__
 
-#define SYSCALL_SLEEP 2
-#define SYSCALL_YIELD 7
-#define SYSCALL_WRITE 20
-#define SYSCALL_BIOS_GETCHAR 21
-#define SYSCALL_CURSOR 22
-#define SYSCALL_REFLUSH 23
-#define SYSCALL_GET_TIMEBASE 30
-#define SYSCALL_GET_TICK 31
-#define SYSCALL_LOCK_INIT 40
-#define SYSCALL_LOCK_ACQ 41
-#define SYSCALL_LOCK_RELEASE 42
+#define SYS_sleep 2
+#define SYS_yield 7
+#define SYS_write 20
+#define SYS_bios_getchar 21
+#define SYS_move_cursor 22
+#define SYS_reflush 23
+#define SYS_get_timebase 30
+#define SYS_get_tick 31
+#define SYS_lock_init 40
+#define SYS_lock_acquire 41
+#define SYS_lock_release 42
+
+#define SYS_thread_create 50
+#define SYS_thread_yield 51
 
 #endif

@@ -183,6 +183,9 @@ void init_pcb_stack(
 	pcb_t *pcb);
 void set_preempt(void);
 
+tid_t thread_create(void *(*func)(), reg_t arg);
+void thread_yield(void);
+
 /************************************************************/
 /* Do not touch this comment. Reserved for future projects. */
 /************************************************************/
