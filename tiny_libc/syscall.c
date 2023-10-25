@@ -113,9 +113,9 @@ void sys_sleep(uint32_t time)
 	invoke_syscall(SYS_sleep, (long)time, Ignore, Ignore, Ignore, Ignore);
 }
 
-long sys_thread_create(void *(*func)(), void *arg)
+long sys_thread_create(void *(*func)(), long arg)
 {
-	return invoke_syscall((long)func, (long)arg, Ignore, Ignore, Ignore, Ignore);
+	return invoke_syscall(SYS_thread_create, (long)func, arg, Ignore, Ignore, Ignore);
 }
 
 void sys_thread_yield(void)

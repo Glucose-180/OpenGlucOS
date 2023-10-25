@@ -15,6 +15,9 @@ int sys_mutex_init(int key);
 int sys_mutex_acquire(int mutex_idx);
 int sys_mutex_release(int mutex_idx);
 
+long sys_thread_create(void *(*func)(), long arg);
+void sys_thread_yield(void);
+
 /************************************************************/
 /* Do not touch this comment. Reserved for future projects. */
 /************************************************************/

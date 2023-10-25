@@ -61,6 +61,9 @@ typedef struct switchto_context
 	 * ra, sp, s0~s11.
 	 */
 	reg_t regs[14];
+#if MULTITHREADING != 0
+	reg_t sepc;
+#endif
 } switchto_context_t;
 
 enum Saved_regs {
@@ -184,7 +187,7 @@ void init_pcb_stack(
 void set_preempt(void);
 
 tid_t thread_create(void *(*func)(), reg_t arg);
-void thread_yield(void);
+long thread_yield(void);
 
 /************************************************************/
 /* Do not touch this comment. Reserved for future projects. */
