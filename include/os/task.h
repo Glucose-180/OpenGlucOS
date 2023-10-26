@@ -24,6 +24,7 @@
 typedef struct {	/* It should be the same as struct in createimage.c */
 	uint32_t offs;	/* Offset in image file */
 	uint32_t size;	/* Size in image file */
+	uint32_t addr;	/* Start addr, or vaddr of segment 0 */
 	uint32_t entr;	/* Entry addr in main memory */
 	char name[TASK_NAMELEN + 1];
 } task_info_t;

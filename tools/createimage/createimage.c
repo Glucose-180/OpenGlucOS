@@ -24,7 +24,8 @@ static void read_phdr(Elf64_Phdr *phdr, FILE *fp, int ph, Elf64_Ehdr ehdr);
 //static uint64_t get_entrypoint(Elf64_Ehdr ehdr);
 static uint32_t get_filesz(Elf64_Phdr phdr);
 //static uint32_t get_memsz(Elf64_Phdr phdr);
-static void write_segment(Elf64_Phdr phdr, FILE *fp, FILE *img, int *phyaddr);
+static void write_segment(Elf64_Phdr phdr, FILE *fp, FILE *img, int *phyaddr,
+	uint32_t vaddr0, int phyaddr0);
 static void write_padding(FILE *img, int *phyaddr, int new_phyaddr);
 static void write_img_info(uint32_t kernel_size,
 	uint32_t taskinfo_offset, uint32_t tasknum, task_info_t *taskinfo, FILE *img);
@@ -77,6 +78,13 @@ static void create_image(int nfiles, char *files[])
 	 */
 	int32_t nbytes_kernel = 0,
 		 phyaddr = 0;	/* Address in image file */
+	
+	/*
+	 * vaddr (in main memory) and phyaddr (in image file) of the first
+	 * loadable Segment (Segment0) for EVERY user task ELF file.
+	 */
+	uint32_t vaddr0;
+	int phyaddr0;
 
 	FILE *fp = NULL, *img = NULL;
 	Elf64_Ehdr ehdr;
@@ -91,6 +99,9 @@ static void create_image(int nfiles, char *files[])
 	{
 
 		//int taskidx = fidx - 2;
+
+		/* 0 means that has not been decided */
+		vaddr0 = phyaddr0 = 0;
 
 		/* open input file */
 		fp = fopen(*files, "r");
@@ -113,8 +124,20 @@ static void create_image(int nfiles, char *files[])
 
 			if (phdr.p_type != PT_LOAD) continue;
 
+			if (fidx >= 1)	/* Skip bootblock */
+			{
+				if (vaddr0 == 0U)
+				{
+					vaddr0 = phdr.p_vaddr;
+					if (vaddr0 != ehdr.e_entry)
+						printf("**Warning: vaddr0 is not equal to e_entry\n");
+				}
+				if (phyaddr0 == 0)
+					phyaddr0 = phyaddr;
+			}
+
 			/* write segment to the image */
-			write_segment(phdr, fp, img, &phyaddr);
+			write_segment(phdr, fp, img, &phyaddr, vaddr0, phyaddr0);
 
 			/* update nbytes_kernel */
 			if (strcmp(*files, "main") == 0) {
@@ -136,6 +159,8 @@ static void create_image(int nfiles, char *files[])
 		}
 		else if (fidx >= 2)
 		{
+			assert(vaddr0 != 0U);	/* vaddr0 must have been decided */
+			taskinfo[fidx - 2].addr = vaddr0;
 			taskinfo[fidx - 2].entr = ehdr.e_entry;
 			taskinfo[fidx - 2].size = phyaddr - taskinfo[fidx - 2].offs;
 		}
@@ -191,13 +216,25 @@ static uint32_t get_filesz(Elf64_Phdr phdr)
 	return phdr.p_memsz;
 }*/
 
-static void write_segment(Elf64_Phdr phdr, FILE *fp, FILE *img, int *phyaddr)
+static void write_segment(Elf64_Phdr phdr, FILE *fp, FILE *img, int *phyaddr,
+	uint32_t vaddr0, int phyaddr0)
 {
 	if (phdr.p_memsz != 0 && phdr.p_type == PT_LOAD) {
 		/* write the segment itself */
 		/* NOTE: expansion of .bss should be done by kernel or runtime env! */
+
+		/*
+		 * vaddr0 and phyaddr0 being 0 means that this file is
+		 * not a kernel or user task ELF file but bootlock
+		 */
+		assert((vaddr0 == 0) == (phyaddr0 == 0));
+		if (vaddr0 != 0U)
+		{
+			*phyaddr = phyaddr0 + (phdr.p_vaddr - vaddr0);
+			fseek(img, *phyaddr, SEEK_SET);
+		}
 		if (options.extended == 1) {
-			printf("\t\twriting 0x%04lx bytes\n", phdr.p_filesz);
+			printf("\t\twriting 0x%04lx bytes at 0x%04x\n", phdr.p_filesz, *phyaddr);
 		}
 		fseek(fp, phdr.p_offset, SEEK_SET);
 		while (phdr.p_filesz-- > 0) {
