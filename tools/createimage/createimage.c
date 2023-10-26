@@ -231,7 +231,7 @@ static void write_segment(Elf64_Phdr phdr, FILE *fp, FILE *img, int *phyaddr,
 		if (vaddr0 != 0U)
 		{
 			*phyaddr = phyaddr0 + (phdr.p_vaddr - vaddr0);
-			fseek(img, *phyaddr, SEEK_SET);
+			assert(fseek(img, *phyaddr, SEEK_SET) == 0);
 		}
 		if (options.extended == 1) {
 			printf("\t\twriting 0x%04lx bytes at 0x%04x\n", phdr.p_filesz, *phyaddr);

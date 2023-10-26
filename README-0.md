@@ -8,7 +8,7 @@ Project 2。
 
 #### 最新更改
 
-[2023-10-26] 尝试修复`createimage.c`。
+[2023-10-26] 测试了`createimage.c`。
 
 #### 可做的优化
 
@@ -149,6 +149,8 @@ Project 2。
   修复了`tiny_libc/string.c`中`strncmp()`。
 
   尝试修复了`createimage.c`中不能处理同一个 ELF 文件有多个大小非零的 Segments 的情况，原理是：$x_i-x_0=v_i-v_0$，其中 $x_i$ 是第 $i$  个 Segment 在镜像中的偏移，$v_i$ 是第 $i$ 个 Segment 的虚地址`vaddr`，$i=0$ 对应的是首个可加载的（暂且认为等同于大小非零的）的 Segment。并且，修改了`taskinfo`数据结构，新增`addr`表示该用户程序将要加载到主存的地址，它会在创建镜像时被设置成刚才提到的 $v_0$，用于和入口点`entr`区分，以往`addr`和`entr`总是相等的，现在如果二者不等的话创建镜像时会报一个 Warning。但是，并没有经过多个 Segments 的测试，所以并不能保证这个修复是正确的。
+
+  请了徐畅杰帮助测试多个 Segments 的情况，似乎是没问题的。
 
 
 
