@@ -8,7 +8,7 @@ Project 2。
 
 #### 最新更改
 
-[2023-10-26] 进行了一些小优化。
+[2023-10-26] 修复了`tiny_libc/string.c`中`strncmp()`。
 
 #### 可做的优化
 
@@ -145,6 +145,8 @@ Project 2。
   修复了刚才的问题，不是因为修改了更高地址的内容，而是因为在首次进入线程时，`ret_from_exception()`识别本次 trap 为 syscall 将`sepc`加了 4，导致跳过了线程入口函数的第一条指令`addi sp, sp, -32`，进而导致对栈的写入越界。补充了栈指针的 16 B 对齐要求。修复了新建进程、线程时先新建 PCB/TCB 链表再分配 PID 导致`alloc_pid()`可能误把新建 PCB/TCB 的无效 PID 当作已占用的小问题。
 
   修复了很多小问题：屏幕驱动以及`getchar()`增加对`\177`（Windows Powershell 中按 Backspace 的输入效果）的支持；Makefile 支持使用`DEBUG=0`选项使编译的 GlucOS 不包含调试信息；增加每个用户进程的内核栈和用户栈均为 16 KiB；使控制调度定时器周期的宏定义`TIMER_INTERVAL_MS`可在编译时调整，默认为 40，且可以在`make`时通过变量`TINTERVAL`来指定，默认值也是 40。**注意：**在`make`时如若更改变量，需要提前`make clean`。此外，更新了`README.md`和`~Record`中的记录。
+
+  修复了`tiny_libc/string.c`中`strncmp()`。
 
 
 

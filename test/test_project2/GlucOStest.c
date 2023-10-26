@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
 
 /*
  * Using this file is dangerous.
@@ -14,6 +15,7 @@ void test_syscall(void);
 void test_unaligned(void);
 void test_zerodivision(void);
 void test_printf(void);
+void test_strncpy(void);
 
 int main()
 {
@@ -26,7 +28,10 @@ int main()
 		"\t1 - Check GPRs after a Syscall\n"
 		"\t2 - Try to access an unaligned address\n"
 		"\t3 - Try to divide an integer by ZERO\n"
+	);
+	printf(
 		"\t4 - printf different kinds of integers\n"
+		"\t5 - Lib function strncmp()\n"
 	);
 	while (1)
 	{
@@ -49,6 +54,9 @@ int main()
 			break;
 		case 4:
 			test_printf();
+			break;
+		case 5:
+			test_strncpy();
 			break;
 		default:
 			flag_retry = 1;
@@ -164,4 +172,18 @@ void test_printf(void)
 		"(unsigned long)4294967296  : %lu\n",
 		iv, uiv, lv, ulv
 		);
+}
+
+void test_strncpy()
+{
+	char s1[] = "Genshin\0start";
+	char s2[] = "Genshin\0Start";
+	int crt;
+	unsigned int n = 10U;
+
+	crt = strncmp(s1, s2, n);
+	printf("Comparing \"%s\" and \"%s\" in at most %u chars returns %d.\n",
+		s1, s2, n, crt);
+	if (crt != 0)
+		printf("Failed!\n");
 }
