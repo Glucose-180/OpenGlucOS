@@ -110,6 +110,11 @@ pid_t create_proc(const char *taskname)
 		if (p0 != current_running)
 			panic_g("create_proc: Error happened while removing the proc 0");
 	}*/
+	/*
+	 * Set PID of new born process to INVALID_PID
+	 * so that the undefined PID will not affect alloc_pid().
+	 */
+	pnew->pid = INVALID_PID;
 	init_pcb_stack(kernel_stack, user_stack, entry, pnew);
 	return pnew->pid;
 }

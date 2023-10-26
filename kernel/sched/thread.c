@@ -49,15 +49,26 @@ tid_t thread_create(void *(*func)(), reg_t arg)
 	if ((stack = (ptr_t)umalloc_g(Tstack_size)) == 0)
 		return INVALID_TID;
 	pnew->stack = stack;
+	/*
+	 * Set TID of new born thread to INVALID_TID
+	 * so that the undefined TID will not affect alloc_tid().
+	 */
+	pnew->tid = INVALID_TID;
 	if ((tid = alloc_tid(current_running)) == INVALID_TID)
 	{
 		ufree_g((void *)stack);
 		return INVALID_TID;
 	}
 	pnew->tid = tid;
-	pnew->context.sepc = (reg_t)func;
+	/*
+	 * When entering ret_from_exception, it will recognize the trap as
+	 * a syscall and add 4 to $sepc. So we must decrease it by 4 to
+	 * avoid skipping the first instruction (usually addi sp, sp, -32)
+	 * of the function to be entered.
+	 */
+	pnew->context.sepc = (reg_t)((int8_t *)func - 4);
 	pnew->context.regs[SR_RA] = (reg_t)func;
-	pnew->context.regs[SR_SP] = stack + Tstack_size - 512U;
+	pnew->context.regs[SR_SP] = ROUNDDOWN(stack + Tstack_size, SP_ALIGN);
 	pnew->arg = arg;
 	return tid;
 }
