@@ -7,6 +7,8 @@ PROJECT_IDX	= 2
 OS_NAME = GlucOS
 USER_NAME = glucose180
 
+DEBUG		= 1
+
 # -----------------------------------------------------------------------
 # Host Linux Variables
 # -----------------------------------------------------------------------
@@ -44,13 +46,22 @@ YIELD_EN		= 0
 # Whether multithreading is supported in GlucOS
 MTHREAD			= 1
 
-CFLAGS          = -O0 -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -ggdb3 -DOS_NAME=\"$(OS_NAME)\" -DUSER_NAME=\"$(USER_NAME)\" -DMULTITHREADING=$(MTHREAD)
+# Timer interval (ms) used for scheduler
+TINTERVAL		= 40
+
+CFLAGS0         = -O0 -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -DOS_NAME=\"$(OS_NAME)\" -DUSER_NAME=\"$(USER_NAME)\"
+
+ifneq ($(DEBUG), 0)
+	CFLAGS		= $(CFLAGS0) -ggdb3
+else
+	CFLAGS		= $(CFLAGS0)
+endif
 
 BOOT_INCLUDE    = -I$(DIR_ARCH)/include
 BOOT_CFLAGS     = $(CFLAGS) $(BOOT_INCLUDE) -Wl,--defsym=TEXT_START=$(BOOTLOADER_ENTRYPOINT) -T riscv.lds
 
 KERNEL_INCLUDE  = -I$(DIR_ARCH)/include -Iinclude -Idrivers
-KERNEL_CFLAGS   = $(CFLAGS) $(KERNEL_INCLUDE) -DMULTITHREADING=$(MTHREAD) -Wl,--defsym=TEXT_START=$(KERNEL_ENTRYPOINT) -T riscv.lds
+KERNEL_CFLAGS   = $(CFLAGS) $(KERNEL_INCLUDE) -DMULTITHREADING=$(MTHREAD) -DTIMER_INTERVAL_MS=$(TINTERVAL) -Wl,--defsym=TEXT_START=$(KERNEL_ENTRYPOINT) -T riscv.lds
 
 USER_INCLUDE    = -I$(DIR_TINYLIBC)/include
 USER_CFLAGS     = $(CFLAGS) $(USER_INCLUDE) -DYIELD_EN=$(YIELD_EN)

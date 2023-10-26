@@ -54,7 +54,7 @@ void screen_write_ch(char ch)
 		current_running->cursor_x = 0;
 		current_running->cursor_y++;
 	}
-	else if (ch == '\b')
+	else if (ch == '\b' || ch == '\177')
 	{	/* Backspace: by Glucose180 */
 		if (current_running->cursor_x > 0)
 			current_running->cursor_x--;

@@ -23,10 +23,10 @@ const ptr_t pid0_stack = INIT_KERNEL_STACK;// + PAGE_SIZE;
 
 /*
  * The default size for a user stack and kernel stack.
- * 4 KiB, 2 KiB.
+ * 16 KiB, 16 KiB.
  */
-static const uint32_t Ustack_size = 4 * 1024,
-	Kstask_size = 4 * 1024;
+static const uint32_t Ustack_size = 16 * 1024,
+	Kstask_size = 16 * 1024;
 
 /*
  * It is used to represent main.c:main()
@@ -364,7 +364,9 @@ void init_pcb_stack(
 
 void set_preempt(void)
 {
-#define INTERVAL 40U /* unit: ms */
+#ifndef TIMER_INTERVAL_MS
+#define TIMER_INTERVAL_MS 40U /* unit: ms */
+#endif
 	static char flag_first = 1;
 	static uint64_t timer_interval;
 	/* enable preempt */
@@ -379,8 +381,7 @@ void set_preempt(void)
 	if (flag_first != 0)
 	{
 		flag_first = 0;
-		timer_interval = time_base / 1000U * INTERVAL;
+		timer_interval = time_base / 1000U * TIMER_INTERVAL_MS;
 	}
 	bios_set_timer(get_ticks() + timer_interval);
-#undef INTERVAL
 }

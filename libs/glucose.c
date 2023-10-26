@@ -47,14 +47,14 @@ int getchar()
 	{
 		while ((ch = bios_getchar()) == NOI)
 			;
-		if (ch == '\b')
+		if (ch == '\b' || ch == '\177')
 		{	/* backspace */
 			if (!QEMPTY)
 			{
 				/* Remove the char at end of buffer */
 				qtail = (qtail + QS - 1) % QS;
 				//bios_putstr("\b \b");
-				printk("\b \b");
+				printk("%c %c", ch, ch);
 			}
 			continue;
 		}
