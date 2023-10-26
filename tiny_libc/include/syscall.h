@@ -15,5 +15,6 @@
 
 #define SYS_thread_create 50
 #define SYS_thread_yield 51
+#define SYS_thread_kill 52
 
 #endif

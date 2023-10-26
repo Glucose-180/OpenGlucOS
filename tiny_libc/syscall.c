@@ -120,7 +120,20 @@ long sys_thread_create(void *(*func)(), long arg)
 
 void sys_thread_yield(void)
 {
+	/*
+	 * If you use `ecall` to call thread_yield() directly,
+	 * maybe only saved register (callee saved) would be kept
+	 * after returning to this thread!
+	 */
 	invoke_syscall(SYS_thread_yield, Ignore, Ignore, Ignore, Ignore, Ignore);
+}
+
+int sys_thread_kill(int const T)
+{
+	/*
+	 * Only main thread can call this.
+	 */
+	invoke_syscall(SYS_thread_kill, (long)T, Ignore, Ignore, Ignore, Ignore);
 }
 
 /************************************************************/

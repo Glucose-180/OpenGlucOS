@@ -125,6 +125,7 @@ static void init_syscall(void)
 #if MULTITHREADING != 0
 	syscall[SYS_thread_create] = (long (*)())thread_create;
 	syscall[SYS_thread_yield] = (long (*)())thread_yield;
+	syscall[SYS_thread_kill] = (long (*)())thread_kill;
 #endif
 }
 /************************************************************/

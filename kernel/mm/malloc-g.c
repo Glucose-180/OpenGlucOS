@@ -119,7 +119,7 @@ void kfree_g(void* const P)
 		lf_tag = lf->tag;
 
 	rh = f + 1;	/* head of the right block */
-	if ((int8_t*)rh - kallocbuf >= KSL)
+	if ((int8_t*)rh - kallocbuf >= KSL * PAGE_SIZE)
 		rh_tag = 1;
 	else
 		rh_tag = rh->tag;
@@ -260,13 +260,13 @@ void ufree_g(void* const P)
 		panic_g("ufree_g: Addr 0x%lx is not allocated by xmalloc_g\n", (int64_t)P);
 
 	lf = h - 1;	/* foot of the left block */
-	if ((int8_t*)h - kallocbuf <= 0)
+	if ((int8_t*)h - uallocbuf <= 0)
 		lf_tag = 1;	/* left terminal, consider as left block is occupied */
 	else
 		lf_tag = lf->tag;
 
 	rh = f + 1;	/* head of the right block */
-	if ((int8_t*)rh - kallocbuf >= USL)
+	if ((int8_t*)rh - uallocbuf >= USL * PAGE_SIZE)
 		rh_tag = 1;
 	else
 		rh_tag = rh->tag;

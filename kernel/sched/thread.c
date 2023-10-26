@@ -11,10 +11,9 @@
  * Size of stack for every thread
  * 512 has been tried and caused stack overflow!
  */
-static const uint32_t Tstack_size = 2048;
+static const uint32_t Tstack_size = 4 * 1024;
 
-void thswitch_to(switchto_context_t *prev, switchto_context_t *next);
-//void thenter(switchto_context_t *prev, switchto_context_t *next);
+static void thswitch_to(switchto_context_t *prev, switchto_context_t *next);
 
 /*
  * alloc_tid: Search proc->pcthread and allocate
@@ -58,7 +57,7 @@ tid_t thread_create(void *(*func)(), reg_t arg)
 	pnew->tid = tid;
 	pnew->context.sepc = (reg_t)func;
 	pnew->context.regs[SR_RA] = (reg_t)func;
-	pnew->context.regs[SR_SP] = stack + Tstack_size;
+	pnew->context.regs[SR_SP] = stack + Tstack_size - 512U;
 	pnew->arg = arg;
 	return tid;
 }
@@ -91,23 +90,51 @@ long thread_yield(void)
 		current_running->cur_thread = current_running->cur_thread->next;
 		next = &(current_running->cur_thread->context);
 	}
-	/*if (current_running->cur_thread != NULL && current_running->cur_thread->tid < 0)
-	{
-		current_running->cur_thread->tid = -current_running->cur_thread->tid;
-		thenter(prev, next);
-	}
-	else*/
-		thswitch_to(prev, next);
+	thswitch_to(prev, next);
 	if (current_running->cur_thread != NULL)
 		return (long)current_running->cur_thread->arg;
+	/*
+	 * To support the argument passed to the new born thread.
+	 * The value of arg will finally be written in $a0 after RESTORE_CONTEXT.
+	 */
 	return 0L;
 }
 
-void thswitch_to(switchto_context_t *prev, switchto_context_t *next)
+/*
+ * thread_kill: Kill a child thread whose TID is T.
+ * Only main thread can call this.
+ * T will be returned on success and INVALID_TID on error.
+ */
+tid_t thread_kill(tid_t const T)
+{
+	tcb_t *pt, *pd;
+
+	if (current_running->cur_thread != NULL)
+		/* Only main thread can call this */
+		return INVALID_TID;
+	if ((pt = ltcb_search_node(current_running->pcthread, T)) == NULL)
+		/* Not found */
+		return INVALID_TID;
+	current_running->pcthread = ltcb_del_node(current_running->pcthread, pt, &pd);
+	if (pd == NULL)
+		panic_g("thread_kill: thread %d of precess %d found but cannot be deleted",
+			T, current_running->pid);
+	ufree_g((void *)pd->stack);
+	kfree_g((void *)pd);
+	return T;
+}
+
+static void thswitch_to(switchto_context_t *prev, switchto_context_t *next)
 {
 	prev->sepc = current_running->trapframe->sepc;
 	prev->regs[SR_RA] = current_running->trapframe->regs[OFFSET_REG_RA / sizeof(reg_t)];
 	prev->regs[SR_SP] = current_running->trapframe->regs[OFFSET_REG_SP / sizeof(reg_t)];
+	if (prev->regs[SR_SP] != current_running->user_sp)
+		/*
+		 * In SAVE_CONTEXT, user stack pointer is saved in both trapframe->regs[SP]
+		 * and user_sp. They must be the same.
+		 */
+		panic_g("thswitch_to: tarpframe->regs[SP] is not equal to current_running->user_sp!");
 	prev->regs[SR_S0] = current_running->trapframe->regs[OFFSET_REG_S0 / sizeof(reg_t)];
 	prev->regs[SR_S1] = current_running->trapframe->regs[OFFSET_REG_S1 / sizeof(reg_t)];
 	prev->regs[SR_S2] = current_running->trapframe->regs[OFFSET_REG_S2 / sizeof(reg_t)];
@@ -138,73 +165,3 @@ void thswitch_to(switchto_context_t *prev, switchto_context_t *next)
 	current_running->trapframe->regs[OFFSET_REG_S10 / sizeof(reg_t)] = next->regs[SR_S10];
 	current_running->trapframe->regs[OFFSET_REG_S11 / sizeof(reg_t)] = next->regs[SR_S11];
 }
-
-/*
-__asm__ 
-(
-"thswitch_to:\n\t"
-	 // Save context of thread
-	"sd	ra, 0(a0)\n\t"
-	"sd	sp, 8(a0)\n\t"
-	"sd	s0, 16(a0)\n\t"
-	"sd	s1, 24(a0)\n\t"
-	"sd	s2, 32(a0)\n\t"
-	"sd	s3, 40(a0)\n\t"
-	"sd	s4, 48(a0)\n\t"
-	"sd	s5, 56(a0)\n\t"
-	"sd	s6, 64(a0)\n\t"
-	"sd	s7, 72(a0)\n\t"
-	"sd	s8, 80(a0)\n\t"
-	"sd	s9, 88(a0)\n\t"
-	"sd	s10, 96(a0)\n\t"
-	"sd	s11, 104(a0)\n\t"
-	// Restore context of thread
-	"ld	ra, 0(a1)\n\t"
-	"ld	sp, 8(a1)\n\t"
-	"ld	s0, 16(a1)\n\t"
-	"ld	s1, 24(a1)\n\t"
-	"ld	s2, 32(a1)\n\t"
-	"ld	s3, 40(a1)\n\t"
-	"ld	s4, 48(a1)\n\t"
-	"ld	s5, 56(a1)\n\t"
-	"ld	s6, 64(a1)\n\t"
-	"ld	s7, 72(a1)\n\t"
-	"ld	s8, 80(a1)\n\t"
-	"ld	s9, 88(a1)\n\t"
-	"ld	s10, 96(a1)\n\t"
-	"ld	s11, 104(a1)\n\t"
-	"ret"
-);
-*/
-__asm__
-(
-"thenter:\n\t"
-	/*
-	 * Save context of thread
-	 */
-	"sd	ra, 0(a0)\n\t"
-	"sd	sp, 8(a0)\n\t"
-	"sd	s0, 16(a0)\n\t"
-	"sd	s1, 24(a0)\n\t"
-	"sd	s2, 32(a0)\n\t"
-	"sd	s3, 40(a0)\n\t"
-	"sd	s4, 48(a0)\n\t"
-	"sd	s5, 56(a0)\n\t"
-	"sd	s6, 64(a0)\n\t"
-	"sd	s7, 72(a0)\n\t"
-	"sd	s8, 80(a0)\n\t"
-	"sd	s9, 88(a0)\n\t"
-	"sd	s10, 96(a0)\n\t"
-	"sd	s11, 104(a0)\n\t"
-	/*
-	 * Enter the new born thread
-	 */
-	"ld	ra, 0(a1)\n\t"
-	"ld	sp, 8(a1)\n\t"
-	/*
-	 * Load arg from TCB to support argument passing.
-	 */
-	"ld	a0, 112(a1)\n\t"
-	"csrw	sepc, ra\n\t"
-	"sret"
-);

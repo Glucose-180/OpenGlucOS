@@ -188,6 +188,7 @@ void set_preempt(void);
 
 tid_t thread_create(void *(*func)(), reg_t arg);
 long thread_yield(void);
+tid_t thread_kill(tid_t const T);
 
 /************************************************************/
 /* Do not touch this comment. Reserved for future projects. */

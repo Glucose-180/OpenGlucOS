@@ -17,6 +17,7 @@ int sys_mutex_release(int mutex_idx);
 
 long sys_thread_create(void *(*func)(), long arg);
 void sys_thread_yield(void);
+int sys_thread_kill(int const T);
 
 /************************************************************/
 /* Do not touch this comment. Reserved for future projects. */
