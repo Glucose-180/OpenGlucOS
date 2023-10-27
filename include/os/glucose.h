@@ -41,7 +41,6 @@ static inline int isspace(int ch)
 		ch == ' ' || iscrlf(ch));
 }
 
-void trim(char *const Str);
 int getchar(void);
 int getline(char* str, const int Len);
 char *getcmd(void);

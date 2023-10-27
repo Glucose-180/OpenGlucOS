@@ -5,5 +5,10 @@
 
 int printf(const char *fmt, ...);
 int vprintf(const char *fmt, va_list va);
+int getchar(void);
+int getline(char* str, const int Len);
+
+/* No input value returned by bios_getchar() */
+#define NOI (-1)
 
 #endif

@@ -1,4 +1,5 @@
 #include <os/string.h>
+#include <os/ctype.h>
 
 void memcpy(uint8_t *dest, const uint8_t *src, uint32_t len)
 {
@@ -42,16 +43,11 @@ int strcmp(const char *str1, const char *str2)
 	return (*str1) - (*str2);
 }
 
-int strncmp(const char *str1, const char *str2, int n)
+int strncmp(const char *str1, const char *str2, uint32_t n)
 {
-	for (int i = 0; i < n; ++i)
-	{
-		if (str1[i] != str2[i])
-		{
+	for (uint32_t i = 0; i < n; ++i)
+		if (str1[i] == '\0' || str1[i] != str2[i])
 			return str1[i] - str2[i];
-		}
-	}
-
 	return 0;
 }
 
@@ -97,4 +93,33 @@ char *strcat(char *dest, const char *src)
 	*dest = '\0';
 
 	return tmp;
+}
+
+void strrev(char *str)
+{
+	int i, j;
+	int len = strlen(str);
+
+	for (i = 0, j = len - 1; i < j; i++, j--)
+	{
+		char tmp = str[i];
+		str[i] = str[j];
+		str[j] = tmp;
+	}
+}
+
+/*
+ * Remove white spaces at the beginning and end of Str
+ */
+void trim(char *const Str)
+{
+	char *s = Str, *t = Str;
+
+	while (isspace(*t))
+		++t;
+	while ((*s++ = *t++))
+		;
+	while (s-- > Str && (*s == '\0' || isspace(*s)))
+		;
+	*++s = '\0';
 }

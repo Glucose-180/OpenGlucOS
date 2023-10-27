@@ -9,9 +9,10 @@
 #include <os/irq.h>
 
 /*
- * Remove white spaces at the beginning and end of Str
+ * Remove white spaces at the beginning and end of Str.
+ * This function has been moved to string.c.
  */
-void trim(char *const Str)
+/*void trim(char *const Str)
 {
 	char *s = Str, *t = Str;
 
@@ -22,7 +23,7 @@ void trim(char *const Str)
 	while (s-- > Str && (*s == '\0' || isspace(*s)))
 		;
 	*++s = '\0';
-}
+}*/
 
 int getchar()
 {

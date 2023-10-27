@@ -4,6 +4,12 @@
 #include <stdint.h>
 typedef int32_t pid_t;
 
+#ifndef OS_NAME
+#define OS_NAME "GlucOS"
+#endif
+#ifndef USER_NAME
+#define USER_NAME "glucose180"
+#endif
 
 void sys_sleep(uint32_t time);
 void sys_yield(void);
