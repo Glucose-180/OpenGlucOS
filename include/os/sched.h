@@ -116,6 +116,8 @@ typedef struct pcb
 	 */
 	reg_t kernel_stack;
 	reg_t user_stack;
+ 
+    list_head wait_list;
 
 	/* previous, next pointer */
 	//list_node_t list;
@@ -191,7 +193,17 @@ long thread_yield(void);
 tid_t thread_kill(tid_t const T);
 
 /************************************************************/
-/* Do not touch this comment. Reserved for future projects. */
+/* TODO [P3-TASK1] exec exit kill waitpid ps*/
+#ifdef S_CORE
+extern pid_t do_exec(int id, int argc, uint64_t arg0, uint64_t arg1, uint64_t arg2);
+#else
+extern pid_t do_exec(char *name, int argc, char *argv[]);
+#endif
+extern void do_exit(void);
+extern int do_kill(pid_t pid);
+extern int do_waitpid(pid_t pid);
+extern void do_process_show();
+extern pid_t do_getpid();
 /************************************************************/
 
 #endif
