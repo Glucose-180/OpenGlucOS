@@ -16,8 +16,9 @@ void test_unaligned(void);
 void test_zerodivision(void);
 void test_printf(void);
 void test_strncpy(void);
+void test_argv(int argc, char *argv[]);
 
-int main()
+int main(int argc, char *argv[])
 {
 	int c;
 	int flag_retry;
@@ -32,6 +33,7 @@ int main()
 	printf(
 		"\t4 - printf different kinds of integers\n"
 		"\t5 - Lib function strncmp()\n"
+		"\t6 - Command line args\n"
 	);
 	while (1)
 	{
@@ -57,6 +59,9 @@ int main()
 			break;
 		case 5:
 			test_strncpy();
+			break;
+		case 6:
+			test_argv(argc, argv);
 			break;
 		default:
 			flag_retry = 1;
@@ -186,4 +191,15 @@ void test_strncpy()
 		s1, s2, n, crt);
 	if (crt != 0)
 		printf("Failed!\n");
+}
+
+void test_argv(int argc, char *argv[])
+{
+	int i;
+	
+	printf("argc is %d\n", argc);
+	for (i = 0; i < argc; ++i)
+	{
+		printf("argv[%d] is \"%s\"\n", i, argv[i]);
+	}
 }

@@ -14,7 +14,7 @@ void handle_syscall(regs_context_t *regs, uint64_t interrupt, uint64_t cause)
 	long *args = (long *)(regs->regs + 10);
 	long (*func)(long, long , long, long, long);
 	long rt;
-	if (sysno >= NUM_SYSCALLS)
+	if (sysno >= NUM_SYSCALLS || (void *)syscall[sysno] == (void *)invalid_syscall)
 		invalid_syscall(sysno, args[0], args[1], args[2], args[3], args[4]);
 	/*else if (interrupt != regs->sepc)
 		panic_g("handle_syscall: stval 0x%lx is not equals to trapframe->sepc 0x%lx",

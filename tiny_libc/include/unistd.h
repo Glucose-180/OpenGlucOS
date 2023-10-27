@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 typedef int32_t pid_t;
+#define INVALID_PID (-1)
+#define INVALID_TID (-1)
 
 #ifndef OS_NAME
 #define OS_NAME "GlucOS"
@@ -40,7 +42,7 @@ void sys_clear(void);
 // S-core
 // pid_t  sys_exec(int id, int argc, uint64_t arg0, uint64_t arg1, uint64_t arg2);
 // A/C-core
-pid_t  sys_exec(char *name, int argc, char **argv);
+pid_t  sys_exec(char *name, char **argv);
 
 void sys_exit(void);
 int  sys_kill(pid_t pid);

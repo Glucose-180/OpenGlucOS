@@ -86,6 +86,8 @@ pid_t create_proc(const char *taskname)
 	pcb_t *pnew, *temp;//, *p0;
 
 	//p0 = NULL;
+	if (taskname == NULL)
+		return INVALID_PID;
 	entry = load_task_img(taskname);
 	if (entry == 0U)
 		return INVALID_PID;
@@ -433,4 +435,49 @@ int do_process_show(void)
 	 * shoule be considered.
 	 */
 	return proc_ymr;
+}
+
+pid_t do_exec(const char *name, char *argv[])
+{
+#define ARGC_MAX 8
+#define ARG_LEN 63
+	pid_t pid;
+	pcb_t *pnew;
+	int i, argc;
+	int l;
+	char **argv_base;
+
+	if ((pid = create_proc(name)) == INVALID_PID)
+		/* Failed */
+		return INVALID_PID;
+	for (i = 0; i < ARGC_MAX; ++i)
+		if (argv[i] == NULL)
+			break;
+	/* Ignore args more than ARGC_MAX */
+	argv[argc = i] = NULL;
+	pnew = lpcb_search_node(ready_queue, pid);
+	if (pnew == NULL)
+		panic_g("do_exec: Cannot find PCB of %d: %s", pid, name);
+	pnew->user_sp -= (sizeof(char *)) * (unsigned int)(argc + 1);
+	/* argv_base is the value of argv in user main() */
+	argv_base = (char **)(pnew->user_sp);
+	argv_base[argc] = NULL;
+
+	for (i = 0; i < argc; ++i)
+	{	/* Copy every arg to user stack */
+		l = strlen(argv[i]);
+		/* The longer part of argv[i] is ignored */
+		if (l > ARG_LEN)
+			l = ARG_LEN;
+		argv_base[i] = (char *)(pnew->user_sp -= (unsigned int)(l + 1));
+		strncpy(argv_base[i], argv[i], l);
+		argv_base[i][l] = '\0';
+	}
+	pnew->user_sp = ROUNDDOWN(pnew->user_sp, SP_ALIGN);
+	pnew->trapframe->regs[OFFSET_REG_SP / sizeof(reg_t)] = pnew->user_sp;
+	pnew->trapframe->regs[OFFSET_REG_A0 / sizeof(reg_t)] = (unsigned int)argc;
+	pnew->trapframe->regs[OFFSET_REG_A1 / sizeof(reg_t)] = (reg_t)argv_base;
+	return pid;
+#undef ARGC_MAX
+#undef ARG_LEN
 }

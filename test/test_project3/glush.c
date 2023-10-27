@@ -39,7 +39,7 @@ int main(void)
 		words = split(getcmd(), ' ');
 		if (words[0] == NULL)
 			continue;
-		if (try_syscall(words) != 0)
+		if (try_syscall(words) == 1)
 		{	/* 
 			 * Not a syscall. Try to execute a user program directly.
 			 * But now, consider it as an error first.
@@ -57,7 +57,7 @@ int main(void)
 
 /*
  * try_syscall: try to analyse cmds[0] as a syscall.
- * Returns 0 on success and 1 on error.
+ * Returns: 0 on success, 1 if not found, 2 on error.
  */
 int try_syscall(char **cmds)
 {
@@ -72,6 +72,38 @@ int try_syscall(char **cmds)
 		sys_clear();
 		sys_move_cursor(0, terminal_begin);
 		printf("%s", Terminal);
+		return 0;
+	}
+	else if (strcmp(cmds[0], "exec") == 0)
+	{	/* exec */
+		pid_t pid;
+		int i;
+		char flag_background = 0;
+
+		for (i = 1; cmds[i] != NULL; ++i)
+			if (cmds[i][0] == '&')
+			{
+				flag_background = 1;
+				cmds[i] = NULL;
+			}
+
+		if (cmds[1] == NULL)
+		{
+			printf("**glush: too few args for exec\n");
+			return 2;
+		}
+		pid = sys_exec(cmds[1], cmds + 1);
+		if (pid == INVALID_PID)
+		{
+			printf("**glush: failed to exec %s\n", cmds[1]);
+			return 2;
+		}
+		if (flag_background == 0)
+		{
+			/*
+			 * Call sys_waitpid() to wait the new process
+			 */
+		}
 		return 0;
 	}
 	else
