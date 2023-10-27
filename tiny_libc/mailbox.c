@@ -1,9 +1,10 @@
 #include <mailbox.h>
+#include <stdlib.h>
 
 const uint32_t MOD_ADLER = 65521;
 
 /* adler32 algorithm implementation from: https://en.wikipedia.org/wiki/Adler-32 */
-uint32_t adler32(char *data, size_t len)
+uint32_t adler32(const char *data, size_t len)
 {
     uint32_t a = 1, b = 0;
     size_t index;

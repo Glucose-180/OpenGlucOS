@@ -29,9 +29,9 @@ int  sys_getchar(void);
 
 /* TODO: [P3 task1] exec, exit, kill waitpid */
 // S-core
-pid_t  sys_exec(int id, int argc, uint64_t arg0, uint64_t arg1, uint64_t arg2);
+// pid_t  sys_exec(int id, int argc, uint64_t arg0, uint64_t arg1, uint64_t arg2);
 // A/C-core
-// pid_t  sys_exec(char *name, int argc, char **argv);
+pid_t  sys_exec(char *name, int argc, char **argv);
 
 void sys_exit(void);
 int  sys_kill(pid_t pid);
@@ -57,5 +57,10 @@ void sys_mbox_close(int mbox_id);
 int sys_mbox_send(int mbox_idx, void *msg, int msg_length);
 int sys_mbox_recv(int mbox_idx, void *msg, int msg_length);
 /************************************************************/
+
+int sys_semaphore_init(int key, int init);
+void sys_semaphore_up(int sema_idx);
+void sys_semaphore_down(int sema_idx);
+void sys_semaphore_destroy(int sema_idx);
 
 #endif

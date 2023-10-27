@@ -93,8 +93,6 @@ char *strcat(char *dest, const char *src)
 
     return tmp;
 }
-<<<<<<< HEAD
-=======
 
 void strrev(char *str)
 {
@@ -108,4 +106,3 @@ void strrev(char *str)
         str[j] = tmp;
     }
 }
->>>>>>> start/Project3-Interactive_OS_and_Process_Management
