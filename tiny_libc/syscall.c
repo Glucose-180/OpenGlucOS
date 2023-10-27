@@ -165,9 +165,15 @@ int  sys_waitpid(pid_t pid)
 }
 
 
-void sys_ps(void)
+int sys_ps(void)
 {
 	/* TODO: [p3-task1] call invoke_syscall to implement sys_ps */
+	return invoke_syscall(SYS_ps, Ignore, Ignore, Ignore, Ignore, Ignore);
+}
+
+void sys_clear(void)
+{
+	invoke_syscall(SYS_clear, Ignore, Ignore, Ignore, Ignore, Ignore);
 }
 
 pid_t sys_getpid()
@@ -175,10 +181,10 @@ pid_t sys_getpid()
 	/* TODO: [p3-task1] call invoke_syscall to implement sys_getpid */
 }
 
-int  sys_getchar(void)
+/*int  sys_getchar(void)
 {
-	/* TODO: [p3-task1] call invoke_syscall to implement sys_getchar */
-}
+	// TODO: [p3-task1] call invoke_syscall to implement sys_getchar
+}*/
 
 int  sys_barrier_init(int key, int goal)
 {

@@ -33,6 +33,7 @@
 #include <os/list.h>
 
 #define NUM_MAX_TASK 16
+#define TASK_NAMELEN 31
 #define INVALID_PID (-1)
 #define INVALID_TID (-1)
 
@@ -140,6 +141,9 @@ typedef struct pcb
 	/* Saved regs */
 	switchto_context_t context;
 
+	/* Name of this process */
+	char name[TASK_NAMELEN];
+
 	/*
 	 * Pointer to list of child threads,
 	 * NULL means that no child threads.
@@ -202,7 +206,7 @@ extern pid_t do_exec(char *name, int argc, char *argv[]);
 extern void do_exit(void);
 extern int do_kill(pid_t pid);
 extern int do_waitpid(pid_t pid);
-extern void do_process_show();
+extern int do_process_show();
 extern pid_t do_getpid();
 /************************************************************/
 

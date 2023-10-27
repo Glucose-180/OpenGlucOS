@@ -7,6 +7,7 @@
 #include <stdarg.h>
 #include <printk.h>
 #include <os/irq.h>
+#include <os/string.h>
 
 /*
  * Remove white spaces at the beginning and end of Str.

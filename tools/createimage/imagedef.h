@@ -10,7 +10,7 @@
 #define BOOT_LOADER_SIG_2 0xaa
 
 #define NBYTES2SEC(nbytes) (((nbytes) / SECTOR_SIZE) + ((nbytes) % SECTOR_SIZE != 0))
-#define TASK_MAXNUM 16
+#define TASK_MAXNUM 32
 
 #define TASK_NAMELEN 31	/* Max length of app's name */
 /* TODO: [p1-task4] design your own task_info_t */

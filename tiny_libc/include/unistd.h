@@ -30,8 +30,11 @@ int sys_thread_kill(int const T);
 
 /************************************************************/
 /* TODO: [P3 task1] ps, getchar */
-void sys_ps(void);
-int  sys_getchar(void);
+// void sys_ps(void);
+//int  sys_getchar(void);
+
+int sys_ps(void);
+void sys_clear(void);
 
 /* TODO: [P3 task1] exec, exit, kill waitpid */
 // S-core

@@ -49,7 +49,18 @@ static void init_jmptab(void)
 
 	// TODO: [p2-task1] (S-core) initialize system call table.
 	jmptab[WRITE]			= (long (*)())screen_write;
+	jmptab[CLEAR]			= (long (*)())screen_clear;
 	jmptab[REFLUSH]			= (long (*)())screen_reflush;
+
+	/*jmptab[EXEC]			= (long (*)())do_exec;
+	jmptab[EXIT]			= (long (*)())do_exit;
+	jmptab[KILL]			= (long (*)())do_kill;
+	jmptab[WAITPID]			= (long (*)())do_waitpid;*/
+	jmptab[PS]				= (long (*)())do_process_show;
+	/*jmptab[GETPID]			= (long (*)())do_getpid;
+	jmptab[BARRIER_INIT]	= (long (*)())do_barrier_init;
+	jmptab[BARRIER_WAIT]	= (long (*)())do_barrier_wait;
+	jmptab[BARRIER_DESTROY]	= (long (*)())do_barrier_destroy;*/
 }
 
 static void init_taskinfo(void)
@@ -127,6 +138,8 @@ static void init_syscall(void)
 	syscall[SYS_thread_yield] = (long (*)())thread_yield;
 	syscall[SYS_thread_kill] = (long (*)())thread_kill;
 #endif
+	syscall[SYS_ps] = (long (*)())do_process_show;
+	syscall[SYS_clear] = (long (*)())screen_clear;
 }
 /************************************************************/
 

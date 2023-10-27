@@ -6,6 +6,7 @@
 #include <os/mm.h>
 #include <os/malloc-g.h>
 #include <os/kernel.h>
+#include <os/string.h>
 #include <screen.h>
 #include <printk.h>
 #include <assert.h>
@@ -115,6 +116,8 @@ pid_t create_proc(const char *taskname)
 	 * so that the undefined PID will not affect alloc_pid().
 	 */
 	pnew->pid = INVALID_PID;
+	strncpy(pnew->name, taskname, TASK_NAMELEN);
+	pnew->name[TASK_NAMELEN] = '\0';
 	init_pcb_stack(kernel_stack, user_stack, entry, pnew);
 	return pnew->pid;
 }
@@ -384,4 +387,50 @@ void set_preempt(void)
 		timer_interval = time_base / 1000U * TIMER_INTERVAL_MS;
 	}
 	bios_set_timer(get_ticks() + timer_interval);
+}
+
+/*
+ * do_process_show (ps): show all processes except PID 0.
+ * number of processed will be returned and -1 on error.
+ */
+int do_process_show(void)
+{
+	int proc_ymr = 0;
+	pcb_t *p;
+	static const char * const Status[] = {
+		[TASK_SLEEPING]	"Sleeping",
+		[TASK_RUNNING]	"Running ",
+		[TASK_READY]	"Ready   ",
+		[TASK_EXITED]	"Exited  "
+	};
+
+	printk("\tPID\t\t STATUS \t\tCMD\n");
+
+	if (ready_queue != NULL)
+	{
+		p = ready_queue;
+		do {
+			if (p->pid != 0)
+			{	/* Skip PID 0 */
+				++proc_ymr;
+				printk("\t %d\t\t%s\t\t%s\n",
+					p->pid, Status[p->status], p->name);
+			}
+		} while ((p = p->next) != ready_queue);
+	}
+	if (sleep_queue != NULL)
+	{
+		p = sleep_queue;
+		do {
+			++proc_ymr;
+			printk("\t %d\t\t%s\t\t%s\n",
+				p->pid, Status[p->status], p->name);
+		} while ((p = p->next) != sleep_queue);
+	}
+	/*
+	 * NOTE: after sys_waitpid() is implemented,
+	 * processes waiting for another process maybe also
+	 * shoule be considered.
+	 */
+	return proc_ymr;
 }
