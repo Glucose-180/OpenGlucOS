@@ -398,6 +398,7 @@ void set_preempt(void)
 int do_process_show(void)
 {
 	int proc_ymr = 0;
+	int i;
 	pcb_t *p;
 	static const char * const Status[] = {
 		[TASK_SLEEPING]	"Sleeping",
@@ -428,6 +429,21 @@ int do_process_show(void)
 			printk("\t %d\t\t%s\t\t%s\n",
 				p->pid, Status[p->status], p->name);
 		} while ((p = p->next) != sleep_queue);
+	}
+	for (i = 0; i < LOCK_NUM; ++i)
+	{
+		if (mlocks[i].block_queue != NULL)
+		{
+			if (mlocks[i].lock.status != LOCKED)
+				panic_g("do_process_show: mlocks[%d] has block queue "
+					"but is not locked", i);
+			p = mlocks[i].block_queue;
+			do {
+				++proc_ymr;
+				printk("\t %d\t\t%s\t\t%s\n",
+					p->pid, Status[p->status], p->name);
+			} while ((p = p->next) != mlocks[i].block_queue);
+		}
 	}
 	/*
 	 * NOTE: after sys_waitpid() is implemented,
