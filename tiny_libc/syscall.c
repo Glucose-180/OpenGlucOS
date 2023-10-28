@@ -133,7 +133,7 @@ int sys_thread_kill(int const T)
 	/*
 	 * Only main thread can call this.
 	 */
-	invoke_syscall(SYS_thread_kill, (long)T, Ignore, Ignore, Ignore, Ignore);
+	return invoke_syscall(SYS_thread_kill, (long)T, Ignore, Ignore, Ignore, Ignore);
 }
 
 /************************************************************/
@@ -159,11 +159,13 @@ void sys_exit(void)
 int  sys_kill(pid_t pid)
 {
 	/* TODO: [p3-task1] call invoke_syscall to implement sys_kill */
+	return 0;
 }
 
 int  sys_waitpid(pid_t pid)
 {
 	/* TODO: [p3-task1] call invoke_syscall to implement sys_waitpid */
+	return 0;
 }
 
 
@@ -181,6 +183,7 @@ void sys_clear(void)
 pid_t sys_getpid()
 {
 	/* TODO: [p3-task1] call invoke_syscall to implement sys_getpid */
+	return 0;
 }
 
 /*int  sys_getchar(void)
@@ -191,6 +194,7 @@ pid_t sys_getpid()
 int  sys_barrier_init(int key, int goal)
 {
 	/* TODO: [p3-task2] call invoke_syscall to implement sys_barrier_init */
+	return 0;
 }
 
 void sys_barrier_wait(int bar_idx)
@@ -206,6 +210,7 @@ void sys_barrier_destroy(int bar_idx)
 int sys_condition_init(int key)
 {
 	/* TODO: [p3-task2] call invoke_syscall to implement sys_condition_init */
+	return 0;
 }
 
 void sys_condition_wait(int cond_idx, int mutex_idx)
@@ -231,6 +236,7 @@ void sys_condition_destroy(int cond_idx)
 int sys_semaphore_init(int key, int init)
 {
 	/* TODO: [p3-task2] call invoke_syscall to implement sys_semaphore_init */
+	return 0;
 }
 
 void sys_semaphore_up(int sema_idx)
@@ -251,6 +257,7 @@ void sys_semaphore_destroy(int sema_idx)
 int sys_mbox_open(char * name)
 {
 	/* TODO: [p3-task2] call invoke_syscall to implement sys_mbox_open */
+	return 0;
 }
 
 void sys_mbox_close(int mbox_id)
@@ -261,10 +268,12 @@ void sys_mbox_close(int mbox_id)
 int sys_mbox_send(int mbox_idx, void *msg, int msg_length)
 {
 	/* TODO: [p3-task2] call invoke_syscall to implement sys_mbox_send */
+	return 0;
 }
 
 int sys_mbox_recv(int mbox_idx, void *msg, int msg_length)
 {
 	/* TODO: [p3-task2] call invoke_syscall to implement sys_mbox_recv */
+	return 0;
 }
 /************************************************************/
