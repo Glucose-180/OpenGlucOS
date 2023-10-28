@@ -12,7 +12,7 @@
  * NULL will be returned on error.
  */
 /*
- * TODO: Check NUM_MAX_TASK.
+ * TODO: Check UPROC_MAX.
  */
 pcb_t *lpcb_add_node_to_tail(pcb_t * const Head, pcb_t * volatile *ppnew)
 {

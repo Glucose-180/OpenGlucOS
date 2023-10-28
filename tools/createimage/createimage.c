@@ -8,7 +8,7 @@
 #include <stdint.h>
 #include "imagedef.h"
 
-static task_info_t taskinfo[TASK_MAXNUM];
+static task_info_t taskinfo[UTASK_MAX];
 
 /* structure to store command line options */
 static struct {

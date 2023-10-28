@@ -4,7 +4,7 @@
 #include <type.h>
 
 #define TASK_MEM_BASE    0x52000000
-#define TASK_MAXNUM      32
+#define UTASK_MAX      32
 #define TASK_SIZE        0x10000
 
 
@@ -30,6 +30,6 @@ typedef struct {	/* It should be the same as struct in createimage.c */
 } task_info_t;
 extern unsigned int tasknum;
 
-extern task_info_t taskinfo[TASK_MAXNUM];
+extern task_info_t taskinfo[UTASK_MAX];
 
 #endif

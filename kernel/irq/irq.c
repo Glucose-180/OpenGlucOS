@@ -59,7 +59,11 @@ void init_exception()
 	/* NOTE: handle_int, handle_other, etc.*/
 	for (i = 0; i < IRQC_COUNT; ++i)
 		irq_table[i] = handle_other;
-	irq_table[IRQC_U_TIMER] = handle_irq_timer;
+	/*
+	 * It seems that all timer interrupts used by us
+	 * are S timer interrupts.
+	 */
+	//irq_table[IRQC_U_TIMER] = handle_irq_timer;
 	irq_table[IRQC_S_TIMER] = handle_irq_timer;
 
 	/* TODO: [p2-task3] set up the entrypoint of exceptions */

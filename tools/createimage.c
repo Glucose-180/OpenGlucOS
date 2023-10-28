@@ -22,8 +22,8 @@ typedef struct {
 
 } task_info_t;
 
-#define TASK_MAXNUM 16
-static task_info_t taskinfo[TASK_MAXNUM];
+#define UTASK_MAX 16
+static task_info_t taskinfo[UTASK_MAX];
 
 /* structure to store command line options */
 static struct {

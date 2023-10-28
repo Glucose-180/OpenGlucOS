@@ -32,7 +32,7 @@
 #include <type.h>
 #include <os/list.h>
 
-#define NUM_MAX_TASK 16
+#define UPROC_MAX 16
 #define TASK_NAMELEN 31
 #define INVALID_PID (-1)
 #define INVALID_TID (-1)
@@ -169,7 +169,7 @@ extern pcb_t *sleep_queue;
 extern pcb_t * volatile current_running;
 extern pid_t process_id;
 
-//extern pcb_t pcb[NUM_MAX_TASK];
+//extern pcb_t pcb[UPROC_MAX];
 extern pcb_t pid0_pcb;
 extern const ptr_t pid0_stack;
 
@@ -209,5 +209,10 @@ extern int do_waitpid(pid_t pid);
 extern int do_process_show();
 extern pid_t do_getpid();
 /************************************************************/
+
+extern pcb_t *pcb_table[UPROC_MAX + 1];
+int pcb_table_add(pcb_t *p);
+int pcb_table_del(pcb_t *p);
+int get_proc_num(void);
 
 #endif

@@ -24,7 +24,7 @@
 extern void ret_from_exception();
 
 // Task info array
-task_info_t taskinfo[TASK_MAXNUM];
+task_info_t taskinfo[UTASK_MAX];
 unsigned int tasknum;
 
 
@@ -79,7 +79,7 @@ static void init_taskinfo(void)
 	taskinfo_start_sector = lbytes2sectors(taskinfo_offset);
 	taskinfo_end_sector = lbytes2sectors(taskinfo_offset + taskinfo_size - 1U);
 	taskinfo_sectors = taskinfo_end_sector - taskinfo_start_sector + 1U;
-	if (tasknum > TASK_MAXNUM || taskinfo_sectors > TASKINFO_SECTORS_MAX)
+	if (tasknum > UTASK_MAX || taskinfo_sectors > TASKINFO_SECTORS_MAX)
 		bios_putstr("**Warning: taskinfo is too big\n\r");
 
 	/* Load taskinfo into the space of bootloader */
@@ -109,6 +109,8 @@ static void init_pcb(void)
 	temp = current_running->next;
 	*current_running = pid0_pcb;
 	current_running->next = temp;
+	if (pcb_table_add(current_running) < 0)
+		panic_g("init_pcb: Failed to add 0 to pcb_table");
 }
 
 static void init_syscall(void)

@@ -68,7 +68,7 @@ int try_syscall(char **cmds)
 
 	if (strcmp(cmds[0], "ps") == 0)
 	{	/* ps */
-		printf("%d proc in total\n", sys_ps());
+		printf("%d user proc in total\n", sys_ps());
 		return 0;
 	}
 	else if (strcmp(cmds[0], "clear") == 0)

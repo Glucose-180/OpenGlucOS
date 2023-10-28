@@ -16,7 +16,7 @@
 #include <csr.h>
 #include <os/irq.h>
 
-//pcb_t pcb[NUM_MAX_TASK];
+//pcb_t pcb[UPROC_MAX];
 /*
  * Has been modified by Glucose180
  */
@@ -39,6 +39,7 @@ pcb_t pid0_pcb = {
 	.trapframe = (void *)pid0_stack,
 	/* Add more info */
 	.status = TASK_RUNNING,
+	.name = "_main",
 	.cursor_x = 0,
 	.cursor_y = 0
 };
@@ -68,7 +69,7 @@ pid_t process_id = 1;
 pid_t alloc_pid(void)
 {
 	pid_t i;
-	static const pid_t Pid_min = 1, Pid_max = 2 * NUM_MAX_TASK;
+	static const pid_t Pid_min = 1, Pid_max = 2 * UPROC_MAX;
 
 	for (i = Pid_min; i <= Pid_max; ++i)
 		if (lpcb_search_node(ready_queue, i) == NULL)
@@ -86,7 +87,7 @@ pid_t create_proc(const char *taskname)
 	pcb_t *pnew, *temp;//, *p0;
 
 	//p0 = NULL;
-	if (taskname == NULL)
+	if (taskname == NULL || get_proc_num() >= UPROC_MAX + 1)
 		return INVALID_PID;
 	entry = load_task_img(taskname);
 	if (entry == 0U)
@@ -121,6 +122,8 @@ pid_t create_proc(const char *taskname)
 	strncpy(pnew->name, taskname, TASK_NAMELEN);
 	pnew->name[TASK_NAMELEN] = '\0';
 	init_pcb_stack(kernel_stack, user_stack, entry, pnew);
+	if (pcb_table_add(pnew) < 0)
+		panic_g("create_proc: Failed to add to pcb_table");
 	return pnew->pid;
 }
 
@@ -397,7 +400,7 @@ void set_preempt(void)
  */
 int do_process_show(void)
 {
-	int proc_ymr = 0;
+	int uproc_ymr = 0;
 	int i;
 	pcb_t *p;
 	static const char * const Status[] = {
@@ -409,48 +412,19 @@ int do_process_show(void)
 
 	printk("\tPID\t\t STATUS \t\tCMD\n");
 
-	if (ready_queue != NULL)
+	for (i = 0; i < UPROC_MAX + 1; ++i)
 	{
-		p = ready_queue;
-		do {
-			if (p->pid != 0)
-			{	/* Skip PID 0 */
-				++proc_ymr;
-				printk("\t %d\t\t%s\t\t%s\n",
-					p->pid, Status[p->status], p->name);
-			}
-		} while ((p = p->next) != ready_queue);
-	}
-	if (sleep_queue != NULL)
-	{
-		p = sleep_queue;
-		do {
-			++proc_ymr;
+		if (pcb_table[i] != NULL && pcb_table[i]->pid != 0)
+		{
+			++uproc_ymr;
+			p = pcb_table[i];
 			printk("\t %d\t\t%s\t\t%s\n",
 				p->pid, Status[p->status], p->name);
-		} while ((p = p->next) != sleep_queue);
-	}
-	for (i = 0; i < LOCK_NUM; ++i)
-	{
-		if (mlocks[i].block_queue != NULL)
-		{
-			if (mlocks[i].lock.status != LOCKED)
-				panic_g("do_process_show: mlocks[%d] has block queue "
-					"but is not locked", i);
-			p = mlocks[i].block_queue;
-			do {
-				++proc_ymr;
-				printk("\t %d\t\t%s\t\t%s\n",
-					p->pid, Status[p->status], p->name);
-			} while ((p = p->next) != mlocks[i].block_queue);
 		}
 	}
-	/*
-	 * NOTE: after sys_waitpid() is implemented,
-	 * processes waiting for another process maybe also
-	 * shoule be considered.
-	 */
-	return proc_ymr;
+	if (uproc_ymr + 1 != get_proc_num())
+		panic_g("do_process_show: count of proc is error");
+	return uproc_ymr;
 }
 
 /*
