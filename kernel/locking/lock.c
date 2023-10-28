@@ -82,7 +82,7 @@ int do_mutex_lock_acquire(int mlock_idx)
 			if (p != q)
 				panic_g("do_mutex_lock_acquire: Failed to remove"
 					" current_running from ready_queue");
-			ptlock->block_queue = do_block(p, ptlock->block_queue);
+			ptlock->block_queue = do_block(p, &(ptlock->block_queue));
 #if MULTITHREADING != 0
 			switch_to(p->cur_thread == NULL ? &(p->context) : &(p->cur_thread->context),
 				current_running->cur_thread == NULL ? &(current_running->context)
@@ -127,4 +127,27 @@ int do_mutex_lock_release(int mlock_idx)
 		ptlock->opid = temp->pid;
 	}
 	return mlock_idx;
+}
+
+/*
+ * Release all locks occupied by proc kpid.
+ * Used when a proc is killed.
+ */
+void mlocks_release_killed(pid_t kpid)
+{
+	int i;
+
+	for (i = 0; i < LOCK_NUM; ++i)
+		if (mlocks[i].lock.status == LOCKED && mlocks[i].opid == kpid)
+		{
+			if (mlocks[i].block_queue == NULL)
+				mlocks[i].lock.status = UNLOCKED;
+			else
+			{
+				pcb_t *temp;
+				temp = mlocks[i].block_queue;
+				mlocks[i].block_queue = do_unblock(mlocks[i].block_queue);
+				mlocks[i].opid = temp->pid;
+			}
+		}
 }

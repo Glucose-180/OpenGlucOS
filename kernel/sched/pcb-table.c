@@ -64,6 +64,21 @@ int get_proc_num(void)
 }
 
 /*
+ * Search a PCB according to PID.
+ * Returns pointer to it on success, or
+ * NULL if not found.
+ */
+pcb_t *pcb_search(pid_t pid)
+{
+	int i;
+
+	for (i = 0; i < free_pt; ++i)
+		if (pcb_table[i]->pid == pid)
+			return pcb_table[i];
+	return NULL;
+}
+
+/*
  * Frequently adding and deleting may cause spaces in pcb_table.
  * Use this function to rearrange them.
  */

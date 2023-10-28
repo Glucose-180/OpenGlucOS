@@ -145,6 +145,12 @@ typedef struct pcb
 	char name[TASK_NAMELEN];
 
 	/*
+	 * phead: points to the head pointer of the queue
+	 * to which this PCB is belonging. This is used to
+	 * find the queue.
+	 */
+	struct pcb ** phead;
+	/*
 	 * Pointer to list of child threads,
 	 * NULL means that no child threads.
 	 */
@@ -184,7 +190,7 @@ void do_sleep(uint32_t);
 void check_sleeping(void);
 void wake_up(pcb_t * const T);
 
-pcb_t *do_block(pcb_t * const Pt, pcb_t * const Queue);
+pcb_t *do_block(pcb_t * const Pt, pcb_t ** const Pqueue);
 pcb_t *do_unblock(pcb_t * const Queue);
 
 void init_pcb_stack(
@@ -214,5 +220,6 @@ extern pcb_t *pcb_table[UPROC_MAX + 1];
 int pcb_table_add(pcb_t *p);
 int pcb_table_del(pcb_t *p);
 int get_proc_num(void);
+pcb_t *pcb_search(pid_t pid);
 
 #endif

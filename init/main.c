@@ -53,9 +53,9 @@ static void init_jmptab(void)
 	jmptab[REFLUSH]			= (long (*)())screen_reflush;
 
 	/*jmptab[EXEC]			= (long (*)())do_exec;
-	jmptab[EXIT]			= (long (*)())do_exit;
+	jmptab[EXIT]			= (long (*)())do_exit;*/
 	jmptab[KILL]			= (long (*)())do_kill;
-	jmptab[WAITPID]			= (long (*)())do_waitpid;*/
+	/*jmptab[WAITPID]			= (long (*)())do_waitpid;*/
 	jmptab[PS]				= (long (*)())do_process_show;
 	/*jmptab[GETPID]			= (long (*)())do_getpid;
 	jmptab[BARRIER_INIT]	= (long (*)())do_barrier_init;
@@ -99,7 +99,7 @@ static void init_pcb(void)
 	pcb_t *temp;
 
 	ready_queue = NULL;
-	ready_queue = lpcb_add_node_to_tail(ready_queue, &current_running);
+	ready_queue = lpcb_add_node_to_tail(ready_queue, &current_running, &ready_queue);
 	if (ready_queue == NULL)
 		panic_g("init_pcb: Failed to init ready_queue");
 	/*
@@ -121,8 +121,8 @@ static void init_syscall(void)
 	for (i = 0; i < NUM_SYSCALLS; ++i)
 		syscall[i] = (long (*)())invalid_syscall;
 	syscall[SYS_exec] = (long (*)())do_exec;
-	/*syscall[SYS_kill] = (long (*)())do_kill;
-	syscall[SYS_exit] = (long (*)())do_exit;
+	syscall[SYS_kill] = (long (*)())do_kill;
+	/*syscall[SYS_exit] = (long (*)())do_exit;
 	syscall[SYS_waitpid] = (long (*)())do_waitpid;*/
 	syscall[SYS_sleep] = (long (*)())do_sleep;
 	syscall[SYS_yield] = (long (*)())do_scheduler;

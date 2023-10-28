@@ -78,6 +78,24 @@ int try_syscall(char **cmds)
 		printf("%s", Terminal);
 		return 0;
 	}
+	else if (strcmp(cmds[0], "kill") == 0)
+	{
+		pid_t pid;
+
+		if (cmds[1] == NULL)
+		{
+			printf("**glush: too few args for kill\n");
+			return 2;
+		}
+		pid = atoi(cmds[1]);
+		if (sys_kill(pid) != pid)
+		{
+			printf("**glush: failed to terminate proc %d\n", pid);
+			return 2;
+		}
+		printf("proc %d is terminated\n", pid);
+		return 0;
+	}
 	else if (strcmp(cmds[0], "exec") == 0)
 	{	/* exec */
 		pid_t pid;

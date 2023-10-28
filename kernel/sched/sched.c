@@ -1,5 +1,6 @@
 #include <os/list.h>
 #include <os/pcb-list-g.h>
+#include <os/tcb-list-g.h>
 #include <os/lock.h>
 #include <os/sched.h>
 #include <os/time.h>
@@ -41,7 +42,8 @@ pcb_t pid0_pcb = {
 	.status = TASK_RUNNING,
 	.name = "_main",
 	.cursor_x = 0,
-	.cursor_y = 0
+	.cursor_y = 0,
+	.pcthread = NULL
 };
 
 //LIST_HEAD(ready_queue);
@@ -102,7 +104,7 @@ pid_t create_proc(const char *taskname)
 		if (ready_queue != NULL || p0 == NULL || p0->pid != pid0_pcb.pid)
 			panic_g("create_proc: Failed to remove the proc whose ID is 0");
 	}*/
-	if ((temp = lpcb_add_node_to_tail(ready_queue, &pnew)) == NULL)
+	if ((temp = lpcb_add_node_to_tail(ready_queue, &pnew, &ready_queue)) == NULL)
 	{
 		ufree_g((void *)user_stack);
 		return INVALID_PID;
@@ -143,7 +145,8 @@ void do_scheduler(void)
 		{	/* Search the linked list and find a READY process */
 			if (p->status == TASK_READY)
 			{
-				current_running->status = TASK_READY;
+				if (current_running->status != TASK_EXITED)
+					current_running->status = TASK_READY;
 				q = current_running;
 				current_running = p;
 				current_running->status = TASK_RUNNING;
@@ -161,6 +164,11 @@ void do_scheduler(void)
 				switch_to(&(q->context), &(current_running->context));
 #endif
 				return;
+			}
+			else if (p->status == TASK_EXITED)
+			{
+				if (p->pid == current_running->pid || p->pid != do_kill(p->pid))
+					panic_g("do_scheduler: Failed to kill proc %d", p->pid);
 			}
 		}
 		return;
@@ -190,7 +198,7 @@ void do_sleep(uint32_t sleep_time)
 		current_running = NULL;
 	else
 		current_running = temp;
-	if ((sleep_queue = lpcb_insert_node(sleep_queue, psleep, NULL)) == NULL)
+	if ((sleep_queue = lpcb_insert_node(sleep_queue, psleep, NULL, &sleep_queue)) == NULL)
 		panic_g("do_sleep: Failed to insert proc %d to sleep_queue", psleep->pid);
 	psleep->status = TASK_SLEEPING;
 	if ((psleep->wakeup_time = get_timer() + sleep_time) > time_max_sec)
@@ -266,7 +274,7 @@ void wake_up(pcb_t * const T)
 	if (pw != T)
 		goto err;
 	pw->status = TASK_READY;
-	ready_queue = lpcb_insert_node(ready_queue, pw, current_running);
+	ready_queue = lpcb_insert_node(ready_queue, pw, current_running, &ready_queue);
 	if (ready_queue == NULL)
 		goto err;
 	if (current_running == NULL)
@@ -284,14 +292,14 @@ err:
 
 //void do_block(list_node_t *pcb_node, list_head *queue)
 /*
- * Insert *Pt to tail of Queue and return the new head of Queue.
+ * Insert *Pt to tail of *Pqueue and return the new head of Queue.
  * NULL will be returned on error (It is unlike to happen).
  */
-pcb_t *do_block(pcb_t * const Pt, pcb_t * const Queue)
+pcb_t *do_block(pcb_t * const Pt, pcb_t ** const Pqueue)
 {
 	// TODO: [p2-task2] block the pcb task into the block queue
 	Pt->status = TASK_SLEEPING;
-	return lpcb_insert_node(Queue, Pt, NULL);
+	return lpcb_insert_node(*Pqueue, Pt, NULL, Pqueue);
 }
 
 //void do_unblock(list_node_t *pcb_node)
@@ -309,7 +317,7 @@ pcb_t *do_unblock(pcb_t * const Queue)
 	if (prec == NULL)
 		panic_g("do_unblock: Failed to remove the head of queue 0x%lx", (long)Queue);
 	prec->status = TASK_READY;
-	temp = lpcb_insert_node(ready_queue, prec, current_running);
+	temp = lpcb_insert_node(ready_queue, prec, current_running, &ready_queue);
 	if (temp == NULL)
 		panic_g("do_unblock: Failed to insert process (PID=%d) to ready_queue", prec->pid);
 	ready_queue = temp;
@@ -486,4 +494,63 @@ pid_t do_exec(const char *name, int argc, char *argv[])
 	return pid;
 #undef ARGC_MAX
 #undef ARG_LEN
+}
+
+/*
+ * do_kill: Terminate a process according to its PID.
+ * The PID will be returned on success and INVALID_PID on error.
+ * NOTE: if a process tries to kill itself, its status will be
+ * set TASK_EXITED first and its PCB will be deleted while
+ * calling do_scheduler() the next time.
+ */
+pid_t do_kill(pid_t pid)
+{
+	pcb_t *p, **phead, *pdel;
+
+	if (pid == 0)
+		/* PID 0 cannot be killed */
+		return INVALID_PID;
+	if (current_running->pid == pid)
+	{
+		current_running->status = TASK_EXITED;
+		do_scheduler();
+		panic_g("do_kill: proc %d is still running after killed", pid);
+	}
+	if ((p = pcb_search(pid)) == NULL)
+		/* Not found */
+		return INVALID_PID;
+	phead = p->phead;
+	
+	/* Checking... */
+	if (lpcb_search_node(*phead, pid) != p)
+		panic_g("do_kill: phead of proc %d is error", pid);
+	
+	/* TODO: awake proc in wait_queue */
+
+	/* Release all locks acquired by it */
+	mlocks_release_killed(pid);
+
+	/* Kill all child threads */
+	while (p->pcthread != NULL)
+	{
+		tcb_t *pd;
+		p->pcthread = ltcb_del_node(p->pcthread, p->pcthread, &pd);
+		if (pd == NULL)
+			panic_g("do_kill: thread %d of process %d found but cannot be deleted",
+				p->pcthread->tid, p->pid);
+		ufree_g((void *)pd->stack);
+		kfree_g((void *)pd);
+	}
+
+	/* Free stacks of it */
+	kfree_g((void *)p->kernel_stack);
+	ufree_g((void *)p->user_stack);
+
+	*phead = lpcb_del_node(*phead, p, &pdel);
+	if (pdel == NULL)
+		panic_g("do_kill: Failed to del pcb %d in queue 0x%lx", pid, (uint64_t)*phead);
+	kfree_g((void *)pdel);
+	if (pcb_table_del(pdel) < 0)
+		panic_g("do_kill: Failed to remove pcb %d from pcb_table", pid);
+	return pid;
 }

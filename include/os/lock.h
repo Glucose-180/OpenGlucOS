@@ -65,6 +65,7 @@ void spin_lock_release(spin_lock_t *lock);
 int do_mutex_lock_init(int key);
 int do_mutex_lock_acquire(int mlock_idx);
 int do_mutex_lock_release(int mlock_idx);
+void mlocks_release_killed(pid_t kpid);
 
 /************************************************************/
 typedef struct barrier

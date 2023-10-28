@@ -159,7 +159,7 @@ void sys_exit(void)
 int  sys_kill(pid_t pid)
 {
 	/* TODO: [p3-task1] call invoke_syscall to implement sys_kill */
-	return 0;
+	return invoke_syscall(SYS_kill, (long)pid, Ignore, Ignore, Ignore, Ignore);
 }
 
 int  sys_waitpid(pid_t pid)

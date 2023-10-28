@@ -14,7 +14,8 @@
 /*
  * TODO: Check UPROC_MAX.
  */
-pcb_t *lpcb_add_node_to_tail(pcb_t * const Head, pcb_t * volatile *ppnew)
+pcb_t *lpcb_add_node_to_tail(pcb_t * const Head, pcb_t * volatile *ppnew,
+	pcb_t ** const Phead)
 {
 	pcb_t *p;
 
@@ -30,6 +31,7 @@ pcb_t *lpcb_add_node_to_tail(pcb_t * const Head, pcb_t * volatile *ppnew)
 		;
 	p->next = *ppnew;
 	(*ppnew)->next = Head;
+	(*ppnew)->phead = Phead;
 	return Head;
 }
 
@@ -38,14 +40,18 @@ pcb_t *lpcb_add_node_to_tail(pcb_t * const Head, pcb_t * volatile *ppnew)
  * If Pprior is NULL, *Pnew will be inserted to tail.
  * Otherwise, if Pprior is not found in this list, NULL will be returned.
  */
-pcb_t *lpcb_insert_node(pcb_t * const Head, pcb_t * const Pnew, pcb_t * const Pprior)
+pcb_t *lpcb_insert_node(pcb_t * const Head, pcb_t * const Pnew, pcb_t * const Pprior,
+	pcb_t ** const Phead)
 {
 	pcb_t *p;
 
 	if (Head == NULL)
 	{	/* Empty list */
 		if (Pprior == NULL)
+		{
+			Pnew->phead = Phead;
 			return Pnew->next = Pnew;
+		}
 		else
 			return NULL;
 	}
@@ -57,6 +63,7 @@ pcb_t *lpcb_insert_node(pcb_t * const Head, pcb_t * const Pnew, pcb_t * const Pp
 		return NULL;
 	Pnew->next = p->next;
 	p->next = Pnew;
+	Pnew->phead = Phead;
 	return Head;
 }
 
@@ -81,7 +88,7 @@ pcb_t *lpcb_search_node(pcb_t * const Head, pid_t const Pid)
  * and returns head pointer to new list.
  * Then, *ppdel will pointes to the deleted node.
  * If the node is not found, *ppdel will be NULL.
- * (*ppdel)->next is NOT defined.
+ * (*ppdel)->next and (*ppdel)->phead is NOT defined.
  */
 pcb_t *lpcb_del_node(pcb_t * const Head, pcb_t * const T, pcb_t **ppdel)
 {
