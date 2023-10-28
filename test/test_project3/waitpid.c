@@ -73,18 +73,18 @@ int main(int argc, char *argv[])
     char location1[BUF_LEN];
     assert(itoa(print_location + 1, location1, BUF_LEN, 10) != -1);
 
-    //char *argv1[4] = {"ready_to_exit", location1, buf1, buf2};
-    char *argv1[] = {"ready_to_exit", location1, buf1, buf2, NULL};
-    pid_t pid1 = sys_exec(argv1[0], /*4, */argv1);
+    char *argv1[4] = {"ready_to_exit", location1, buf1, buf2};
+    //char *argv1[] = {"ready_to_exit", location1, buf1, buf2, NULL};
+    pid_t pid1 = sys_exec(argv1[0], 4, argv1);
 
     sys_sleep(1);  // wait enough time for task1 to acquire locks
     
     char location2[BUF_LEN];
     assert(itoa(print_location + 2, location2, BUF_LEN, 10) != -1);
 
-    //char *argv2[4] = {"wait_locks", location2, buf1, buf2};
-    char *argv2[] = {"wait_locks", location2, buf1, buf2, NULL};
-    pid_t pid2 = sys_exec(argv2[0], /*4, */argv2);
+    char *argv2[4] = {"wait_locks", location2, buf1, buf2};
+    //char *argv2[] = {"wait_locks", location2, buf1, buf2, NULL};
+    pid_t pid2 = sys_exec(argv2[0], 4, argv2);
 
     // Start to waitpid(pid1)
     sys_move_cursor(0, print_location);

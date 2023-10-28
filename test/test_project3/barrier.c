@@ -60,9 +60,9 @@ int main(int argc, char *argv[])
         assert(itoa(print_location + i, buf_location, BUF_LEN, 10) != -1);
         assert(itoa(handle, buf_handle, BUF_LEN, 10) != -1);
 
-        //char *argv[3] = {"test_barrier", buf_location, buf_handle};
-        char *argv[] = {"test_barrier", buf_location, buf_handle, NULL};
-        pids[i] = sys_exec(argv[0], /*3, */argv);
+        char *argv[3] = {"test_barrier", buf_location, buf_handle};
+        //char *argv[] = {"test_barrier", buf_location, buf_handle, NULL};
+        pids[i] = sys_exec(argv[0], 3, argv);
 
     }
 

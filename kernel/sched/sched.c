@@ -437,24 +437,40 @@ int do_process_show(void)
 	return proc_ymr;
 }
 
-pid_t do_exec(const char *name, char *argv[])
+/*
+ * do_exec: execute a user task according its name with
+ * command line arguments.
+ * argc: number of args; argv[]: pointer to args.
+ * If argc < 0, then argc will be determined automatically.
+ * If argv is NULL, then argv passed to the task has only argv[0]=NULL.
+ * If argc is greater than the actual number of args, then argc
+ * passed to the task is the actual number. If argc is less, then
+ * argc will be kept but only argc args is passed.
+ * If argc > ARGC_MAX or error occurs, INVALID_PID will be returned.
+ */
+pid_t do_exec(const char *name, int argc, char *argv[])
 {
 #define ARGC_MAX 8
 #define ARG_LEN 63
 	pid_t pid;
 	pcb_t *pnew;
-	int i, argc;
+	int i = 0;
 	int l;
 	char **argv_base;
 
-	if ((pid = create_proc(name)) == INVALID_PID)
+	if (argc > ARGC_MAX || (pid = create_proc(name)) == INVALID_PID)
 		/* Failed */
 		return INVALID_PID;
-	for (i = 0; i < ARGC_MAX; ++i)
-		if (argv[i] == NULL)
-			break;
-	/* Ignore args more than ARGC_MAX */
-	argv[argc = i] = NULL;
+	if (argv != NULL)
+	{
+		for (; i < (argc < 0 ? ARGC_MAX : argc); ++i)
+			if (argv[i] == NULL)
+				break;
+		/* Determine argc automatically */
+		argc = i;
+	}
+	else
+		argc = 0;
 	pnew = lpcb_search_node(ready_queue, pid);
 	if (pnew == NULL)
 		panic_g("do_exec: Cannot find PCB of %d: %s", pid, name);

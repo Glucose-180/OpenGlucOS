@@ -38,40 +38,40 @@ int main(int argc, char * argv[])
     assert(itoa(RESOURCE_ADDR, buf_resource, BUF_LEN, 10) != -1);
 
     // Start producer
-    /*char *argv_producer[5] = {"producer", \
+    char *argv_producer[5] = {"producer", \
                               buf_location, \
                               buf_cond_handle, \
                               buf_lock_handle, \
                               buf_resource \
-                              };*/
-    char *argv_producer[] = {"producer", \
+                              };
+    /*char *argv_producer[] = {"producer", \
                               buf_location, \
                               buf_cond_handle, \
                               buf_lock_handle, \
                               buf_resource, \
                               NULL \
-                              };
-    pids[0] = sys_exec(argv_producer[0], /*5, */argv_producer);
+                              };*/
+    pids[0] = sys_exec(argv_producer[0], 5, argv_producer);
 
     // Start consumers
     for (int i = 1; i < NUM_TC + 1; i++)
     {
         assert(itoa(print_location + i, buf_location, BUF_LEN, 10) != -1);
 
-        /*char *argv_consumer[5] = {"consumer", \
+        char *argv_consumer[5] = {"consumer", \
                                   buf_location, \
                                   buf_cond_handle, \
                                   buf_lock_handle, \
                                   buf_resource \
-                                  };*/
-        char *argv_consumer[] = {"consumer", \
+                                  };
+        /*char *argv_consumer[] = {"consumer", \
                                   buf_location, \
                                   buf_cond_handle, \
                                   buf_lock_handle, \
                                   buf_resource, \
                                   NULL \
-                                  };
-        pids[i] = sys_exec(argv_consumer[0], /*5, */argv_consumer);
+                                  };*/
+        pids[i] = sys_exec(argv_consumer[0], 5, argv_consumer);
     }
 
     // Wait produce processes to exit

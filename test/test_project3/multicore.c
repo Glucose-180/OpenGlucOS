@@ -41,10 +41,10 @@ int main(int argc, char* argv[])
 
     char singlecore_buf[BUF_LEN];
     assert(itoa((long)singleCoreArg, singlecore_buf, BUF_LEN, 10) != -1);
-    //char *argv_singlecore[2] = {"add", singlecore_buf};
-    char *argv_singlecore[] = {"add", singlecore_buf, NULL};
+    char *argv_singlecore[2] = {"add", singlecore_buf};
+    //char *argv_singlecore[] = {"add", singlecore_buf, NULL};
 
-    pid_t single_pid = sys_exec(argv_singlecore[0], /*2, */argv_singlecore);
+    pid_t single_pid = sys_exec(argv_singlecore[0], 2, argv_singlecore);
 
     sys_waitpid(single_pid);
     clock_t singleCoreEnd = clock();
@@ -65,9 +65,9 @@ int main(int argc, char* argv[])
     for (int i = 0; i < NUM_CPUS; ++i) {
         char multicore_buf[BUF_LEN];
         assert(itoa((long)&multiCoreArgs[i], multicore_buf, BUF_LEN, 10) != -1);
-        //char *argv_multicore[2] = {"add", multicore_buf};
-        char *argv_multicore[] = {"add", multicore_buf, NULL};
-        pids[i] = sys_exec(argv_multicore[0],/* 2,*/ argv_multicore);
+        char *argv_multicore[2] = {"add", multicore_buf};
+        //char *argv_multicore[] = {"add", multicore_buf, NULL};
+        pids[i] = sys_exec(argv_multicore[0], 2, argv_multicore);
     }
 
     for (int i = 0; i < NUM_CPUS; ++i) {

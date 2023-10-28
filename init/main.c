@@ -199,6 +199,14 @@ int main(void)
 				trim(*cmds);
 				if (strcmp(*cmds, "exit") == 0)
 					goto loc_wfi;
+				else if (strcmp(*cmds, "glush") == 0)
+				{
+					char *argv[] = {"glush", "17", "27", NULL};
+					if (do_exec("glush", -1, argv) == INVALID_PID)
+						printk("Failed to start %s\n", *cmds);
+					else
+						flag_success = 1;
+				}
 				else if (create_proc(*cmds) == INVALID_PID)
 					printk("Failed to start %s\n", *cmds);
 				else

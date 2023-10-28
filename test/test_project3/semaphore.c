@@ -28,16 +28,16 @@ int main(int argc, char * argv[])
     // Start producer
     for (int i = 0; i < NUM_TC; i++){
         assert(itoa(print_location + i, buf_location, BUF_LEN, 10) != -1);
-        /*char *argv_producer[3] = {"sema_producer", \
+        char *argv_producer[3] = {"sema_producer", \
                                 buf_location, \
                                 buf_sem_handle\
-                                };*/
-        char *argv_producer[] = {"sema_producer", \
+                                };
+        /*char *argv_producer[] = {"sema_producer", \
                                 buf_location, \
                                 buf_sem_handle, \
                                 NULL \
-                                };
-        pids[i] = sys_exec(argv_producer[0], /*3, */argv_producer);
+                                };*/
+        pids[i] = sys_exec(argv_producer[0], 3, argv_producer);
     }
 
     // Start consumers
@@ -45,16 +45,16 @@ int main(int argc, char * argv[])
     {
         assert(itoa(print_location + i, buf_location, BUF_LEN, 10) != -1);
 
-        /*char *argv_consumer[3] = {"sema_consumer", \
+        char *argv_consumer[3] = {"sema_consumer", \
                                   buf_location, \
                                   buf_sem_handle\
-                                  };*/
-        char *argv_consumer[] = {"sema_consumer", \
+                                  };
+        /*char *argv_consumer[] = {"sema_consumer", \
                                   buf_location, \
                                   buf_sem_handle, \
                                   NULL \
-                                  };
-        pids[i] = sys_exec(argv_consumer[0], /*3, */argv_consumer);
+                                  };*/
+        pids[i] = sys_exec(argv_consumer[0], 3, argv_consumer);
     }
 
     // Wait produce processes to exit

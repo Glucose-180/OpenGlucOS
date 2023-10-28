@@ -21,9 +21,9 @@ int main(int argc, char *argv[])
     for (int i = 0; i < INTEGER_TEST_NUM; ++i) {
         char buf_location[BUF_LEN];
         assert(itoa(print_location + i + 2, buf_location, BUF_LEN, 10) != -1);
-        //char *argv_affinity[2] = {"test_affinity", buf_location};
-        char *argv_affinity[] = {"test_affinity", buf_location, NULL};
-        pids[i] = sys_exec(argv_affinity[0], /*2, */argv_affinity);
+        char *argv_affinity[2] = {"test_affinity", buf_location};
+        //char *argv_affinity[] = {"test_affinity", buf_location, NULL};
+        pids[i] = sys_exec(argv_affinity[0], 2, argv_affinity);
         printf("%d, ", pids[i]);
     }
     printf("}\n\r");

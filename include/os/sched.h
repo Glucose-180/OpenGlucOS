@@ -201,7 +201,7 @@ tid_t thread_kill(tid_t const T);
 #ifdef S_CORE
 extern pid_t do_exec(int id, int argc, uint64_t arg0, uint64_t arg1, uint64_t arg2);
 #else
-extern pid_t do_exec(const char *name, char *argv[]);
+extern pid_t do_exec(const char *name, int argc, char *argv[]);
 #endif
 extern void do_exit(void);
 extern int do_kill(pid_t pid);

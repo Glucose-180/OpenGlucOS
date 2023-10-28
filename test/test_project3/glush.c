@@ -20,8 +20,12 @@ int try_syscall(char **cmds);
 char *getcmd(void);
 char **split(char *src, const char Sep);
 
-int main(void)
+int main(int argc, char *argv[])
 {
+	if (argc > 1)
+		terminal_begin = atoi(argv[1]);
+	if (argc > 2)
+		terminal_end = atoi(argv[2]);
 	sys_move_cursor(0, terminal_begin);
 	printf("%s", Terminal);
 
@@ -92,7 +96,15 @@ int try_syscall(char **cmds)
 			printf("**glush: too few args for exec\n");
 			return 2;
 		}
-		pid = sys_exec(cmds[1], cmds + 1);
+		if (cmds[2] == NULL)
+			/*
+			 * No command argument:
+			 * Test whether sys_exec() works when argv is NULL.
+			 */
+			pid = sys_exec(cmds[1], 2, NULL);
+		else
+			/* Test whether sys_exec() can determine argc auto. */
+			pid = sys_exec(cmds[1], -1, cmds + 1);
 		if (pid == INVALID_PID)
 		{
 			printf("**glush: failed to exec %s\n", cmds[1]);
