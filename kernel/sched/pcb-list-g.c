@@ -11,9 +11,6 @@
  * Then, *ppnew will points to the new node.
  * NULL will be returned on error.
  */
-/*
- * TODO: Check UPROC_MAX.
- */
 pcb_t *lpcb_add_node_to_tail(pcb_t * const Head, pcb_t * volatile *ppnew,
 	pcb_t ** const Phead)
 {
@@ -25,6 +22,7 @@ pcb_t *lpcb_add_node_to_tail(pcb_t * const Head, pcb_t * volatile *ppnew,
 	if (Head == NULL)
 	{	/* Empty list */
 		(*ppnew)->next = *ppnew;
+		(*ppnew)->phead = Phead;
 		return *ppnew;
 	}
 	for (p = Head; p->next != Head; p = p->next)

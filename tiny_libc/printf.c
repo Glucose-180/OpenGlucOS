@@ -246,3 +246,21 @@ int printf(const char *fmt, ...)
 
 	return ret;
 }
+
+/*
+ * printl: write log using sys_ulog().
+ */
+int printl(const char *fmt, ...)
+{
+	va_list va;
+	int ret;
+	char buff[256];
+
+	va_start(va, fmt);
+	ret = mini_vsnprintf(buff, 256, fmt, va);
+	buff[ret] = '\0';
+	va_end(va);
+
+	sys_ulog(buff);
+	return ret;
+}

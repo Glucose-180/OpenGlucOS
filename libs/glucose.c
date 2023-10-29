@@ -8,6 +8,7 @@
 #include <printk.h>
 #include <os/irq.h>
 #include <os/string.h>
+#include <os/time.h>
 
 /*
  * Remove white spaces at the beginning and end of Str.
@@ -169,4 +170,36 @@ void panic_g(const char *fmt, ...)
 	printv("**\n");
 	while (1)
 		;
+}
+
+/*
+ * writelog: write log in the specified file
+ * with time lable.
+ */
+void writelog(const char *fmt, ...)
+{
+	va_list va;
+	uint64_t time;
+	int _vprint(const char *fmt, va_list _va, void (*output)(char*));
+
+	time = get_timer();
+	printl("[t=%04lus] ", time);
+
+	va_start(va, fmt);
+	_vprint(fmt, va, bios_logging);
+	va_end(va);
+
+	printl("\n");
+}
+
+/*
+ * do_ulog: provide a syscall for user program to
+ * write log. Only write a time lable and a string.
+ */
+int do_ulog(const char *str)
+{
+	uint64_t time;
+
+	time = get_timer();
+	return printl("[t=%04lus] %s\n", time, str);
 }

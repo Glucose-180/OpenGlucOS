@@ -43,7 +43,9 @@ pcb_t pid0_pcb = {
 	.name = "_main",
 	.cursor_x = 0,
 	.cursor_y = 0,
-	.pcthread = NULL
+	.pcthread = NULL,
+	/* to make pid0_pcb.phead point to ready_queue */
+	.phead = &ready_queue
 };
 
 //LIST_HEAD(ready_queue);

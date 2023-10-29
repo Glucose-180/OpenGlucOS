@@ -100,6 +100,9 @@ static void init_pcb(void)
 
 	ready_queue = NULL;
 	ready_queue = lpcb_add_node_to_tail(ready_queue, &current_running, &ready_queue);
+	/*
+	 * NOTE: current_running->phead is ensured in definition of pid0_pcb
+	 */
 	if (ready_queue == NULL)
 		panic_g("init_pcb: Failed to init ready_queue");
 	/*
@@ -146,6 +149,8 @@ static void init_syscall(void)
 #endif
 	syscall[SYS_ps] = (long (*)())do_process_show;
 	syscall[SYS_clear] = (long (*)())screen_clear;
+	syscall[SYS_ulog] = (long (*)())do_ulog;
+	syscall[SYS_kprint_avail_table] = (long (*)())kprint_avail_table;
 }
 /************************************************************/
 
@@ -203,7 +208,7 @@ int main(void)
 					goto loc_wfi;
 				else if (strcmp(*cmds, "glush") == 0)
 				{
-					char *argv[] = {"glush", "17", "27", NULL};
+					char *argv[] = {"glush", "17", "27", "1", NULL};
 					if (do_exec("glush", -1, argv) == INVALID_PID)
 						printk("Failed to start %s\n", *cmds);
 					else

@@ -19,6 +19,8 @@ void sys_write(char *buff);
 int sys_bios_getchar(void);
 void sys_move_cursor(int x, int y);
 void sys_reflush(void);
+int sys_ulog(const char *str);
+
 long sys_get_timebase(void);
 long sys_get_tick(void);
 int sys_mutex_init(int key);
@@ -73,5 +75,7 @@ int sys_semaphore_init(int key, int init);
 void sys_semaphore_up(int sema_idx);
 void sys_semaphore_down(int sema_idx);
 void sys_semaphore_destroy(int sema_idx);
+
+void sys_kprint_avail_table(void);
 
 #endif

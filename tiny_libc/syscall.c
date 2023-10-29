@@ -71,6 +71,11 @@ void sys_reflush(void)
 	invoke_syscall(SYS_reflush, Ignore, Ignore, Ignore, Ignore, Ignore);
 }
 
+int sys_ulog(const char *str)
+{
+	invoke_syscall(SYS_ulog, (long)str, Ignore, Ignore, Ignore, Ignore);
+}
+
 int sys_mutex_init(int key)
 {
 	/* TODO: [p2-task2] call call_jmptab to implement sys_mutex_init */
@@ -277,3 +282,9 @@ int sys_mbox_recv(int mbox_idx, void *msg, int msg_length)
 	return 0;
 }
 /************************************************************/
+
+void sys_kprint_avail_table(void)
+{
+	invoke_syscall(SYS_kprint_avail_table, Ignore, Ignore,
+		Ignore, Ignore, Ignore);
+}

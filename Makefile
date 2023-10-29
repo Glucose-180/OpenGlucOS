@@ -19,8 +19,13 @@ TTYUSB1     = /dev/ttyUSB1
 DIR_OSLAB   = $(HOME)/OSLab-RISC-V
 DIR_QEMU    = $(DIR_OSLAB)/qemu
 DIR_UBOOT   = $(DIR_OSLAB)/u-boot
+
+# -----------------------------------------------------------------------
+# FPGA and minicom variables
+# -----------------------------------------------------------------------
 # delay after "make minicom"
 MC_DELAY	= 13
+FPGA_LOG_FILE   = ./glucos-fpga.log
 
 # -----------------------------------------------------------------------
 # Build and Debug Tools
@@ -67,7 +72,8 @@ USER_INCLUDE    = -I$(DIR_TINYLIBC)/include
 USER_CFLAGS     = $(CFLAGS) $(USER_INCLUDE) -DYIELD_EN=$(YIELD_EN)
 USER_LDFLAGS    = -L$(DIR_BUILD) -ltinyc
 
-QEMU_LOG_FILE   = $(DIR_OSLAB)/oslab-log.txt
+#QEMU_LOG_FILE   = $(DIR_OSLAB)/oslab-log.txt
+QEMU_LOG_FILE   = ./glucos-qemu.log
 QEMU_OPTS       = -nographic -machine virt -m 256M -kernel $(UBOOT) -bios none \
                      -drive if=none,format=raw,id=image,file=${ELF_IMAGE} \
                      -device virtio-blk-device,drive=image \
@@ -173,7 +179,7 @@ debug-smp:
 minicom:
 	@echo "Delay $(MC_DELAY) s to skip long text..."
 	sleep $(MC_DELAY)
-	sudo $(MINICOM) -D $(TTYUSB1)
+	sudo $(MINICOM) -D $(TTYUSB1) -X $(FPGA_LOG_FILE)
 
 .PHONY: all dirs clean floppy asm gdb run debug viewlog minicom
 

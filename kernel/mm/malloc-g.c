@@ -187,12 +187,13 @@ void kprint_avail_table()
 
 	if (kpav == NULL)
 	{
-		printk("NULL\n");
+		writelog("kprint_alail_table: NULL\n");
 		return;
 	}
 	p = kpav;
 	do {
-		printk("Start: %ld, Size: %u, End: %ld, Tag: %d;\n", (int8_t*)p - kallocbuf, p->size, (long)p - (long)kallocbuf + p->size - 1, p->tag);
+		writelog("kprint_alail_table: Start: 0x%lx, Size: %u, End: 0x%lx, Tag: %d;\n",
+			(ptr_t)p, p->size, (ptr_t)p + p->size - 1U, p->tag);
 	} while ((p = p->next) != kpav);
 }
 

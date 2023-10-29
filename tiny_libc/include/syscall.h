@@ -20,6 +20,7 @@
 #define SYS_move_cursor 22
 #define SYS_reflush 23
 #define SYS_clear 24
+#define SYS_ulog 25
 
 #define SYS_get_timebase 30
 #define SYS_get_tick 31
@@ -40,5 +41,7 @@
 #define SYS_mbox_close 53
 #define SYS_mbox_send 54
 #define SYS_mbox_recv 55
+
+#define SYS_kprint_avail_table 90
 
 #endif

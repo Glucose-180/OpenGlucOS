@@ -4,3 +4,4 @@ build
 exe_*
 *.exe
 /test/test_project3/lock*.c
+/*.log

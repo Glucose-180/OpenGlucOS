@@ -10,6 +10,9 @@
 int terminal_begin = 18,
 	terminal_end = 27;
 
+/* Auto write log */
+char flag_autolog = 0;
+
 const char Terminal[] = 
 	"------------------- Terminal -------------------\n";
 const char NotFound[] =
@@ -20,18 +23,29 @@ int try_syscall(char **cmds);
 char *getcmd(void);
 char **split(char *src, const char Sep);
 
+/*
+ * Format of argv[]: glush [terminal_begin] [terminal_end] [flag_autolog]
+ */
 int main(int argc, char *argv[])
 {
 	if (argc > 1)
 		terminal_begin = atoi(argv[1]);
 	if (argc > 2)
 		terminal_end = atoi(argv[2]);
+	if (argc > 3)
+		flag_autolog = atoi(argv[3]);
+
 	sys_move_cursor(0, terminal_begin);
 	printf("%s", Terminal);
+
+	if (flag_autolog != 0)
+		printl("glush starts: terminal_begin is %d, terminal_end is %d",
+			terminal_begin, terminal_end);
 
 	while (1)
 	{
 		char **words;
+		char *cmd;
 		// ECHO for test
 		//printf("%s\n", getcmd());
 
@@ -39,8 +53,9 @@ int main(int argc, char *argv[])
 		// TODO [P3-task1]: parse input
 		// note: backspace maybe 8('\b') or 127(delete)
 		// TODO [P3-task1]: ps, exec, kill, clear
-
-		words = split(getcmd(), ' ');
+		cmd = getcmd();
+		printl("glush: %s", cmd);
+		words = split(cmd, ' ');
 		if (words[0] == NULL)
 			continue;
 		if (try_syscall(words) == 1)
@@ -134,6 +149,21 @@ int try_syscall(char **cmds)
 			 * Call sys_waitpid() to wait the new process
 			 */
 		}
+		return 0;
+	}
+	else if (strcmp(cmds[0], "kprint_avail_table") == 0)
+	{
+		sys_kprint_avail_table();
+		return 0;
+	}
+	else if (strcmp(cmds[0], "ulog") == 0)
+	{
+		if (cmds[1] == NULL)
+		{
+			printf("**glush: too few args for ulog\n");
+			return 2;
+		}
+		sys_ulog(cmds[1]);
 		return 0;
 	}
 	else
