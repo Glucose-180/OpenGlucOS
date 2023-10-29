@@ -52,7 +52,7 @@ void screen_write_ch(char ch)
 	if (ch == '\n')
 	{
 		current_running->cursor_x = 0;
-		if (current_running->cursor_y < SCREEN_HEIGHT)
+		if (current_running->cursor_y < SCREEN_HEIGHT - 1)
 			current_running->cursor_y++;
 	}
 	else if (ch == '\b' || ch == '\177')
