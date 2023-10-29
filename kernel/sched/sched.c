@@ -44,6 +44,8 @@ pcb_t pid0_pcb = {
 	.name = "_main",
 	.cursor_x = 0,
 	.cursor_y = 0,
+	.cylim_h = -1,
+	.cylim_l = -1,
 	.pcthread = NULL,
 	/* to make pid0_pcb.phead point to ready_queue */
 	.phead = &ready_queue
@@ -409,6 +411,7 @@ void init_pcb_stack(
 	pcb->status = TASK_READY;
 	pcb->wait_queue = NULL;
 	pcb->cursor_x = pcb->cursor_y = 0;
+	pcb->cylim_h = pcb->cylim_l = -1;
 	if ((pcb->pid = alloc_pid()) == INVALID_PID)
 		panic_g("init_pcb_stack: No invalid PID can be used");
 	
@@ -457,7 +460,7 @@ int do_process_show(void)
 		[TASK_EXITED]	"Exited  "
 	};
 
-	printk("\tPID\t\t STATUS \t\tCMD\n");
+	printk("    PID     STATUS     CMD\n");
 
 	for (i = 0; i < UPROC_MAX + 1; ++i)
 	{
@@ -465,7 +468,7 @@ int do_process_show(void)
 		{
 			++uproc_ymr;
 			p = pcb_table[i];
-			printk("\t %d\t\t%s\t\t%s\n",
+			printk("    %02d      %s   %s\n",
 				p->pid, Status[p->status], p->name);
 		}
 	}

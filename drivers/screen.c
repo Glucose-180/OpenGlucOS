@@ -49,11 +49,38 @@ static void vt100_show_cursor()
 /* write a char */
 void screen_write_ch(char ch)
 {
+	char flag_limited;
+
 	if (ch == '\n')
 	{
+write_lf:
 		current_running->cursor_x = 0;
 		if (current_running->cursor_y < SCREEN_HEIGHT - 1)
+		{
 			current_running->cursor_y++;
+			flag_limited = 0;
+		}
+		else
+			flag_limited = 1;
+		if (current_running->cylim_l >= 0 &&	/* Auto scroll */
+			current_running->cylim_h >= current_running->cylim_l &&
+			(
+				current_running->cursor_y > current_running->cylim_h ||
+				flag_limited == 1
+			)
+		)
+		{
+			int y, x;
+			for (y = current_running->cylim_l; y < current_running->cylim_h; ++y)
+			{
+				for (x = 0; x < SCREEN_WIDTH; ++x)
+					new_screen[SCREEN_LOC(x, y)] = new_screen[SCREEN_LOC(x, y + 1)];
+			}
+			current_running->cursor_y = y;
+			for (x = 0; x < SCREEN_WIDTH; ++x)
+				new_screen[SCREEN_LOC(x, current_running->cursor_y)] = ' ';
+		}
+		return;
 	}
 	else if (ch == '\b' || ch == '\177')
 	{	/* Backspace: by Glucose180 */
@@ -70,9 +97,7 @@ void screen_write_ch(char ch)
 		new_screen[SCREEN_LOC(current_running->cursor_x, current_running->cursor_y)] = ch;
 		if (++current_running->cursor_x >= SCREEN_WIDTH)
 		{
-			current_running->cursor_x = 0;
-			if (current_running->cursor_y < SCREEN_HEIGHT)
-				current_running->cursor_y++;
+			goto write_lf;
 		}
 	}
 }
@@ -153,4 +178,11 @@ void screen_reflush(void)
 
 	/* recover cursor position */
 	vt100_move_cursor(current_running->cursor_x + 1, current_running->cursor_y + 1);
+}
+
+/* Set cursor y limit */
+void screen_set_cylim(int cylim_l, int cylim_h)
+{
+	current_running->cylim_l = cylim_l;
+	current_running->cylim_h = cylim_h;
 }

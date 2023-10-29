@@ -138,6 +138,12 @@ typedef struct pcb
 	int cursor_x;
 	int cursor_y;
 
+	/*
+	 * limit of cursor_y, used for auto scroll.
+	 * < 0 means  invalid.
+	 */
+	int cylim_l, cylim_h;
+
 	/* time(seconds) to wake up sleeping PCB */
 	uint64_t wakeup_time;
 

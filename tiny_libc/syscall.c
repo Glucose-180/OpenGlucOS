@@ -71,6 +71,12 @@ void sys_reflush(void)
 	invoke_syscall(SYS_reflush, Ignore, Ignore, Ignore, Ignore, Ignore);
 }
 
+void sys_set_cylim(int cylim_l, int cylim_h)
+{
+	invoke_syscall(SYS_set_cylim, (long)cylim_l, (long)cylim_h,
+		Ignore, Ignore, Ignore);
+}
+
 int sys_ulog(const char *str)
 {
 	return invoke_syscall(SYS_ulog, (long)str, Ignore, Ignore, Ignore, Ignore);

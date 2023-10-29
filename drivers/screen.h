@@ -45,4 +45,6 @@ void screen_write(char *buff);
 /* move cursor int (x,y) */
 void screen_move_cursor(int x, int y);
 
+void screen_set_cylim(int cylim_l, int cylim_h);
+
 #endif

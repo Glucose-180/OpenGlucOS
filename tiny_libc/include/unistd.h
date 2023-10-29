@@ -19,6 +19,7 @@ void sys_write(char *buff);
 int sys_bios_getchar(void);
 void sys_move_cursor(int x, int y);
 void sys_reflush(void);
+void sys_set_cylim(int cylim_l, int cylim_h);
 int sys_ulog(const char *str);
 
 long sys_get_timebase(void);

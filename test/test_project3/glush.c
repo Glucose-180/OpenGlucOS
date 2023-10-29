@@ -41,6 +41,8 @@ int main(int argc, char *argv[])
 	if (flag_autolog != 0)
 		printl("glush starts: terminal_begin is %d, terminal_end is %d",
 			terminal_begin, terminal_end);
+	
+	sys_set_cylim(terminal_begin + 1, terminal_end);
 
 	while (1)
 	{
