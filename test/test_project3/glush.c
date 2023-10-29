@@ -129,14 +129,12 @@ int try_syscall(char **cmds)
 			printf("**glush: too few args for exec\n");
 			return 2;
 		}
-		if (cmds[2] == NULL)
-			/*
-			 * No command argument:
-			 * Test whether sys_exec() works when argv is NULL.
-			 */
+		/*if (cmds[2] == NULL)
+			// No command argument:
+			// Test whether sys_exec() works when argv is NULL.
 			pid = sys_exec(cmds[1], 2, NULL);
 		else
-			/* Test whether sys_exec() can determine argc auto. */
+			// Test whether sys_exec() can determine argc auto. */
 			pid = sys_exec(cmds[1], -1, cmds + 1);
 		if (pid == INVALID_PID)
 		{
@@ -145,10 +143,12 @@ int try_syscall(char **cmds)
 		}
 		if (flag_background == 0)
 		{
-			/*
-			 * Call sys_waitpid() to wait the new process
-			 */
+			/* Call sys_waitpid() to wait the new process */
+			if (sys_waitpid(pid) != pid)
+				printf("**glush: failed to wait for %d\n", pid);
 		}
+		else
+			printf("%s: PID is %d\n", cmds[1], pid);
 		return 0;
 	}
 	else if (strcmp(cmds[0], "kprint_avail_table") == 0)
@@ -164,6 +164,20 @@ int try_syscall(char **cmds)
 			return 2;
 		}
 		sys_ulog(cmds[1]);
+		return 0;
+	}
+	else if (strcmp(cmds[0], "sleep") == 0)
+	{
+		int stime;
+		if (cmds[1] == NULL)
+		{
+			printf("**glush: too few args for sleep\n");
+			return 2;
+		}
+		if ((stime = atoi(cmds[1])) < 0)
+			stime = 0;
+		printf("glush: sleeping for %d sec...\n", stime);
+		sys_sleep(stime);
 		return 0;
 	}
 	else

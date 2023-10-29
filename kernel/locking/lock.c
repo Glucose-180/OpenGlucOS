@@ -57,7 +57,7 @@ int do_mutex_lock_init(int key)
 int do_mutex_lock_acquire(int mlock_idx)
 {
 	/* TODO: [p2-task2] acquire mutex lock */
-	pcb_t *p, *q;
+	//pcb_t *p, *q;
 	mutex_lock_t *ptlock;
 
 	if (mlock_idx >= LOCK_NUM || mlock_idx < 0)
@@ -71,7 +71,7 @@ int do_mutex_lock_acquire(int mlock_idx)
 		return mlock_idx;
 	}
 	/* Should be blocked */
-	for (p = current_running->next; p != current_running; p = p->next)
+	/*for (p = current_running->next; p != current_running; p = p->next)
 	{
 		if (p->status == TASK_READY)
 		{
@@ -92,10 +92,16 @@ int do_mutex_lock_acquire(int mlock_idx)
 #endif
 			return mlock_idx;
 		}
+	}*/
+	if (do_block(&(ptlock->block_queue)) != 0)
+	{
+		panic_g("do_mutex_lock_acquire: lock %d is LOCKED"
+			" but no ready process is found", mlock_idx);
+		return -1;
 	}
-	panic_g("do_mutex_lock_acquire: lock %d is LOCKED"
-		" but no ready process is found", mlock_idx);
-	return -1;
+	else
+		/* after being unblocked */
+		return mlock_idx;
 }
 
 /*

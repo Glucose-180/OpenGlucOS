@@ -168,10 +168,11 @@ int  sys_kill(pid_t pid)
 	return invoke_syscall(SYS_kill, (long)pid, Ignore, Ignore, Ignore, Ignore);
 }
 
-int  sys_waitpid(pid_t pid)
+pid_t sys_waitpid(pid_t pid)
 {
 	/* TODO: [p3-task1] call invoke_syscall to implement sys_waitpid */
-	return 0;
+	return invoke_syscall(SYS_waitpid, (long)pid, Ignore, Ignore,
+		Ignore, Ignore);
 }
 
 
@@ -189,7 +190,7 @@ void sys_clear(void)
 pid_t sys_getpid()
 {
 	/* TODO: [p3-task1] call invoke_syscall to implement sys_getpid */
-	return 0;
+	return invoke_syscall(SYS_getpid, Ignore, Ignore, Ignore ,Ignore, Ignore);
 }
 
 /*int  sys_getchar(void)

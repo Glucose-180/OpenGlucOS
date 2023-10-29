@@ -48,3 +48,9 @@ Project 3。
 
 首次实现进程退出`sys_exit()`，并在`crt0.S`中自动调用。
 
+  修改了`do_mutex_acquire()`以及`do_block()`，将 reschedule 的操作集成到`do_block()`中。初步实现`sys_waitpid()`并在 glush 应用。在 glush 新增`sleep`命令。实现`sys_getpid()`。现在。可以在 glush 运行 waitpid 了（`exec waitpid`）。
+
+
+
+
+

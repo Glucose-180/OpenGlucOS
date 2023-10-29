@@ -118,7 +118,10 @@ typedef struct pcb
 	reg_t kernel_stack;
 	reg_t user_stack;
  
-    list_head wait_list;
+	/*
+	 * Processes waiting for this proc.
+	 */
+	struct pcb *wait_queue;
 
 	/* previous, next pointer */
 	//list_node_t list;
@@ -190,7 +193,7 @@ void do_sleep(uint32_t);
 void check_sleeping(void);
 void wake_up(pcb_t * const T);
 
-pcb_t *do_block(pcb_t * const Pt, pcb_t ** const Pqueue);
+int do_block(pcb_t ** const Pqueue);
 pcb_t *do_unblock(pcb_t * const Queue);
 
 void init_pcb_stack(
@@ -211,9 +214,9 @@ extern pid_t do_exec(const char *name, int argc, char *argv[]);
 #endif
 extern void do_exit(void);
 extern int do_kill(pid_t pid);
-extern int do_waitpid(pid_t pid);
-extern int do_process_show();
-extern pid_t do_getpid();
+extern pid_t do_waitpid(pid_t pid);
+extern int do_process_show(void);
+extern pid_t do_getpid(void);
 /************************************************************/
 
 extern pcb_t *pcb_table[UPROC_MAX + 1];

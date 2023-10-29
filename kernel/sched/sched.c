@@ -40,6 +40,7 @@ pcb_t pid0_pcb = {
 	.trapframe = (void *)pid0_stack,
 	/* Add more info */
 	.status = TASK_RUNNING,
+	.wait_queue = NULL,
 	.name = "_main",
 	.cursor_x = 0,
 	.cursor_y = 0,
@@ -76,7 +77,7 @@ pid_t alloc_pid(void)
 	static const pid_t Pid_min = 1, Pid_max = 2 * UPROC_MAX;
 
 	for (i = Pid_min; i <= Pid_max; ++i)
-		if (lpcb_search_node(ready_queue, i) == NULL)
+		if (pcb_search(i) == NULL)
 			return i;
 	return INVALID_PID;
 }
@@ -294,14 +295,43 @@ err:
 
 //void do_block(list_node_t *pcb_node, list_head *queue)
 /*
- * Insert *Pt to tail of *Pqueue and return the new head of Queue.
- * NULL will be returned on error (It is unlike to happen).
+ * Insert *current_running to tail of *Pqueue and then reschedule.
+ * Returns: 0 if switch_to() is called, 1 otherwise.
  */
-pcb_t *do_block(pcb_t * const Pt, pcb_t ** const Pqueue)
+int do_block(pcb_t ** const Pqueue)
 {
 	// TODO: [p2-task2] block the pcb task into the block queue
-	Pt->status = TASK_SLEEPING;
-	return lpcb_insert_node(*Pqueue, Pt, NULL, Pqueue);
+	pcb_t *p, *q, *temp;
+
+	for (p = current_running->next; p != current_running; p = p->next)
+	{
+		if (p->status == TASK_READY)
+		{
+			q = current_running;
+			current_running = p;
+			current_running->status = TASK_RUNNING;
+			ready_queue = lpcb_del_node(ready_queue, q, &p);
+			if (p != q)
+				panic_g("do_block: Failed to remove"
+					" current_running from ready_queue");
+			//ptlock->block_queue = do_block(p, &(ptlock->block_queue));
+			p->status = TASK_SLEEPING;
+			temp = lpcb_insert_node(*Pqueue, p, NULL, Pqueue);
+			if (temp == NULL)
+				panic_g("do_block: Failed to insert pcb %d to queue 0x%lx",
+					p->pid, *Pqueue);
+			*Pqueue = temp;
+#if MULTITHREADING != 0
+			switch_to(p->cur_thread == NULL ? &(p->context) : &(p->cur_thread->context),
+				current_running->cur_thread == NULL ? &(current_running->context)
+				: &(current_running->cur_thread->context));
+#else
+			switch_to(&(p->context), &(current_running->context));
+#endif
+			return 0;
+		}
+	}
+	return 1;
 }
 
 //void do_unblock(list_node_t *pcb_node)
@@ -377,6 +407,7 @@ void init_pcb_stack(
 	pcb->trapframe->regs[OFFSET_REG_RA / sizeof(reg_t)] = (reg_t)do_exit;
 
 	pcb->status = TASK_READY;
+	pcb->wait_queue = NULL;
 	pcb->cursor_x = pcb->cursor_y = 0;
 	if ((pcb->pid = alloc_pid()) == INVALID_PID)
 		panic_g("init_pcb_stack: No invalid PID can be used");
@@ -533,7 +564,9 @@ pid_t do_kill(pid_t pid)
 	if (lpcb_search_node(*phead, pid) != p)
 		panic_g("do_kill: phead of proc %d is error", pid);
 	
-	/* TODO: awake proc in wait_queue */
+	/* wake up proc in wait_queue */
+	while (p->wait_queue != NULL)
+		p->wait_queue = do_unblock(p->wait_queue);
 
 	/* Release all locks acquired by it */
 	mlocks_release_killed(pid);
@@ -569,7 +602,36 @@ void do_exit(void)
 		panic_g("do_exit: proc %d failed to exit", current_running->pid);
 }
 
+/*
+ * do_waitpid: wait for a process to exit or be killed.
+ * Returns: pid on success or INVALID_PID if not found
+ * or trying to wait for itself ot a proc waiting for itself.
+ */
 pid_t do_waitpid(pid_t pid)
 {
 	// TODO
+	pcb_t *p;
+
+	if ((p = pcb_search(pid)) == NULL)
+		return INVALID_PID;
+	
+	if (pid == current_running->pid)
+		/* Cannot wait for itself. */
+		return INVALID_PID;
+	
+	if (lpcb_search_node(current_running->wait_queue, pid) != NULL)
+		/*
+		 * Cannot wait for a proc waiting for itself,
+		 * which causes "deadlock".
+		 */
+		return INVALID_PID;
+	do_block(&(p->wait_queue));
+
+	return pid;
+}
+
+/* do_getpid: get current_running->pid */
+pid_t do_getpid(void)
+{
+	return current_running->pid;
 }
