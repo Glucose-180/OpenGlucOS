@@ -17,6 +17,8 @@ void test_zerodivision(void);
 void test_printf(void);
 void test_strncpy(void);
 void test_argv(int argc, char *argv[]);
+void test_getpid(void);
+void test_exit(void);
 
 int main(int argc, char *argv[])
 {
@@ -28,12 +30,13 @@ int main(int argc, char *argv[])
 		"\t0 - Try to access kernel memory\n"
 		"\t1 - Check GPRs after a Syscall\n"
 		"\t2 - Try to access an unaligned address\n"
-		"\t3 - Try to divide an integer by ZERO\n"
+		"\t3 - printf different kinds of integers\n"
 	);
 	printf(
-		"\t4 - printf different kinds of integers\n"
-		"\t5 - Lib function strncmp()\n"
-		"\t6 - Command line args\n"
+		"\t4 - Lib function strncmp()\n"
+		"\t5 - Command line args\n"
+		"\t6 - Call sys_getpid()\n"
+		"\t7 - Call sys_exit()\n"
 	);
 	while (1)
 	{
@@ -52,16 +55,19 @@ int main(int argc, char *argv[])
 			test_unaligned();
 			break;
 		case 3:
-			test_zerodivision();
-			break;
-		case 4:
 			test_printf();
 			break;
-		case 5:
+		case 4:
 			test_strncpy();
 			break;
-		case 6:
+		case 5:
 			test_argv(argc, argv);
+			break;
+		case 6:
+			test_getpid();
+			break;
+		case 7:
+			test_exit();
 			break;
 		default:
 			flag_retry = 1;
@@ -151,6 +157,7 @@ void test_unaligned(void)
 	printf("Test failed! No exception happened.\n");
 }
 
+/*
 void test_zerodivision(void)
 {
 	int dividend = 5, quo;
@@ -162,6 +169,7 @@ void test_zerodivision(void)
 		printf("Test failed! No exception happened "
 			"and the quotient is %d.\n", quo);
 }
+*/
 
 void test_printf(void)
 {
@@ -202,4 +210,18 @@ void test_argv(int argc, char *argv[])
 	{
 		printf("argv[%d] is \"%s\"\n", i, argv[i]);
 	}
+}
+
+void test_getpid(void)
+{
+	pid_t pid;
+
+	pid = sys_getpid();
+	printf("pid is %d\n", pid);
+}
+
+void test_exit(void)
+{
+	sys_exit();
+	printf("Failed!\n");
 }

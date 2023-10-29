@@ -1,5 +1,6 @@
 #include <sys/syscall.h>
 #include <os/glucose.h>
+#include <printk.h>
 
 long (*syscall[NUM_SYSCALLS])();
 
@@ -26,10 +27,16 @@ void handle_syscall(regs_context_t *regs, uint64_t interrupt, uint64_t cause)
 
 void invalid_syscall(long sysno, long arg0, long arg1, long arg2, long arg3, long arg4)
 {
-	panic_g(
-		"invalid_syscall: %lx\n"
-		"arg0: %lx\targ1: %lx\targ2: %lx\n"
-		"arg3: %lx\targ4: %lx\n",
-		sysno, arg0, arg1, arg2, arg3, arg4
-	);
+	if (current_running->pid != 0)
+	{
+		printk("**Invalid syscall %ld\n", sysno);
+		do_exit();
+	}
+	else
+		panic_g(
+			"invalid_syscall: invalid syscall %ld of pid 0\n"
+			"arg0: 0x%lx\targ1: 0x%lx\targ2: 0x%lx\n"
+			"arg3: 0x%lx\targ4: 0x%lx\n",
+			sysno, arg0, arg1, arg2, arg3, arg4
+		);
 }

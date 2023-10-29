@@ -56,7 +56,13 @@ enum ExcCode
     EXCC_INST_PAGE_FAULT  = 12,
     EXCC_LOAD_PAGE_FAULT  = 13,
     EXCC_STORE_PAGE_FAULT = 15,
-    EXCC_COUNT
+    EXCC_COUNT,
+
+    /* 
+     * Exception code of DASICS >= 24.
+     * See guide_book_p2.pdf for details.
+     */
+    EXCC_DASICS           = 24
 };
 
 typedef void (*handler_t)(regs_context_t*, uint64_t, uint64_t);

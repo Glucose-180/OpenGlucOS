@@ -13,6 +13,8 @@
 handler_t irq_table[IRQC_COUNT];
 handler_t exc_table[EXCC_COUNT];
 
+static void handle_dasics(regs_context_t *regs, uint64_t stval, uint64_t scause);
+
 void interrupt_helper(regs_context_t *regs, uint64_t stval, uint64_t scause)
 {
 	// TODO: [p2-task3] & [p2-task4] interrupt handler.
@@ -28,9 +30,12 @@ void interrupt_helper(regs_context_t *regs, uint64_t stval, uint64_t scause)
 	else
 	{
 		if (scause >= EXCC_COUNT)
-			//panic_g("interrupt_helper: exception code of "
-				//"non-interrupt is error: 0x%lx", scause);
-			handle_other(regs, stval, scause);
+		{
+			if (scause >= EXCC_DASICS)
+				handle_dasics(regs, stval, scause);
+			else
+				handle_other(regs, stval, scause);
+		}
 		exc_table[scause](regs, stval, scause);
 	}
 }
@@ -92,9 +97,22 @@ void handle_other(regs_context_t *regs, uint64_t stval, uint64_t scause)
 		}
 		printk("\n\r");
 	}
-	printk("sstatus: 0x%lx sbadaddr: 0x%lx scause: %lu\n\r",
+	/*printk("sstatus: 0x%lx sbadaddr: 0x%lx scause: %lu\n\r",
 		   regs->sstatus, regs->sbadaddr, regs->scause);
 	printk("sepc: 0x%lx\n\r", regs->sepc);
-	printk("tval: 0x%lx cause: 0x%lx\n", stval, scause);
-	assert(0);
+	printk("tval: 0x%lx cause: 0x%lx\n", stval, scause);*/
+	//assert(0);
+	panic_g(
+		"handle_other: unknown trap happens:\n"
+		"$sstatus: 0x%lx, $stval: 0x%lx, $scause: 0x%lx,\n"
+		"$sepc: 0x%lx, sbadaddr: 0x%lx (should equals $stval)\n",
+		regs->sstatus, stval, scause,
+		regs->sepc, regs->sbadaddr
+	);
+}
+
+static void handle_dasics(regs_context_t *regs, uint64_t stval, uint64_t scause)
+{
+	printk("**Segmentation fault: 0x%lx", stval);
+	do_exit();
 }

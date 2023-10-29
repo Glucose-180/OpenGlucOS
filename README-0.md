@@ -8,7 +8,7 @@ Project 3。
 
 #### 最新更改
 
-[2023-10-29] 新增写日志的功能。
+[2023-10-29] 优化异常处理，支持触发 DASICS 时的 Segmentation fault。
 
 #### 可做的优化
 
@@ -50,7 +50,5 @@ Project 3。
 
   修改了`do_mutex_acquire()`以及`do_block()`，将 reschedule 的操作集成到`do_block()`中。初步实现`sys_waitpid()`并在 glush 应用。在 glush 新增`sleep`命令。实现`sys_getpid()`。现在。可以在 glush 运行 waitpid 了（`exec waitpid`）。
 
-
-
-
+  尝试在出现无效系统调用以及触发 DASICS 时报 Segmentation fault 并终止进程，在触发未知异常时 panic。
 
