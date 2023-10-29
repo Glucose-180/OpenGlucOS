@@ -32,6 +32,13 @@ LE:
 	ld	fp, 0(sp)
 	ld	ra, 8(sp)	# recover ra
 	addi	sp, sp, 16
+
+	call sys_exit
+
+	/*
+	 * If this instruction is executed, error has occurred because
+	 * sys_exit() is not successful.
+	 */
 	jr	ra		# jump to GlucOS
 	/************************************************************/
 	/* Do not touch this comment. Reserved for future projects. */

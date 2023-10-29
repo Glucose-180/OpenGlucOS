@@ -125,8 +125,8 @@ static void init_syscall(void)
 		syscall[i] = (long (*)())invalid_syscall;
 	syscall[SYS_exec] = (long (*)())do_exec;
 	syscall[SYS_kill] = (long (*)())do_kill;
-	/*syscall[SYS_exit] = (long (*)())do_exit;
-	syscall[SYS_waitpid] = (long (*)())do_waitpid;*/
+	syscall[SYS_exit] = (long (*)())do_exit;
+	syscall[SYS_waitpid] = (long (*)())do_waitpid;
 	syscall[SYS_sleep] = (long (*)())do_sleep;
 	syscall[SYS_yield] = (long (*)())do_scheduler;
 	syscall[SYS_write] = (long (*)())screen_write;

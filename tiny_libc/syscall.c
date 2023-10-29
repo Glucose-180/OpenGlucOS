@@ -73,7 +73,7 @@ void sys_reflush(void)
 
 int sys_ulog(const char *str)
 {
-	invoke_syscall(SYS_ulog, (long)str, Ignore, Ignore, Ignore, Ignore);
+	return invoke_syscall(SYS_ulog, (long)str, Ignore, Ignore, Ignore, Ignore);
 }
 
 int sys_mutex_init(int key)
@@ -159,6 +159,7 @@ pid_t  sys_exec(char *name, int argc, char **argv)
 void sys_exit(void)
 {
 	/* TODO: [p3-task1] call invoke_syscall to implement sys_exit */
+	invoke_syscall(SYS_exit, Ignore, Ignore, Ignore, Ignore, Ignore);
 }
 
 int  sys_kill(pid_t pid)

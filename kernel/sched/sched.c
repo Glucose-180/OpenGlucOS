@@ -370,6 +370,12 @@ void init_pcb_stack(
 	 */
 	pcb->trapframe->scause = ~(~(0UL) >> 1);
 
+	/*
+	 * When calling sys_exit() in crt0.S is error,
+	 * call do_exit() directly to cause exception (trying to access kernel).
+	 */
+	pcb->trapframe->regs[OFFSET_REG_RA / sizeof(reg_t)] = (reg_t)do_exit;
+
 	pcb->status = TASK_READY;
 	pcb->cursor_x = pcb->cursor_y = 0;
 	if ((pcb->pid = alloc_pid()) == INVALID_PID)
@@ -555,4 +561,15 @@ pid_t do_kill(pid_t pid)
 	if (pcb_table_del(pdel) < 0)
 		panic_g("do_kill: Failed to remove pcb %d from pcb_table", pid);
 	return pid;
+}
+
+void do_exit(void)
+{
+	if (do_kill(current_running->pid) != current_running->pid)
+		panic_g("do_exit: proc %d failed to exit", current_running->pid);
+}
+
+pid_t do_waitpid(pid_t pid)
+{
+	// TODO
 }
