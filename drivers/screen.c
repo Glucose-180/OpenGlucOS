@@ -52,17 +52,28 @@ void screen_write_ch(char ch)
 	if (ch == '\n')
 	{
 		current_running->cursor_x = 0;
-		current_running->cursor_y++;
+		if (current_running->cursor_y < SCREEN_HEIGHT)
+			current_running->cursor_y++;
 	}
 	else if (ch == '\b' || ch == '\177')
 	{	/* Backspace: by Glucose180 */
 		if (current_running->cursor_x > 0)
 			current_running->cursor_x--;
+		else if (current_running->cursor_y > 0)
+		{
+			current_running->cursor_y--;
+			current_running->cursor_x = SCREEN_WIDTH - 1;
+		}
 	}
 	else
 	{
 		new_screen[SCREEN_LOC(current_running->cursor_x, current_running->cursor_y)] = ch;
-		current_running->cursor_x++;
+		if (++current_running->cursor_x >= SCREEN_WIDTH)
+		{
+			current_running->cursor_x = 0;
+			if (current_running->cursor_y < SCREEN_HEIGHT)
+				current_running->cursor_y++;
+		}
 	}
 }
 
@@ -91,6 +102,14 @@ void screen_clear(void)
 
 void screen_move_cursor(int x, int y)
 {
+	if (x >= SCREEN_WIDTH)
+		x = SCREEN_WIDTH - 1;
+	else if (x < 0)
+		x = 0;
+	if (y >= SCREEN_HEIGHT)
+		y = SCREEN_HEIGHT - 1;
+	else if (y < 0)
+		y = 0;
 	current_running->cursor_x = x;
 	current_running->cursor_y = y;
 	vt100_move_cursor(x + 1, y + 1);
