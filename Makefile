@@ -52,7 +52,7 @@ YIELD_EN		= 0
 MTHREAD			= 1
 
 # Timer interval (ms) used for scheduler
-TINTERVAL		= 40
+TINTERVAL		= 10
 
 CFLAGS0         = -O0 -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -DOS_NAME=\"$(OS_NAME)\" -DUSER_NAME=\"$(USER_NAME)\"
 

@@ -388,11 +388,14 @@ void init_pcb_stack(
 	 */
 	pcb->trapframe = (void *)(pcb->kernel_sp);
 	pcb->trapframe->sepc = entry_point;
-	if (((pcb->trapframe->sstatus = r_sstatus()) & SR_SPP) != 0UL)
+	if (((pcb->trapframe->sstatus = (r_sstatus() & ~SR_SIE)) & SR_SPP) != 0UL)
 		/*
-		* SPP of $sstatus must be zero to ensure that after sret,
-		* the privilige is User Mode for user process.
-		*/
+		 * SIE of $sstatus must be zero to ensure that after RESTORE_CONTEXT
+		 * before sret, interrupt is off. Otherwise, GlucOS will crash
+		 * if timer interrupt comes at this time (when timer interval is small).
+		 * And SPP must be zero to ensure that after sret,
+		 * the privilige is User Mode for user process.
+		 */
 		panic_g("init_pcb_stack: SPP is not zero");
 	pcb->trapframe->regs[OFFSET_REG_TP / sizeof(reg_t)] = (reg_t)pcb;
 	pcb->trapframe->regs[OFFSET_REG_SP / sizeof(reg_t)] = (reg_t)(pcb->user_sp);
@@ -423,7 +426,7 @@ void init_pcb_stack(
 void set_preempt(void)
 {
 #ifndef TIMER_INTERVAL_MS
-#define TIMER_INTERVAL_MS 40U /* unit: ms */
+#define TIMER_INTERVAL_MS 10U /* unit: ms */
 #endif
 	static char flag_first = 1;
 	static uint64_t timer_interval;
@@ -442,6 +445,7 @@ void set_preempt(void)
 		timer_interval = time_base / 1000U * TIMER_INTERVAL_MS;
 	}
 	bios_set_timer(get_ticks() + timer_interval);
+	//bios_set_timer(get_ticks() + 1000); // Test whether it works for small interval
 }
 
 /*
