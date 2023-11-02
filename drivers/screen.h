@@ -36,6 +36,9 @@ void init_screen(void);
 /* clear screen */
 void screen_clear(void);
 
+/* Clear screen from ybegin to yend */
+void screen_rclear(int ybegin, int yend);
+
 /* reflush screen buffer */
 void screen_reflush(void);
 

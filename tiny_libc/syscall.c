@@ -193,6 +193,11 @@ void sys_clear(void)
 	invoke_syscall(SYS_clear, Ignore, Ignore, Ignore, Ignore, Ignore);
 }
 
+void sys_rclear(int ybegin, int yend)
+{
+	invoke_syscall(SYS_rclear, ybegin, yend, Ignore, Ignore, Ignore);
+}
+
 pid_t sys_getpid()
 {
 	/* TODO: [p3-task1] call invoke_syscall to implement sys_getpid */

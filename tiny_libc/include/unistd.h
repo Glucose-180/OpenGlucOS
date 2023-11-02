@@ -40,6 +40,7 @@ int sys_thread_kill(int const T);
 
 int sys_ps(void);
 void sys_clear(void);
+void sys_rclear(int ybegin, int yend);
 
 /* TODO: [P3 task1] exec, exit, kill waitpid */
 // S-core

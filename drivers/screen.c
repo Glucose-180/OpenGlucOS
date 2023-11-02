@@ -10,6 +10,7 @@
 #include <os/sched.h>
 #include <os/irq.h>
 #include <os/kernel.h>
+#include <os/ctype.h>
 
 #define SCREEN_WIDTH    80
 #define SCREEN_HEIGHT   50
@@ -122,6 +123,21 @@ void screen_clear(void)
 	}
 	current_running->cursor_x = 0;
 	current_running->cursor_y = 0;
+	screen_reflush();
+}
+
+/* Clear screen from ybegin to yend */
+void screen_rclear(int ybegin, int yend)
+{
+	int i, j;
+
+	if (ybegin >= 0 && ybegin < SCREEN_HEIGHT &&
+		yend >= 0 && yend < SCREEN_HEIGHT)
+	{
+		for (i = ybegin; i < yend; ++i)
+			for (j = 0; j < SCREEN_WIDTH; ++j)
+				new_screen[SCREEN_LOC(j, i)] = ' ';
+	}
 	screen_reflush();
 }
 

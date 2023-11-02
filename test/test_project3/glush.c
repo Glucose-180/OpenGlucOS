@@ -19,6 +19,7 @@ const char NotFound[] =
 	"**glush: command not found: ";
 
 int try_syscall(char **cmds);
+int try_builtin(char **cmds);
 
 char *getcmd(void);
 char **split(char *src, const char Sep);
@@ -82,9 +83,10 @@ int main(int argc, char *argv[])
 
 			if (words[0] == NULL)
 				continue;
-			if (try_syscall(words) == 1)
+			if (try_syscall(words) == 1 && try_builtin(words) == 1)
 			{	/* 
-				* Not a syscall. Try to execute a user program directly.
+				* Not a syscall. Nor a builtin command.
+				* Try to execute a user program directly.
 				* But now, consider it as an error first.
 				*/
 				printf("%s%s\n", NotFound, words[0]);
@@ -104,6 +106,7 @@ int main(int argc, char *argv[])
 /*
  * try_syscall: try to analyse cmds[0] as a syscall.
  * Returns: 0 on success, 1 if not found, 2 on error.
+ * "&" can be used to connect multiple syscalls.
  */
 int try_syscall(char **cmds)
 {
@@ -214,6 +217,37 @@ int try_syscall(char **cmds)
 	 * and there is nothing after it.
 	 */
 	return 0;
+}
+
+/*
+ * try_builtin: try to analyse cmds[0] as a builtin command.
+ * Returns: 0 on success, 1 if not found, 2 on error.
+ */
+int try_builtin(char **cmds)
+{
+	if (strcmp(cmds[0], "range") == 0)
+	{
+		int y1, y2;
+		if (cmds[1] == NULL || cmds[2] == NULL)
+		{
+			printf("**glush: too few args for range\n");
+			return 2;
+		}
+		if ((y1 = atoi(cmds[1])) < 0 || (y2 = atoi(cmds[2])) < 0)
+		{
+			printf("**glush: invalid args for range\n");
+			return 2;
+		}
+		terminal_begin = (y1 > y2 ? y2 : y1);
+		terminal_end = (y1 > y2 ? y1 : y2);
+		sys_set_cylim(terminal_begin + 1, terminal_end);
+		sys_rclear(terminal_begin, terminal_end);
+		sys_move_cursor(0, terminal_begin);
+		printf("%s", Terminal);
+		return 0;
+	}
+	else
+		return 1;
 }
 
 char *getcmd()

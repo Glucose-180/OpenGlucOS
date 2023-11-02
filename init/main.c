@@ -150,6 +150,7 @@ static void init_syscall(void)
 #endif
 	syscall[SYS_ps] = (long (*)())do_process_show;
 	syscall[SYS_clear] = (long (*)())screen_clear;
+	syscall[SYS_rclear] = (long (*)())screen_rclear;
 	syscall[SYS_ulog] = (long (*)())do_ulog;
 	syscall[SYS_set_cylim] = (long (*)())screen_set_cylim;
 	syscall[SYS_kprint_avail_table] = (long (*)())kprint_avail_table;
@@ -158,6 +159,16 @@ static void init_syscall(void)
 
 int main(void)
 {
+
+#ifndef TERMINAL_BEGIN
+#define TERMINAL_BEGIN "17"
+#endif
+#ifndef TERMINAL_END
+#define TERMINAL_END "24"
+#endif
+
+	char *argv[] = {"glush", TERMINAL_BEGIN, TERMINAL_END, "1", NULL};
+
 	// Init jump table provided by kernel and bios(ΦωΦ)
 	init_jmptab();
 
@@ -191,15 +202,15 @@ int main(void)
 	init_syscall();
 	printk("> [INIT] System call initialized successfully.\n");
 
+	latency(2U);	/* Delay 2 s */
+	/* Clear screen and start glush */
+	screen_clear();
 
-	// TODO: [p2-task4] Setup timer interrupt and enable all interrupt globally
-	// NOTE: The function of sstatus.sie is different from sie's
-
+	if (do_exec("glush", -1, argv) == INVALID_PID)
 	{
-		// If you do non-preemptive scheduling, it's used to surrender control
-		//do_scheduler();
-
 		char **cmds, flag_success = 0;
+
+		printk("Failed to start glush\n");
 		while (flag_success == 0)
 		{
 			cmds = split(getcmd(), '&');
@@ -210,7 +221,6 @@ int main(void)
 					goto loc_wfi;
 				else if (strcmp(*cmds, "glush") == 0)
 				{
-					char *argv[] = {"glush", "17", "26", "1", NULL};
 					if (do_exec("glush", -1, argv) == INVALID_PID)
 						printk("Failed to start %s\n", *cmds);
 					else
@@ -224,13 +234,12 @@ int main(void)
 			}
 		}
 		screen_clear();
-
+	}
 		// If you do preemptive scheduling, they're used to enable CSR_SIE and wfi
 		set_preempt();
 		while (1)
 			// Infinite while loop, where CPU stays in a low-power state (QAQQQQQQQQQQQ)
 			__asm__ volatile("wfi");
-	}
 
 
 loc_wfi:

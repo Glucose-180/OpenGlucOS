@@ -20,8 +20,9 @@
 #define SYS_move_cursor 22
 #define SYS_reflush 23
 #define SYS_clear 24
-#define SYS_set_cylim 25
-#define SYS_ulog 26
+#define SYS_rclear 25
+#define SYS_set_cylim 26
+#define SYS_ulog 27
 
 #define SYS_get_timebase 30
 #define SYS_get_tick 31
