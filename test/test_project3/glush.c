@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
 
 	while (1)
 	{
-		char **words;
+		char **words, **words_next;
 		char *cmd;
 		// ECHO for test
 		//printf("%s\n", getcmd());
@@ -58,15 +58,40 @@ int main(int argc, char *argv[])
 		cmd = getcmd();
 		printl("glush: %s", cmd);
 		words = split(cmd, ' ');
-		if (words[0] == NULL)
-			continue;
-		if (try_syscall(words) == 1)
-		{	/* 
-			 * Not a syscall. Try to execute a user program directly.
-			 * But now, consider it as an error first.
+		do {
+			/*
+			 * We consider strings connected by "&&" are many commands,
+			 * so deal with them one by one.
 			 */
-			printf("%s%s\n", NotFound, words[0]);
-		}
+			for (words_next = words; *words_next != NULL; ++words_next)
+				if (strcmp(*words_next, "&&") == 0)
+					break;
+			if (*words_next != NULL)
+				/*
+				 * "&&" is found: let *words_next=NULL to mark an end of a command,
+				 * and words_next++ to let it points to the start of next command
+				 * so that words can be updated to it the next time.
+				 */
+				*(words_next++) = NULL;
+			else
+				/*
+				 * "&&" is not found: let words_next=NULL as a flag to jump out
+				 * of this "while" and get command from input again.
+				 */
+				words_next = NULL;
+
+			if (words[0] == NULL)
+				continue;
+			if (try_syscall(words) == 1)
+			{	/* 
+				* Not a syscall. Try to execute a user program directly.
+				* But now, consider it as an error first.
+				*/
+				printf("%s%s\n", NotFound, words[0]);
+			}
+			if (words_next != NULL)
+				words = words_next;
+		} while (words_next != NULL);
 
 		/************************************************************/
 		/* Do not touch this comment. Reserved for future projects. */
@@ -82,108 +107,113 @@ int main(int argc, char *argv[])
  */
 int try_syscall(char **cmds)
 {
+	char **cmds_next;
 
-	if (strcmp(cmds[0], "ps") == 0)
-	{	/* ps */
-		printf("%d user proc in total\n", sys_ps());
-		return 0;
-	}
-	else if (strcmp(cmds[0], "clear") == 0)
-	{	/* clear */
-		sys_clear();
-		sys_move_cursor(0, terminal_begin);
-		printf("%s", Terminal);
-		return 0;
-	}
-	else if (strcmp(cmds[0], "kill") == 0)
-	{
-		pid_t pid;
+	do {
+		for (cmds_next = cmds; *cmds_next != NULL; ++cmds_next)
+			if (strcmp(*cmds_next, "&") == 0)
+				break;
+		if (*cmds_next != NULL)
+			*(cmds_next++) = NULL;
+		else
+			cmds_next = NULL;
 
-		if (cmds[1] == NULL)
+		/* Start with cmds[0]... */
 		{
-			printf("**glush: too few args for kill\n");
-			return 2;
-		}
-		pid = atoi(cmds[1]);
-		if (sys_kill(pid) != pid)
-		{
-			printf("**glush: failed to terminate proc %d\n", pid);
-			return 2;
-		}
-		printf("proc %d is terminated\n", pid);
-		return 0;
-	}
-	else if (strcmp(cmds[0], "exec") == 0)
-	{	/* exec */
-		pid_t pid;
-		int i;
-		char flag_background = 0;
-
-		for (i = 1; cmds[i] != NULL; ++i)
-			if (cmds[i][0] == '&')
-			{
-				flag_background = 1;
-				cmds[i] = NULL;
+			if (strcmp(cmds[0], "ps") == 0)
+			{	/* ps */
+				printf("%d user proc in total\n", sys_ps());
+				continue;
 			}
+			else if (strcmp(cmds[0], "clear") == 0)
+			{	/* clear */
+				sys_clear();
+				sys_move_cursor(0, terminal_begin);
+				printf("%s", Terminal);
+				continue;
+			}
+			else if (strcmp(cmds[0], "kill") == 0)
+			{
+				pid_t pid;
 
-		if (cmds[1] == NULL)
-		{
-			printf("**glush: too few args for exec\n");
-			return 2;
+				if (cmds[1] == NULL)
+				{
+					printf("**glush: too few args for kill\n");
+					return 2;
+				}
+				pid = atoi(cmds[1]);
+				if (sys_kill(pid) != pid)
+				{
+					printf("**glush: failed to terminate proc %d\n", pid);
+					return 2;
+				}
+				printf("proc %d is terminated\n", pid);
+				continue;
+			}
+			else if (strcmp(cmds[0], "exec") == 0)
+			{	/* exec */
+				pid_t pid;
+
+				if (cmds[1] == NULL)
+				{
+					printf("**glush: too few args for exec\n");
+					return 2;
+				}
+					pid = sys_exec(cmds[1], -1, cmds + 1);
+				if (pid == INVALID_PID)
+				{
+					printf("**glush: failed to exec %s\n", cmds[1]);
+					return 2;
+				}
+				if (cmds_next == NULL)
+				{	/* "&" is not found */
+					/* Call sys_waitpid() to wait the new process */
+					if (sys_waitpid(pid) != pid)
+						printf("**glush: failed to wait for %d\n", pid);
+				}
+				else
+					printf("%s: PID is %d\n", cmds[1], pid);
+				continue;
+			}
+			else if (strcmp(cmds[0], "kprint_avail_table") == 0)
+			{
+				sys_kprint_avail_table();
+				continue;
+			}
+			else if (strcmp(cmds[0], "ulog") == 0)
+			{
+				if (cmds[1] == NULL)
+				{
+					printf("**glush: too few args for ulog\n");
+					return 2;
+				}
+				sys_ulog(cmds[1]);
+				continue;
+			}
+			else if (strcmp(cmds[0], "sleep") == 0)
+			{
+				int stime;
+				if (cmds[1] == NULL)
+				{
+					printf("**glush: too few args for sleep\n");
+					return 2;
+				}
+				if ((stime = atoi(cmds[1])) < 0)
+					stime = 0;
+				printf("glush: sleeping for %d sec...\n", stime);
+				sys_sleep(stime);
+				continue;
+			}
+			else
+				return 1;
 		}
-		/*if (cmds[2] == NULL)
-			// No command argument:
-			// Test whether sys_exec() works when argv is NULL.
-			pid = sys_exec(cmds[1], 2, NULL);
-		else
-			// Test whether sys_exec() can determine argc auto. */
-			pid = sys_exec(cmds[1], -1, cmds + 1);
-		if (pid == INVALID_PID)
-		{
-			printf("**glush: failed to exec %s\n", cmds[1]);
-			return 2;
-		}
-		if (flag_background == 0)
-		{
-			/* Call sys_waitpid() to wait the new process */
-			if (sys_waitpid(pid) != pid)
-				printf("**glush: failed to wait for %d\n", pid);
-		}
-		else
-			printf("%s: PID is %d\n", cmds[1], pid);
-		return 0;
-	}
-	else if (strcmp(cmds[0], "kprint_avail_table") == 0)
-	{
-		sys_kprint_avail_table();
-		return 0;
-	}
-	else if (strcmp(cmds[0], "ulog") == 0)
-	{
-		if (cmds[1] == NULL)
-		{
-			printf("**glush: too few args for ulog\n");
-			return 2;
-		}
-		sys_ulog(cmds[1]);
-		return 0;
-	}
-	else if (strcmp(cmds[0], "sleep") == 0)
-	{
-		int stime;
-		if (cmds[1] == NULL)
-		{
-			printf("**glush: too few args for sleep\n");
-			return 2;
-		}
-		if ((stime = atoi(cmds[1])) < 0)
-			stime = 0;
-		printf("glush: sleeping for %d sec...\n", stime);
-		sys_sleep(stime);
-		return 0;
-	}
-	else
-		return 1;
+	} while (cmds_next != NULL && *(cmds = cmds_next) != NULL);
+	/*
+	 * cmds_next==NULL means that no "&" is found.
+	 * *cmds==NULL means that the last "&" has been dealed
+	 * and there is nothing after it.
+	 */
+	return 0;
 }
 
 char *getcmd()
