@@ -123,37 +123,48 @@ static void init_syscall(void)
 
 	for (i = 0; i < NUM_SYSCALLS; ++i)
 		syscall[i] = (long (*)())invalid_syscall;
-	syscall[SYS_exec] = (long (*)())do_exec;
-	syscall[SYS_kill] = (long (*)())do_kill;
-	syscall[SYS_exit] = (long (*)())do_exit;
-	syscall[SYS_waitpid] = (long (*)())do_waitpid;
-	syscall[SYS_getpid] = (long (*)())do_getpid;
-	syscall[SYS_sleep] = (long (*)())do_sleep;
-	syscall[SYS_yield] = (long (*)())do_scheduler;
-	syscall[SYS_write] = (long (*)())screen_write;
-	syscall[SYS_bios_getchar] = (long (*)())bios_getchar;
-	syscall[SYS_move_cursor] = (long (*)())screen_move_cursor;
-	syscall[SYS_reflush] = (long (*)())screen_reflush;
-	syscall[SYS_get_timebase] = (long(*)())get_time_base;
-	syscall[SYS_get_tick] = (long (*)())get_ticks;
-	syscall[SYS_lock_init] = (long (*)())do_mutex_lock_init;
-	syscall[SYS_lock_acquire] = (long (*)())do_mutex_lock_acquire;
-	syscall[SYS_lock_release] = (long (*)())do_mutex_lock_release;
-	/*
-	 * When multithreading is not supported, a user process calling
-	 * thread_create() or thread_yield() will cause invalid_syscall().
-	 */
+
+	/* Process and scheduler */ {
+		syscall[SYS_exec] = (long (*)())do_exec;
+		syscall[SYS_kill] = (long (*)())do_kill;
+		syscall[SYS_exit] = (long (*)())do_exit;
+		syscall[SYS_waitpid] = (long (*)())do_waitpid;
+		syscall[SYS_getpid] = (long (*)())do_getpid;
+		syscall[SYS_sleep] = (long (*)())do_sleep;
+		syscall[SYS_yield] = (long (*)())do_scheduler;
+		syscall[SYS_ps] = (long (*)())do_process_show;
+		/*
+		 * When multithreading is not supported, a user process calling
+		 * thread_create() or thread_yield() will cause invalid_syscall().
+		 */
 #if MULTITHREADING != 0
-	syscall[SYS_thread_create] = (long (*)())thread_create;
-	syscall[SYS_thread_yield] = (long (*)())thread_yield;
-	syscall[SYS_thread_kill] = (long (*)())thread_kill;
+		syscall[SYS_thread_create] = (long (*)())thread_create;
+		syscall[SYS_thread_yield] = (long (*)())thread_yield;
+		syscall[SYS_thread_kill] = (long (*)())thread_kill;
 #endif
-	syscall[SYS_ps] = (long (*)())do_process_show;
-	syscall[SYS_clear] = (long (*)())screen_clear;
-	syscall[SYS_rclear] = (long (*)())screen_rclear;
-	syscall[SYS_ulog] = (long (*)())do_ulog;
-	syscall[SYS_set_cylim] = (long (*)())screen_set_cylim;
-	syscall[SYS_kprint_avail_table] = (long (*)())kprint_avail_table;
+	}
+	/* Screen, clock and IO */ {
+		syscall[SYS_write] = (long (*)())screen_write;
+		syscall[SYS_bios_getchar] = (long (*)())bios_getchar;
+		syscall[SYS_move_cursor] = (long (*)())screen_move_cursor;
+		syscall[SYS_reflush] = (long (*)())screen_reflush;
+		syscall[SYS_clear] = (long (*)())screen_clear;
+		syscall[SYS_rclear] = (long (*)())screen_rclear;
+		syscall[SYS_set_cylim] = (long (*)())screen_set_cylim;
+		syscall[SYS_ulog] = (long (*)())do_ulog;
+		syscall[SYS_kprint_avail_table] = (long (*)())kprint_avail_table;
+		syscall[SYS_get_timebase] = (long(*)())get_time_base;
+		syscall[SYS_get_tick] = (long (*)())get_ticks;
+	}
+	/* Sync: mutex lock and semaphore */ {
+		syscall[SYS_mlock_init] = (long (*)())do_mutex_lock_init;
+		syscall[SYS_mlock_acquire] = (long (*)())do_mutex_lock_acquire;
+		syscall[SYS_mlock_release] = (long (*)())do_mutex_lock_release;
+		syscall[SYS_sema_init] = (long (*)())do_semaphore_init;
+		syscall[SYS_sema_up] = (long (*)())do_semaphore_up;
+		syscall[SYS_sema_down] = (long (*)())do_semaphore_down;
+		syscall[SYS_sema_destroy] = (long (*)())do_semaphore_destroy;
+	}
 }
 /************************************************************/
 

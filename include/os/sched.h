@@ -204,6 +204,12 @@ void wake_up(pcb_t * const T);
  * Declaration of do_unblock() is moved to lock.h
  * to avoid hazard about including.
  */
+
+/*
+ * Remove the head from Queue, set its status to be READY
+ * and insert it into ready_queue AFTER current_running.
+ * Return: new head of Queue.
+ */
 pcb_t *do_unblock(pcb_t * const Queue);
 
 void init_pcb_stack(

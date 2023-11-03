@@ -55,11 +55,11 @@ typedef struct mutex_lock
 
 enum Spin_locks {
 	/* ... */
-	NUM_SPINLOCKS
+	SPINLOCK_NUM
 };
 
 extern mutex_lock_t mlocks[LOCK_NUM];
-extern spin_lock_t slocks[NUM_SPINLOCKS];
+extern spin_lock_t slocks[SPINLOCK_NUM];
 
 void init_locks(void);
 
@@ -71,9 +71,15 @@ void spin_lock_release(spin_lock_t *lock);
 int do_mutex_lock_init(int key);
 int do_mutex_lock_acquire(int mlock_idx);
 int do_mutex_lock_release(int mlock_idx);
-void mlocks_release_killed(pid_t kpid);
+void ress_release_killed(pid_t kpid);
 
 /* Moved from sched.h */
+/*
+ * Insert *current_running to tail of *Pqueue, RELEASE spin lock slock
+ * (if it is not NULL) and then reschedule.
+ * The lock will be reacquired after being unblocked.
+ * Returns: 0 if switch_to() is called, 1 otherwise.
+ */
 int do_block(pcb_t ** const Pqueue, spin_lock_t *slock);
 
 /************************************************************/
@@ -106,15 +112,23 @@ void do_condition_destroy(int cond_idx);
 typedef struct semaphore
 {
     // TODO [P3-TASK2 semaphore]
+	/* Spin lock to protect it */
+	spin_lock_t slock;
+	/* The PID of the process who init this sema */
+	pid_t opid;
+	/* Value of semaphore */
+	int value;
+	/* Processes being blocked */
+	pcb_t* block_queue;
 } semaphore_t;
 
 #define SEMAPHORE_NUM 16
 
 void init_semaphores(void);
-int do_semaphore_init(int key, int init);
-void do_semaphore_up(int sema_idx);
-void do_semaphore_down(int sema_idx);
-void do_semaphore_destroy(int sema_idx);
+int do_semaphore_init(int key, int value);
+int do_semaphore_up(int sidx);
+int do_semaphore_down(int sidx);
+int do_semaphore_destroy(int sidx);
 
 #define MAX_MBOX_LENGTH (64)
 

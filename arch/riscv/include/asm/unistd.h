@@ -26,9 +26,9 @@
 #define SYS_get_timebase 30
 #define SYS_get_tick 31
 
-#define SYS_lock_init 40
-#define SYS_lock_acquire 41
-#define SYS_lock_release 42
+#define SYS_mlock_init 40
+#define SYS_mlock_acquire 41
+#define SYS_mlock_release 42
 #define SYS_show_task 43
 #define SYS_barr_init 44
 #define SYS_barr_wait 45
@@ -42,6 +42,11 @@
 #define SYS_mbox_close 53
 #define SYS_mbox_send 54
 #define SYS_mbox_recv 55
+
+#define SYS_sema_init 56
+#define SYS_sema_up 57
+#define SYS_sema_down 58
+#define SYS_sema_destroy 59
 
 #define SYS_kprint_avail_table 90
 

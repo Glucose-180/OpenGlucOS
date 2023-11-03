@@ -5,7 +5,9 @@
 #include <os/glucose.h>
 
 mutex_lock_t mlocks[LOCK_NUM];
-spin_lock_t slocks[NUM_SPINLOCKS];
+spin_lock_t slocks[SPINLOCK_NUM];
+
+semaphore_t semaphores[SEMAPHORE_NUM];
 
 void init_locks(void)
 {
@@ -20,8 +22,10 @@ void init_locks(void)
 		mlocks[i].key = 0;	/* TEMPorarily Unused */
 		mlocks[i].opid = INVALID_PID;
 	}
-	for (i = 0; i < NUM_SPINLOCKS; ++i)
+	for (i = 0; i < SPINLOCK_NUM; ++i)
 		slocks[i].status = UNLOCKED;
+	
+	init_semaphores();
 }
 
 void spin_lock_init(spin_lock_t *lock)
@@ -123,6 +127,10 @@ int do_mutex_lock_acquire(int mlock_idx)
 	{
 		/* Should be blocked */
 		if (do_block(&(ptlock->block_queue), &(ptlock->slock)) != 0)
+		/*
+		 * block current_running process in block_queue and release the lock.
+		 * The lock will be reacquired after being unblocked.
+		 */
 		{
 			panic_g("do_mutex_lock_acquire: lock %d is LOCKED"
 				" but no ready process is found", mlock_idx);
@@ -177,10 +185,10 @@ int do_mutex_lock_release(int mlock_idx)
 }
 
 /*
- * Release all locks occupied by proc kpid.
- * Used when a proc is killed.
+ * Release all resources (mutex locks, semaphores, ...)
+ * occupied by proc kpid. Used when a proc is killed.
  */
-void mlocks_release_killed(pid_t kpid)
+void ress_release_killed(pid_t kpid)
 {
 	int i;
 
@@ -201,4 +209,139 @@ void mlocks_release_killed(pid_t kpid)
 		}
 		spin_lock_release(&(mlocks[i].slock));
 	}
+
+	for (i = 0; i < SEMAPHORE_NUM; ++i)
+	{
+		spin_lock_acquire(&(semaphores[i].slock));
+		if (semaphores[i].opid == kpid)
+		{
+			semaphores[i].opid = INVALID_PID;
+			semaphores[i].value = 0;
+			while (semaphores[i].block_queue != NULL)
+				semaphores[i].block_queue = do_unblock(semaphores[i].block_queue);
+		}
+		spin_lock_release(&(semaphores[i].slock));
+	}
+}
+
+void init_semaphores(void)
+{
+	int i;
+
+	for (i = 0; i < SEMAPHORE_NUM; ++i)
+	{
+		spin_lock_init(&(semaphores[i].slock));
+		semaphores[i].opid = INVALID_PID;
+		semaphores[i].block_queue = NULL;
+		semaphores[i].value = 0;
+	}
+}
+
+/*
+ * Init the semaphore specified by `key` with value `value`,
+ * and return the index of the semaphore.
+ * -1 will be returned on error.
+ */
+int do_semaphore_init(int key, int value)
+{
+	int sidx;
+
+	/* Simply do this */
+	sidx = (unsigned int)key % (unsigned int)SEMAPHORE_NUM;
+	spin_lock_acquire(&(semaphores[sidx].slock));
+	if (semaphores[sidx].opid != INVALID_PID &&
+		semaphores[sidx].opid != current_running->pid)
+	{	/* semaphore is occupied by other process */
+		spin_lock_release(&(semaphores[sidx].slock));
+		return -1;
+	}
+	semaphores[sidx].opid = current_running->pid;
+	semaphores[sidx].value = value;
+	spin_lock_release(&(semaphores[sidx].slock));
+	return sidx;
+}
+
+/*
+ * V operation of a semaphore.
+ * Returns: value after operation and before spin lock is released,
+ * or INT32_MIN on error.
+ */
+int do_semaphore_up(int sidx)
+{
+	semaphore_t *ptsema;
+	int val = INT32_MIN;
+
+	if (sidx >= SEMAPHORE_NUM || sidx < 0)
+		return INT32_MIN;
+	ptsema = semaphores + sidx;
+	spin_lock_acquire(&(ptsema->slock));
+	if (ptsema->opid == INVALID_PID)
+		/* It is an invalid semaphore */
+		goto err;
+	if ((ptsema->value)++ < 0)
+	{
+		if (ptsema->block_queue == NULL)
+			/*
+			 * If a process in the block_queue is killed,
+			 * this situation might happen, because it is removed from
+			 * the queue but the value is not increased.
+			 * Just set the value to 0 as I haven't found a better solution.
+			 */
+			ptsema->value = 0;
+		else
+			ptsema->block_queue = do_unblock(ptsema->block_queue);
+	}
+	/* Do a check */
+	if (ptsema->value >= 0 && ptsema->block_queue != NULL)
+		panic_g("do_semaphore_up: semaphore %d has nonnegative value %d "
+			"but non-empty block_queue", sidx, ptsema->value);
+	val = ptsema->value;
+err:
+	spin_lock_release(&(ptsema->slock));
+	return val;
+}
+
+/*
+ * P operation of a semaphore.
+ * Returns: value before spin lock is released,
+ * or INT32_MIN on error.
+ */
+int do_semaphore_down(int sidx)
+{
+	semaphore_t *ptsema;
+	int val = INT32_MIN;
+
+	if (sidx >= SEMAPHORE_NUM || sidx < 0)
+		return INT32_MIN;
+	ptsema = semaphores + sidx;
+	spin_lock_acquire(&(ptsema->slock));
+	if (ptsema->opid == INVALID_PID)
+		/* It is an invalid semaphore */
+		goto err;
+	if (--ptsema->value < 0)
+		do_block(&(ptsema->block_queue), &(ptsema->slock));
+	val = ptsema->value;
+err:
+	spin_lock_release(&(ptsema->slock));
+	return val;
+}
+
+/*
+ * Destroy a semaphore and wakeup all processes in the queue.
+ * Returns: sidx on success and INT32_MIN on error.
+ */
+int do_semaphore_destroy(int sidx)
+{
+	semaphore_t *ptsema;
+
+	if (sidx >= SEMAPHORE_NUM || sidx < 0)
+		return INT32_MIN;
+	ptsema = semaphores + sidx;
+	spin_lock_acquire(&(ptsema->slock));
+	ptsema->opid = INVALID_PID;
+	ptsema->value = 0;
+	while (ptsema->block_queue != NULL)
+		ptsema->block_queue = do_unblock(ptsema->block_queue);
+	spin_lock_release(&(ptsema->slock));
+	return sidx;
 }

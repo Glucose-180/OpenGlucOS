@@ -87,7 +87,7 @@ int sys_mutex_init(int key)
 	/* TODO: [p2-task2] call call_jmptab to implement sys_mutex_init */
 	//return call_jmptab(MUTEX_INIT, key, Ignore, Ignore, Ignore, Ignore);
 	/* TODO: [p2-task3] call invoke_syscall to implement sys_mutex_init */
-	return invoke_syscall(SYS_lock_init, key, Ignore, Ignore, Ignore, Ignore);
+	return invoke_syscall(SYS_mlock_init, key, Ignore, Ignore, Ignore, Ignore);
 }
 
 int sys_mutex_acquire(int mutex_idx)
@@ -95,7 +95,7 @@ int sys_mutex_acquire(int mutex_idx)
 	/* TODO: [p2-task2] call call_jmptab to implement sys_mutex_acquire */
 	//return call_jmptab(MUTEX_ACQ, mutex_idx, Ignore, Ignore, Ignore, Ignore);
 	/* TODO: [p2-task3] call invoke_syscall to implement sys_mutex_acquire */
-	return invoke_syscall(SYS_lock_acquire, mutex_idx, Ignore, Ignore, Ignore, Ignore);
+	return invoke_syscall(SYS_mlock_acquire, mutex_idx, Ignore, Ignore, Ignore, Ignore);
 }
 
 int sys_mutex_release(int mutex_idx)
@@ -103,7 +103,7 @@ int sys_mutex_release(int mutex_idx)
 	/* TODO: [p2-task2] call call_jmptab to implement sys_mutex_release */
 	//return call_jmptab(MUTEX_RELEASE, mutex_idx, Ignore, Ignore, Ignore, Ignore);
 	/* TODO: [p2-task3] call invoke_syscall to implement sys_mutex_release */
-	return invoke_syscall(SYS_lock_release, mutex_idx, Ignore, Ignore, Ignore, Ignore);
+	return invoke_syscall(SYS_mlock_release, mutex_idx, Ignore, Ignore, Ignore, Ignore);
 }
 
 long sys_get_timebase(void)
@@ -251,25 +251,28 @@ void sys_condition_destroy(int cond_idx)
 	/* TODO: [p3-task2] call invoke_syscall to implement sys_condition_destroy */
 }
 
-int sys_semaphore_init(int key, int init)
+int sys_semaphore_init(int key, int value)
 {
 	/* TODO: [p3-task2] call invoke_syscall to implement sys_semaphore_init */
-	return 0;
+	return invoke_syscall(SYS_sema_init, key, value, Ignore, Ignore, Ignore);
 }
 
-void sys_semaphore_up(int sema_idx)
+int sys_semaphore_up(int sidx)
 {
 	/* TODO: [p3-task2] call invoke_syscall to implement sys_semaphore_up */
+	return invoke_syscall(SYS_sema_up, sidx, Ignore, Ignore, Ignore, Ignore);
 }
 
-void sys_semaphore_down(int sema_idx)
+int sys_semaphore_down(int sidx)
 {
 	/* TODO: [p3-task2] call invoke_syscall to implement sys_semaphore_down */
+	return invoke_syscall(SYS_sema_down, sidx, Ignore, Ignore, Ignore, Ignore);
 }
 
-void sys_semaphore_destroy(int sema_idx)
+int sys_semaphore_destroy(int sidx)
 {
 	/* TODO: [p3-task2] call invoke_syscall to implement sys_semaphore_destroy */
+	return invoke_syscall(SYS_sema_destroy, sidx, Ignore, Ignore, Ignore, Ignore);
 }
 
 int sys_mbox_open(char * name)

@@ -298,10 +298,10 @@ err:
 	panic_g("wake_up: Failed to wake up proc %d", T->pid);
 }
 
-//void do_block(list_node_t *pcb_node, list_head *queue)
 /*
  * Insert *current_running to tail of *Pqueue, RELEASE spin lock slock
  * (if it is not NULL) and then reschedule.
+ * The lock will be reacquired after being unblocked.
  * Returns: 0 if switch_to() is called, 1 otherwise.
  */
 int do_block(pcb_t ** const Pqueue, spin_lock_t *slock)
@@ -349,7 +349,6 @@ int do_block(pcb_t ** const Pqueue, spin_lock_t *slock)
 	return 1;
 }
 
-//void do_unblock(list_node_t *pcb_node)
 /*
  * Remove the head from Queue, set its status to be READY
  * and insert it into ready_queue AFTER current_running.
@@ -363,7 +362,14 @@ pcb_t *do_unblock(pcb_t * const Queue)
 	nq = lpcb_del_node(Queue, Queue, &prec);
 	if (prec == NULL)
 		panic_g("do_unblock: Failed to remove the head of queue 0x%lx", (long)Queue);
-	prec->status = TASK_READY;
+	if (prec->status != TASK_EXITED)	/* Sleeping */
+	{	/* NOTE: this situation is unlikely to happen on single core */
+		if (prec->status == TASK_SLEEPING)
+			prec->status = TASK_READY;
+		else
+			panic_g("do_unblock: proc %d has error status %d",
+				prec->pid, (int)prec->status);
+	}	/* Don't change status TASK_EXITED. */
 	temp = lpcb_insert_node(ready_queue, prec, current_running, &ready_queue);
 	if (temp == NULL)
 		panic_g("do_unblock: Failed to insert process (PID=%d) to ready_queue", prec->pid);
@@ -578,18 +584,19 @@ pid_t do_kill(pid_t pid)
 	if ((p = pcb_search(pid)) == NULL)
 		/* Not found */
 		return INVALID_PID;
+	p->status = TASK_EXITED;
 	phead = p->phead;
-	
+
 	/* Checking... */
 	if (lpcb_search_node(*phead, pid) != p)
 		panic_g("do_kill: phead of proc %d is error", pid);
-	
+
 	/* wake up proc in wait_queue */
 	while (p->wait_queue != NULL)
 		p->wait_queue = do_unblock(p->wait_queue);
 
-	/* Release all locks acquired by it */
-	mlocks_release_killed(pid);
+	/* Release all resources acquired by it */
+	ress_release_killed(pid);
 
 	/* Kill all child threads */
 	while (p->pcthread != NULL)
@@ -614,7 +621,7 @@ pid_t do_kill(pid_t pid)
 	if (pcb_table_del(pdel) < 0)
 		panic_g("do_kill: Failed to remove pcb %d from pcb_table", pid);
 #if DEBUG_EN != 0
-	writelog("Process whose pid is %d is killed.", pid);
+	writelog("Process whose pid is %d is terminated.", pid);
 #endif
 	return pid;
 }
