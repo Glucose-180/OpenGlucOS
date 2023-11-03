@@ -30,7 +30,7 @@
 #define INCLUDE_SCHEDULER_H_
 
 #include <type.h>
-#include <os/list.h>
+//#include <os/lock.h>
 
 #define UPROC_MAX 16
 #define TASK_NAMELEN 31
@@ -199,7 +199,11 @@ void do_sleep(uint32_t);
 void check_sleeping(void);
 void wake_up(pcb_t * const T);
 
-int do_block(pcb_t ** const Pqueue);
+//int do_block(pcb_t ** const Pqueue, spin_lock_t *slock);
+/*
+ * Declaration of do_unblock() is moved to lock.h
+ * to avoid hazard about including.
+ */
 pcb_t *do_unblock(pcb_t * const Queue);
 
 void init_pcb_stack(

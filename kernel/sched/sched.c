@@ -300,10 +300,11 @@ err:
 
 //void do_block(list_node_t *pcb_node, list_head *queue)
 /*
- * Insert *current_running to tail of *Pqueue and then reschedule.
+ * Insert *current_running to tail of *Pqueue, RELEASE spin lock slock
+ * (if it is not NULL) and then reschedule.
  * Returns: 0 if switch_to() is called, 1 otherwise.
  */
-int do_block(pcb_t ** const Pqueue)
+int do_block(pcb_t ** const Pqueue, spin_lock_t *slock)
 {
 	// TODO: [p2-task2] block the pcb task into the block queue
 	pcb_t *p, *q, *temp;
@@ -326,6 +327,12 @@ int do_block(pcb_t ** const Pqueue)
 				panic_g("do_block: Failed to insert pcb %d to queue 0x%lx",
 					p->pid, *Pqueue);
 			*Pqueue = temp;
+			/*
+			 * Release the spin lock just after the process is inserted to *Pqueue
+			 * and before switch_to().
+			 */
+			if (slock != NULL)
+				spin_lock_release(slock);
 #if MULTITHREADING != 0
 			switch_to(p->cur_thread == NULL ? &(p->context) : &(p->cur_thread->context),
 				current_running->cur_thread == NULL ? &(current_running->context)
@@ -333,6 +340,9 @@ int do_block(pcb_t ** const Pqueue)
 #else
 			switch_to(&(p->context), &(current_running->context));
 #endif
+			/* Reacquire the spin lock */
+			if (slock != NULL)
+				spin_lock_acquire(slock);
 			return 0;
 		}
 	}
@@ -638,7 +648,7 @@ pid_t do_waitpid(pid_t pid)
 		 * which causes "deadlock".
 		 */
 		return INVALID_PID;
-	do_block(&(p->wait_queue));
+	do_block(&(p->wait_queue), NULL);	/* Temp set slock is NULL */
 
 	return pid;
 }

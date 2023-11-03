@@ -25,10 +25,11 @@ int main(int argc, char *argv[])
 
     // Start for-loop, wait for timeup or being killed
     //for (int i = 0; i < 10000; ++i)
-    for (int i = 0; i < 2000; ++i)
+    for (int i = 0; i < 15; ++i)
     {
         sys_move_cursor(0, print_location);
         printf("> [TASK] I am task with pid %d, I have acquired two mutex locks. (%d)", sys_getpid(), i);
+        sys_sleep(1);
     }
 
     // If timeup, release two mutex locks

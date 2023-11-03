@@ -3,5 +3,5 @@ build
 ./createimage
 exe_*
 *.exe
-/test/test_project3/lock*.c
+#/test/test_project3/lock*.c
 /*.log

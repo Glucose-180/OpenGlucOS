@@ -28,8 +28,7 @@
 #ifndef INCLUDE_LOCK_H_
 #define INCLUDE_LOCK_H_
 
-#include <os/list.h>
-#include <os/pcb-list-g.h>
+#include <os/sched.h>
 
 #define LOCK_NUM 16
 
@@ -45,15 +44,22 @@ typedef struct spin_lock
 
 typedef struct mutex_lock
 {
-	spin_lock_t lock;
-	//list_head block_queue;
+	/* Every mutex lock needs a spin lock to protect it */
+	spin_lock_t slock;
+	/* This status is the status of this mutex lock */
+	lock_status_t status;
 	pcb_t* block_queue;
 	int key;
 	pid_t opid;	/* Owner's PID */
 } mutex_lock_t;
 
+enum Spin_locks {
+	/* ... */
+	NUM_SPINLOCKS
+};
 
 extern mutex_lock_t mlocks[LOCK_NUM];
+extern spin_lock_t slocks[NUM_SPINLOCKS];
 
 void init_locks(void);
 
@@ -66,6 +72,9 @@ int do_mutex_lock_init(int key);
 int do_mutex_lock_acquire(int mlock_idx);
 int do_mutex_lock_release(int mlock_idx);
 void mlocks_release_killed(pid_t kpid);
+
+/* Moved from sched.h */
+int do_block(pcb_t ** const Pqueue, spin_lock_t *slock);
 
 /************************************************************/
 typedef struct barrier

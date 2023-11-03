@@ -69,3 +69,36 @@ Project 3。
 #### [2023-11-03]
 
   新增对宏定义`DEBUG_EN`的支持，在 make 时选定`DEBUG=1`（默认即可）可在编译时定义`DEBUG_EN=1`。当它被定义为非零值时，系统内核以及 glush 会自动写日志，并且在启动时也会打印内核信息。
+
+  添加了自旋锁机制，并用在了互斥锁上。对互斥锁以及今后要实现的信号量、屏障等资源，均使用理论课上讲的编程习语，以考虑后面实现双核的情况：
+
+```c++
+Apply_for_a_resource(r)
+{
+	spin_lock_acquire(&r.slock);
+    while (r is not available)
+        /*
+         * Block this process in r.queue, release r.lock,
+         * and then reschedule (switch to another process).
+         * After being unblocked, reacquire the spin lock.
+         */
+        do_block(r.queue, &r.slock);
+    Occupy resource r;
+    spin_lock_release(&r.slock);
+}
+
+Release_a_resource(r)
+{
+    spin_lock_acquire(&r.slock);
+    Release resource r;
+    if (r.queue != EMPTY)
+        /* Unblock a process from r.queue */
+        do_unblock(r.queue);
+    spin_lock_release(&r.slock).
+}
+```
+
+此外，优化了`lock1/2.c`以及`ready_to_exit.c`，使获得锁后调用`sys_sleep()`睡几秒钟以获得更好的视觉效果。
+
+
+

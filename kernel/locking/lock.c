@@ -5,6 +5,7 @@
 #include <os/glucose.h>
 
 mutex_lock_t mlocks[LOCK_NUM];
+spin_lock_t slocks[NUM_SPINLOCKS];
 
 void init_locks(void)
 {
@@ -13,32 +14,81 @@ void init_locks(void)
 
 	for (i = 0; i < LOCK_NUM; ++i)
 	{
-		mlocks[i].lock.status = UNLOCKED;
+		spin_lock_init(&(mlocks[i].slock));
+		mlocks[i].status = UNLOCKED;
 		mlocks[i].block_queue = NULL;
 		mlocks[i].key = 0;	/* TEMPorarily Unused */
 		mlocks[i].opid = INVALID_PID;
 	}
+	for (i = 0; i < NUM_SPINLOCKS; ++i)
+		slocks[i].status = UNLOCKED;
 }
 
 void spin_lock_init(spin_lock_t *lock)
 {
-	/* TODO: [p2-task2] initialize spin lock */
+	lock->status = UNLOCKED;
 }
 
+/*
+ * Try to acquire a spin lock.
+ * Returns: 0 on success, 1 on failed.
+ */
 int spin_lock_try_acquire(spin_lock_t *lock)
 {
 	/* TODO: [p2-task2] try to acquire spin lock */
-	return 0;
+	if (__sync_lock_test_and_set(&(lock->status), LOCKED) == LOCKED)
+		return 1;
+	else
+		return 0;
 }
 
 void spin_lock_acquire(spin_lock_t *lock)
 {
-	/* TODO: [p2-task2] acquire spin lock */
+	/* NOTE: This is learned from XV6. */
+	/*
+	 * On RISC-V, __sync_lock_test_and_set turns into an atomic swap:
+	 * a5 = LOCKED, s1 = &lock->status, amoswap.w.aq a5, a5, (s1);
+	 */
+	while (__sync_lock_test_and_set(&(lock->status), LOCKED) == LOCKED)
+		;
+	/*
+	 * Tell the C compiler and the processor to not move loads or stores
+	 * past this point, to ensure that the critical section's memory
+	 * references happen strictly after the lock is acquired.
+	 * On RISC-V, this emits a "fence" instruction.
+	 */
+	__sync_synchronize();
 }
 
 void spin_lock_release(spin_lock_t *lock)
 {
-	/* TODO: [p2-task2] release spin lock */
+	if (lock->status == UNLOCKED)
+	/*
+	 * After supporting multicore, the condition may should be changed.
+	 * If lock->status is LOCKED but it is not held by this CPU,
+	 * panic_g() should also be called. See XV6: spinlock.c: release() and holding().
+	 */
+		panic_g("Trying to release an unlocked spin lock 0x%lx",
+			(long)lock);
+	/* NOTE: This is learned from XV6. */
+	/*
+	 * Tell the C compiler and the CPU to not move loads or stores
+	 * past this point, to ensure that all the stores in the critical
+	 * section are visible to other CPUs before the lock is released,
+	 * and that loads in the critical section occur strictly before
+	 * the lock is released.
+	 * On RISC-V, this emits a fence instruction.
+	 */
+	__sync_synchronize();
+	/*
+	 * Release the lock, equivalent to lk->locked = 0.
+	 * This code doesn't use a C assignment, since the C standard
+	 * implies that an assignment might be implemented with
+	 * multiple store instructions.
+	 * On RISC-V, __sync_lock_release turns into an atomic swap:
+	 * s1 = &lock->status, amoswap.w zero, zero, (s1)
+	 */
+	__sync_lock_release(&(lock->status));
 }
 
 int do_mutex_lock_init(int key)
@@ -63,45 +113,28 @@ int do_mutex_lock_acquire(int mlock_idx)
 	if (mlock_idx >= LOCK_NUM || mlock_idx < 0)
 		return -1;	/* Invalid mlock_idx */
 	ptlock = mlocks + mlock_idx;	/* Pointer to target lock */
-	if (ptlock->lock.status == UNLOCKED || 
-		ptlock->opid == current_running->pid)
-	{	/* Acquire the lock */
-		ptlock->lock.status = LOCKED;
-		ptlock->opid = current_running->pid;
-		return mlock_idx;
-	}
-	/* Should be blocked */
-	/*for (p = current_running->next; p != current_running; p = p->next)
+	/*
+	 * Only when we acquire the spin lock of the mutex lock,
+	 * can we do operations on it.
+	 */
+	spin_lock_acquire(&(ptlock->slock));
+
+	while (ptlock->status == LOCKED && ptlock->opid != current_running->pid)
 	{
-		if (p->status == TASK_READY)
+		/* Should be blocked */
+		if (do_block(&(ptlock->block_queue), &(ptlock->slock)) != 0)
 		{
-			q = current_running;
-			current_running = p;
-			current_running->status = TASK_RUNNING;
-			ready_queue = lpcb_del_node(ready_queue, q, &p);
-			if (p != q)
-				panic_g("do_mutex_lock_acquire: Failed to remove"
-					" current_running from ready_queue");
-			ptlock->block_queue = do_block(p, &(ptlock->block_queue));
-#if MULTITHREADING != 0
-			switch_to(p->cur_thread == NULL ? &(p->context) : &(p->cur_thread->context),
-				current_running->cur_thread == NULL ? &(current_running->context)
-				: &(current_running->cur_thread->context));
-#else
-			switch_to(&(p->context), &(current_running->context));
-#endif
-			return mlock_idx;
+			panic_g("do_mutex_lock_acquire: lock %d is LOCKED"
+				" but no ready process is found", mlock_idx);
+			return -1;
 		}
-	}*/
-	if (do_block(&(ptlock->block_queue)) != 0)
-	{
-		panic_g("do_mutex_lock_acquire: lock %d is LOCKED"
-			" but no ready process is found", mlock_idx);
-		return -1;
 	}
-	else
-		/* after being unblocked */
-		return mlock_idx;
+	/* Acquire the mutex lock */
+	ptlock->status = LOCKED;
+	ptlock->opid = current_running->pid;
+	/* Remember to release the spin lock */
+	spin_lock_release(&(ptlock->slock));
+	return mlock_idx;
 }
 
 /*
@@ -112,26 +145,34 @@ int do_mutex_lock_release(int mlock_idx)
 {
 	/* TODO: [p2-task2] release mutex lock */
 	mutex_lock_t *ptlock;
-	pcb_t *temp;
 
 	if (mlock_idx >= LOCK_NUM || mlock_idx < 0)
 		return -1;	/* Invalid mlock_idx */
 	ptlock = mlocks + mlock_idx;
-	if (ptlock->lock.status == LOCKED &&
+
+	spin_lock_acquire(&(ptlock->slock));
+
+	if (ptlock->status == LOCKED &&
 		ptlock->opid != current_running->pid)
-		return -2;	/* The lock is LOCKED by other process */
-	if (ptlock->lock.status == UNLOCKED)
-		return -3;
-	
-	if (ptlock->block_queue == NULL)
-		ptlock->lock.status = UNLOCKED;
-	else
 	{
-		temp = ptlock->block_queue;	/* Points to the head */
-		ptlock->block_queue = do_unblock(ptlock->block_queue);
-		/* Now *temp acquires the lock */
-		ptlock->opid = temp->pid;
+		spin_lock_release(&(ptlock->slock));
+		return -2;	/* The lock is LOCKED by other process */
 	}
+	if (ptlock->status == UNLOCKED)
+	{
+		spin_lock_release(&(ptlock->slock));
+		return -3;
+	}
+
+	/*
+	 * Unlock the mutex lock and unblock a process in the block_queue,
+	 * in other word, "Signal" operation.
+	 */
+	ptlock->status = UNLOCKED;
+	if (ptlock->block_queue != NULL)
+		ptlock->block_queue = do_unblock(ptlock->block_queue);
+
+	spin_lock_release(&(ptlock->slock));
 	return mlock_idx;
 }
 
@@ -144,10 +185,12 @@ void mlocks_release_killed(pid_t kpid)
 	int i;
 
 	for (i = 0; i < LOCK_NUM; ++i)
-		if (mlocks[i].lock.status == LOCKED && mlocks[i].opid == kpid)
+	{
+		spin_lock_acquire(&(mlocks[i].slock));
+		if (mlocks[i].status == LOCKED && mlocks[i].opid == kpid)
 		{
 			if (mlocks[i].block_queue == NULL)
-				mlocks[i].lock.status = UNLOCKED;
+				mlocks[i].status = UNLOCKED;
 			else
 			{
 				pcb_t *temp;
@@ -156,4 +199,6 @@ void mlocks_release_killed(pid_t kpid)
 				mlocks[i].opid = temp->pid;
 			}
 		}
+		spin_lock_release(&(mlocks[i].slock));
+	}
 }
