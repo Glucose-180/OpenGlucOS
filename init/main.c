@@ -167,7 +167,13 @@ int main(void)
 #define TERMINAL_END "24"
 #endif
 
-	char *argv[] = {"glush", TERMINAL_BEGIN, TERMINAL_END, "1", NULL};
+	char *argv[] = {"glush", TERMINAL_BEGIN, TERMINAL_END,
+#if DEBUG_EN != 0
+		"1",	/* Autolog for glush */
+#else
+		"0",
+#endif
+		NULL};
 
 	// Init jump table provided by kernel and bios(ΦωΦ)
 	init_jmptab();
@@ -201,6 +207,14 @@ int main(void)
 	// Init system call table (0_0)
 	init_syscall();
 	printk("> [INIT] System call initialized successfully.\n");
+#if DEBUG_EN != 0
+	writelog("GlucOS, boot!");
+	printk("\n> [INFO] Debug mode is enabled.\n");
+	printk("> [INFO] Multithreading: %d, Timer_interval_ms: %d.\n",
+		MULTITHREADING, TIMER_INTERVAL_MS);
+	writelog("Multithreading: %d, Timer_interval_ms: %d.",
+		MULTITHREADING, TIMER_INTERVAL_MS);
+#endif
 
 	latency(2U);	/* Delay 2 s */
 	/* Clear screen and start glush */

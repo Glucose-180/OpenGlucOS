@@ -7,8 +7,6 @@ PROJECT_IDX	= 3
 OS_NAME = GlucOS
 USER_NAME = glucose180
 
-DEBUG		= 1
-
 # -----------------------------------------------------------------------
 # Host Linux Variables
 # -----------------------------------------------------------------------
@@ -44,22 +42,21 @@ MINICOM         = minicom
 # -----------------------------------------------------------------------
 # Build/Debug Flags and Variables
 # -----------------------------------------------------------------------
-
+# Whether debug mode is enabled in GlucOS
+DEBUG		= 1
 # Whether sys_yield() is invoked in user process
 YIELD_EN		= 0
-
 # Whether multithreading is supported in GlucOS
 MTHREAD			= 1
-
 # Timer interval (ms) used for scheduler
 TINTERVAL		= 10
 
 CFLAGS0         = -O0 -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -DOS_NAME=\"$(OS_NAME)\" -DUSER_NAME=\"$(USER_NAME)\"
 
 ifneq ($(DEBUG), 0)
-	CFLAGS		= $(CFLAGS0) -ggdb3
+	CFLAGS		= $(CFLAGS0) -ggdb3 -DDEBUG_EN=1
 else
-	CFLAGS		= $(CFLAGS0)
+	CFLAGS		= $(CFLAGS0) -DDEBUG_EN=0
 endif
 
 BOOT_INCLUDE    = -I$(DIR_ARCH)/include

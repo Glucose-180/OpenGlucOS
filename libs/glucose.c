@@ -158,13 +158,23 @@ char **split(char *src, const char Sep)
 void panic_g(const char *fmt, ...)
 {
 	va_list va;
+	uint64_t time;
 	int _vprint(const char *fmt, va_list _va, void (*output)(char*));
 
 	disable_interrupt();
 	printv("\n**Panic: ");
 
+#if DEBUG_EN != 0
+	time = get_timer();
+	printl("[t=%04lus] **Panic: ", time);
+#endif
+
 	va_start(va, fmt);
 	_vprint(fmt, va, bios_putstr);
+#if DEBUG_EN != 0
+	_vprint(fmt, va, bios_logging);
+	printl("**\n");
+#endif
 	va_end(va);
 
 	printv("**\n");

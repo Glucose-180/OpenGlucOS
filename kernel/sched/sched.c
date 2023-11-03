@@ -131,6 +131,9 @@ pid_t create_proc(const char *taskname)
 	init_pcb_stack(kernel_stack, user_stack, entry, pnew);
 	if (pcb_table_add(pnew) < 0)
 		panic_g("create_proc: Failed to add to pcb_table");
+#if DEBUG_EN != 0
+	writelog("Process \"%s\" whose PID is %d is created.", pnew->name, pnew->pid);
+#endif
 	return pnew->pid;
 }
 
@@ -600,6 +603,9 @@ pid_t do_kill(pid_t pid)
 	kfree_g((void *)pdel);
 	if (pcb_table_del(pdel) < 0)
 		panic_g("do_kill: Failed to remove pcb %d from pcb_table", pid);
+#if DEBUG_EN != 0
+	writelog("Process whose pid is %d is killed.", pid);
+#endif
 	return pid;
 }
 
