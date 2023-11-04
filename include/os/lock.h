@@ -86,14 +86,24 @@ int do_block(pcb_t ** const Pqueue, spin_lock_t *slock);
 typedef struct barrier
 {
     // TODO [P3-TASK2 barrier]
+	/* Spin lock to protect it */
+	spin_lock_t slock;
+	/* The PID of the process who init this sema */
+	pid_t opid;
+	/*
+	 * come: count of processes that have come to barrier.
+	 * goal: total number of processes that should come.
+	 */
+	int goal, come;
+	pcb_t *block_queue;
 } barrier_t;
 
 #define BARRIER_NUM 16
 
 void init_barriers(void);
 int do_barrier_init(int key, int goal);
-void do_barrier_wait(int bar_idx);
-void do_barrier_destroy(int bar_idx);
+int do_barrier_wait(int bidx);
+int do_barrier_destroy(int bidx);
 
 typedef struct condition
 {

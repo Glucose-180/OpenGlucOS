@@ -209,20 +209,22 @@ pid_t sys_getpid()
 	// TODO: [p3-task1] call invoke_syscall to implement sys_getchar
 }*/
 
-int  sys_barrier_init(int key, int goal)
+int sys_barrier_init(int key, int goal)
 {
 	/* TODO: [p3-task2] call invoke_syscall to implement sys_barrier_init */
-	return 0;
+	return invoke_syscall(SYS_barr_init, key, goal, Ignore, Ignore, Ignore);
 }
 
-void sys_barrier_wait(int bar_idx)
+int sys_barrier_wait(int bidx)
 {
 	/* TODO: [p3-task2] call invoke_syscall to implement sys_barrie_wait */
+	return invoke_syscall(SYS_barr_wait, bidx, Ignore, Ignore, Ignore, Ignore);
 }
 
-void sys_barrier_destroy(int bar_idx)
+int sys_barrier_destroy(int bidx)
 {
 	/* TODO: [p3-task2] call invoke_syscall to implement sys_barrie_destory */
+	return invoke_syscall(SYS_barr_destroy, bidx, Ignore, Ignore, Ignore, Ignore);
 }
 
 int sys_condition_init(int key)

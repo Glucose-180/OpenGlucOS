@@ -156,7 +156,7 @@ static void init_syscall(void)
 		syscall[SYS_get_timebase] = (long(*)())get_time_base;
 		syscall[SYS_get_tick] = (long (*)())get_ticks;
 	}
-	/* Sync: mutex lock and semaphore */ {
+	/* Sync: mutex lock, semaphore and barrier */ {
 		syscall[SYS_mlock_init] = (long (*)())do_mutex_lock_init;
 		syscall[SYS_mlock_acquire] = (long (*)())do_mutex_lock_acquire;
 		syscall[SYS_mlock_release] = (long (*)())do_mutex_lock_release;
@@ -164,6 +164,9 @@ static void init_syscall(void)
 		syscall[SYS_sema_up] = (long (*)())do_semaphore_up;
 		syscall[SYS_sema_down] = (long (*)())do_semaphore_down;
 		syscall[SYS_sema_destroy] = (long (*)())do_semaphore_destroy;
+		syscall[SYS_barr_init] = (long (*)())do_barrier_init;
+		syscall[SYS_barr_wait] = (long (*)())do_barrier_wait;
+		syscall[SYS_barr_destroy] = (long (*)())do_barrier_destroy;
 	}
 }
 /************************************************************/

@@ -9,6 +9,8 @@ spin_lock_t slocks[SPINLOCK_NUM];
 
 semaphore_t semaphores[SEMAPHORE_NUM];
 
+barrier_t barriers[BARRIER_NUM];
+
 void init_locks(void)
 {
 	/* TODO: [p2-task2] initialize mlocks */
@@ -26,6 +28,7 @@ void init_locks(void)
 		slocks[i].status = UNLOCKED;
 	
 	init_semaphores();
+	init_barriers();
 }
 
 void spin_lock_init(spin_lock_t *lock)
@@ -185,13 +188,13 @@ int do_mutex_lock_release(int mlock_idx)
 }
 
 /*
- * Release all resources (mutex locks, semaphores, ...)
- * occupied by proc kpid. Used when a proc is killed.
+ * Release all resources (mutex locks, semaphores, barriers, ...)
+ * occupied by proc kpid. Used when a process is killed.
  */
 void ress_release_killed(pid_t kpid)
 {
 	int i;
-
+	/* Mutex locks */
 	for (i = 0; i < LOCK_NUM; ++i)
 	{
 		spin_lock_acquire(&(mlocks[i].slock));
@@ -209,18 +212,29 @@ void ress_release_killed(pid_t kpid)
 		}
 		spin_lock_release(&(mlocks[i].slock));
 	}
-
+	/* Semaphores */
 	for (i = 0; i < SEMAPHORE_NUM; ++i)
 	{
 		spin_lock_acquire(&(semaphores[i].slock));
 		if (semaphores[i].opid == kpid)
 		{
 			semaphores[i].opid = INVALID_PID;
-			semaphores[i].value = 0;
 			while (semaphores[i].block_queue != NULL)
 				semaphores[i].block_queue = do_unblock(semaphores[i].block_queue);
 		}
 		spin_lock_release(&(semaphores[i].slock));
+	}
+	/* Barriers */
+	for (i = 0; i < BARRIER_NUM; ++i)
+	{
+		spin_lock_acquire(&(barriers[i].slock));
+		if (barriers[i].opid == kpid)
+		{
+			barriers[i].opid = INVALID_PID;
+			while (barriers[i].block_queue != NULL)
+				barriers[i].block_queue = do_unblock(barriers[i].block_queue);
+		}
+		spin_lock_release(&(barriers[i].slock));
 	}
 }
 
@@ -232,33 +246,33 @@ void init_semaphores(void)
 	{
 		spin_lock_init(&(semaphores[i].slock));
 		semaphores[i].opid = INVALID_PID;
-		semaphores[i].block_queue = NULL;
-		semaphores[i].value = 0;
 	}
 }
 
 /*
  * Init the semaphore specified by `key` with value `value`,
  * and return the index of the semaphore.
- * -1 will be returned on error.
+ * INT32_MIN will be returned on error.
  */
 int do_semaphore_init(int key, int value)
 {
-	int sidx;
+	int sidx, rt;
 
 	/* Simply do this */
 	sidx = (unsigned int)key % (unsigned int)SEMAPHORE_NUM;
 	spin_lock_acquire(&(semaphores[sidx].slock));
-	if (semaphores[sidx].opid != INVALID_PID &&
-		semaphores[sidx].opid != current_running->pid)
-	{	/* semaphore is occupied by other process */
-		spin_lock_release(&(semaphores[sidx].slock));
-		return -1;
+	if (semaphores[sidx].opid != INVALID_PID)
+		/* semaphore is occupied */
+		rt = INT32_MIN;
+	else
+	{
+		semaphores[sidx].opid = current_running->pid;
+		semaphores[sidx].block_queue = NULL;
+		semaphores[sidx].value = value;
+		rt = sidx;
 	}
-	semaphores[sidx].opid = current_running->pid;
-	semaphores[sidx].value = value;
 	spin_lock_release(&(semaphores[sidx].slock));
-	return sidx;
+	return rt;
 }
 
 /*
@@ -336,12 +350,111 @@ int do_semaphore_destroy(int sidx)
 
 	if (sidx >= SEMAPHORE_NUM || sidx < 0)
 		return INT32_MIN;
+
 	ptsema = semaphores + sidx;
 	spin_lock_acquire(&(ptsema->slock));
-	ptsema->opid = INVALID_PID;
-	ptsema->value = 0;
-	while (ptsema->block_queue != NULL)
-		ptsema->block_queue = do_unblock(ptsema->block_queue);
+	if (ptsema->opid != INVALID_PID &&
+		ptsema->opid != current_running->pid)
+		/* semaphore is occupied by other process */
+		sidx = INT32_MIN;
+	else
+	{
+		ptsema->opid = INVALID_PID;
+		while (ptsema->block_queue != NULL)
+			ptsema->block_queue = do_unblock(ptsema->block_queue);
+	}
 	spin_lock_release(&(ptsema->slock));
 	return sidx;
+}
+
+void init_barriers(void)
+{
+	int i;
+
+	for (i = 0; i < BARRIER_NUM; ++i)
+	{
+		spin_lock_init(&(barriers[i].slock));
+		barriers[i].opid = INVALID_PID;
+	}
+}
+
+/*
+ * Init the barrier and return its index.
+ * INT32_MIN will be returned on error.
+ */
+int do_barrier_init(int key, int goal)
+{
+	int bidx, rt;
+
+	bidx = (unsigned int)key % (unsigned int)BARRIER_NUM;
+	spin_lock_acquire(&(barriers[bidx].slock));
+	if (barriers[bidx].opid != INVALID_PID)
+		/* Barrier is occupied */
+		rt = INT32_MIN;
+	else
+	{
+		barriers[bidx].goal = goal;
+		barriers[bidx].come = 0;
+		barriers[bidx].block_queue = NULL;
+		barriers[bidx].opid = current_running->pid;
+		rt = bidx;
+	}
+	spin_lock_release(&(barriers[bidx].slock));
+	return rt;
+}
+
+int do_barrier_wait(int bidx)
+{
+	barrier_t *ptbar;
+	int goal = INT32_MIN;
+
+	if (bidx < 0 || bidx >= BARRIER_NUM)
+		return INT32_MIN;
+	ptbar = barriers + bidx;
+	spin_lock_acquire(&(ptbar->slock));
+	// TODO
+	if (ptbar->opid == INVALID_PID)
+		/* It's an invalid barrier */
+		goto err;
+	goal = ptbar->goal;
+	if (++(ptbar->come) >= goal)
+	{	/* All processes have come */
+		ptbar->come = 0;
+		while (ptbar->block_queue != NULL)
+			ptbar->block_queue = do_unblock(ptbar->block_queue);
+	}
+	else
+		/* Block the current_running */
+		do_block(&(ptbar->block_queue), &(ptbar->slock));
+err:
+	spin_lock_release(&(ptbar->slock));
+	return goal;
+}
+
+/*
+ * Destroy a barrier and wakeup all processes in the queue.
+ * Returns: bidx on success and INT32_MIN on error.
+ */
+int do_barrier_destroy(int bidx)
+{
+	barrier_t *ptbar;
+	int rt;
+
+	if (bidx < 0 || bidx >= BARRIER_NUM)
+		return INT32_MIN;
+	ptbar = barriers + bidx;
+	spin_lock_acquire(&(ptbar->slock));
+	if (ptbar->opid != INVALID_PID &&
+		ptbar->opid != current_running->pid)
+		/* Barrier is occupied by other process */
+		rt = INT32_MIN;
+	else
+	{
+		ptbar->opid = INVALID_PID;
+		while (ptbar->block_queue != NULL)
+			ptbar->block_queue = do_unblock(ptbar->block_queue);
+		rt = bidx;
+	}
+	spin_lock_release(&(ptbar->slock));
+	return rt;
 }

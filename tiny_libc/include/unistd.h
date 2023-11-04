@@ -55,9 +55,9 @@ pid_t sys_getpid();
 
 
 /* TODO: [P3 task2] barrier */ 
-int  sys_barrier_init(int key, int goal);
-void sys_barrier_wait(int bar_idx);
-void sys_barrier_destroy(int bar_idx);
+int sys_barrier_init(int key, int goal);
+int sys_barrier_wait(int bidx);
+int sys_barrier_destroy(int bidx);
 
 /* TODO: [P3 task2] condition */ 
 int sys_condition_init(int key);

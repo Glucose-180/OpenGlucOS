@@ -149,8 +149,10 @@ void do_scheduler(void)
 	check_sleeping();
 	if (current_running != NULL)
 	{
-		for (p = current_running->next; p != current_running; p = p->next)
+		pcb_t *nextp;
+		for (p = current_running->next; p != current_running; p = nextp)
 		{	/* Search the linked list and find a READY process */
+			nextp = p->next;	/* Store p->next in case of it is killed */
 			if (p->status == TASK_READY)
 			{
 				if (current_running->status != TASK_EXITED)
@@ -175,7 +177,8 @@ void do_scheduler(void)
 			}
 			else if (p->status == TASK_EXITED)
 			{
-				if (p->pid == current_running->pid || p->pid != do_kill(p->pid))
+				pid_t kpid = p->pid;
+				if (kpid == current_running->pid || kpid != do_kill(kpid))
 					panic_g("do_scheduler: Failed to kill proc %d", p->pid);
 			}
 		}

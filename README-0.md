@@ -8,7 +8,7 @@ Project 3。
 
 #### 最新更改
 
-[2023-11-03] 初步实现信号量，但似乎不太稳定。
+[2023-11-04] 初步实现屏障，但存在鲁棒性问题。
 
 #### 可做的优化
 
@@ -101,4 +101,8 @@ Release_a_resource(r)
 此外，优化了`lock1/2.c`以及`ready_to_exit.c`，使获得锁后调用`sys_sleep()`睡几秒钟以获得更好的视觉效果。
 
   初步实现了信号量（Semaphore）相关的功能，可以运行 semaphore 测试程序，但似乎还不太稳定，特别是涉及到 kill 的时候。如果在它们运行过程中终止掉 semaphore，则所有 sema_consumer 会立即退出（所用的信号量会失效，正在阻塞的消费者会立即唤醒，并且所有 P 操作也都失败，但 sema_consumer 并不会检测到错误返回值从而继续运行），sema_producer 会依次退出；如果终止掉某个未完成的 sema_producer，则会有 sema_consumer 不能退出而是始终沉睡，因为信号量的 V 操作不够了。
+
+#### [2023-11-04]
+
+  初步实现了屏障（Barrier），但还是存在鲁棒性问题，并发执行两个`exec barrier &`时可能出现“\*\*Panic: do_kill: proc 4 is still running after killed\*\*”的错误。
 
