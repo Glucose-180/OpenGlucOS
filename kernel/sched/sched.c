@@ -182,6 +182,13 @@ void do_scheduler(void)
 					panic_g("do_scheduler: Failed to kill proc %d", p->pid);
 			}
 		}
+		if (current_running->pid != 0)
+			/*
+			 * If current_running->pid is not 0, then
+			 * a ready process must be found, because GlucOS keep
+			 * main() of kernel as a proc with PID 0.
+			 */
+			panic_g("do_scheduler: Cannot find a ready process");
 		return;
 	}
 	else
@@ -197,7 +204,16 @@ void do_sleep(uint32_t sleep_time)
 	// 3. reschedule because the current_running is blocked.
 	pcb_t *temp, *psleep;
 
-	temp = current_running->next;
+	for (temp = current_running->next; temp != current_running; temp = temp->next)
+		if (temp->status == TASK_READY)
+			break;
+	if (temp->status != TASK_READY)
+		/*
+		* A ready process must be found, because GlucOS keep
+		* main() of kernel as a proc with PID 0.
+		*/
+		panic_g("do_sleep: Cannot find a READY process");
+
 	ready_queue = lpcb_del_node(ready_queue, current_running, &psleep);
 	if (psleep != current_running)
 		panic_g("do_sleep: Failed to remove current_running");
@@ -349,6 +365,11 @@ int do_block(pcb_t ** const Pqueue, spin_lock_t *slock)
 			return 0;
 		}
 	}
+	/*
+	 * A ready process must be found, because GlucOS keep
+	 * main() of kernel as a proc with PID 0.
+	 */
+	panic_g("do_block: Cannot find a READY process");
 	return 1;
 }
 
