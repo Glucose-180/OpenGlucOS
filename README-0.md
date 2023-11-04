@@ -8,7 +8,7 @@ Project 3。
 
 #### 最新更改
 
-[2023-11-04] 修复了已经退出的进程又被切换回来的问题。
+[2023-11-04] 准备制造 Mailbox。
 
 #### 可做的优化
 
@@ -107,4 +107,6 @@ Release_a_resource(r)
   初步实现了屏障（Barrier），但还是存在鲁棒性问题，并发执行两个`exec barrier &`时可能出现“\*\*Panic: do_kill: proc 4 is still running after killed\*\*”的错误。
 
   修复了上面的问题：原因是在`do_sleep()`的时候，直接选择了`current_running->next`作为当前进程睡觉后的下一个进程，而没有检查它是否是`TASK_READY`的，导致有可能把已经`TASK_EXITED`的进程重新切换（`switch_to`）过来。
+
+  准备制造 Mailbox，将相关代码单独开了个文件`kernel/locking/mbox.c`。
 

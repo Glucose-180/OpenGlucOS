@@ -4,12 +4,10 @@
 #include <atomic.h>
 #include <os/glucose.h>
 
-mutex_lock_t mlocks[LOCK_NUM];
 spin_lock_t slocks[SPINLOCK_NUM];
-
-semaphore_t semaphores[SEMAPHORE_NUM];
-
-barrier_t barriers[BARRIER_NUM];
+static mutex_lock_t mlocks[LOCK_NUM];
+static semaphore_t semaphores[SEMAPHORE_NUM];
+static barrier_t barriers[BARRIER_NUM];
 
 void init_locks(void)
 {

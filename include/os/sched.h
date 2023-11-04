@@ -99,8 +99,7 @@ typedef struct pcb
 {
 	/* register context */
 	// NOTE: this order must be preserved, which is defined in regs.h!!
-	reg_t kernel_sp;
-	reg_t user_sp;
+	reg_t kernel_sp, user_sp;
 	/*
 	 * NOTE: user_sp and kernel_sp of PCB of PID 0:
 	 * After SAVE_CONTEXT, user_sp and trapframe->sp equal
@@ -109,50 +108,37 @@ typedef struct pcb
 	 * they three are all equal to $sp just at the beginning.
 	 */
 	regs_context_t *trapframe;
-
 	/*
 	 * the start (lowest) address of kernel and user stack.
 	 * Different from kernel/user_sp which are stack pointers,
 	 * as stack grows from high address to low.
 	 */
-	reg_t kernel_stack;
-	reg_t user_stack;
- 
+	reg_t kernel_stack, user_stack;
 	/*
 	 * Processes waiting for this proc.
 	 */
 	struct pcb *wait_queue;
-
 	/* previous, next pointer */
 	//list_node_t list;
 	/* next pointer */
 	struct pcb *next;
-
 	/* process id */
 	pid_t pid;
-
 	/* SLEEPING | READY | RUNNING */
 	task_status_t status;
-
 	/* cursor position */
-	int cursor_x;
-	int cursor_y;
-
+	int cursor_x, cursor_y;
 	/*
 	 * limit of cursor_y, used for auto scroll.
 	 * < 0 means  invalid.
 	 */
 	int cylim_l, cylim_h;
-
 	/* time(seconds) to wake up sleeping PCB */
 	uint64_t wakeup_time;
-
 	/* Saved regs */
 	switchto_context_t context;
-
 	/* Name of this process */
 	char name[TASK_NAMELEN];
-
 	/*
 	 * phead: points to the head pointer of the queue
 	 * to which this PCB is belonging. This is used to
@@ -170,6 +156,11 @@ typedef struct pcb
 	 * parent thread, or main().
 	 */
 	tcb_t *cur_thread;
+	/*
+	 * req_len is used to store the length of mailbox
+	 * request when blocked in queue of mailbox.
+	 */
+	unsigned int req_len;
 } pcb_t;
 
 /* ready queue to run */

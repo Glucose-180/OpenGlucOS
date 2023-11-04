@@ -58,8 +58,8 @@ enum Spin_locks {
 	SPINLOCK_NUM
 };
 
-extern mutex_lock_t mlocks[LOCK_NUM];
-extern spin_lock_t slocks[SPINLOCK_NUM];
+//extern mutex_lock_t mlocks[LOCK_NUM];
+//extern spin_lock_t slocks[SPINLOCK_NUM];
 
 void init_locks(void);
 
@@ -145,14 +145,29 @@ int do_semaphore_destroy(int sidx);
 typedef struct mailbox
 {
     // TODO [P3-TASK2 mailbox]
+	spin_lock_t slock;
+	pid_t opid;
+	/*
+	 * Use a circular queue as buffer,
+	 * buf_head and buf_tail are pointers of it.
+	 */
+	uint8_t buf[MAX_MBOX_LENGTH + 1];
+	unsigned int buf_head, buf_tail;
+	/*
+	 * Two queues are needed. Senders are blocked in
+	 * block_queue_s until buffer has enough space, and
+	 * receivers are blocked in block_queue_r until buffer
+	 * has enough data.
+	 */
+	pcb_t* block_queue_s, * block_queue_r;
 } mailbox_t;
 
 #define MBOX_NUM 16
 void init_mbox();
 int do_mbox_open(char *name);
-void do_mbox_close(int mbox_idx);
-int do_mbox_send(int mbox_idx, void * msg, int msg_length);
-int do_mbox_recv(int mbox_idx, void * msg, int msg_length);
+void do_mbox_close(int midx);
+int do_mbox_send(int midx, uint8_t* msg, unsigned int msg_length);
+int do_mbox_recv(int midx, uint8_t* msg, unsigned int msg_length);
 
 /************************************************************/
 
