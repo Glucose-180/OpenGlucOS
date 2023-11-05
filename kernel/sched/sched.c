@@ -608,6 +608,15 @@ pid_t do_kill(pid_t pid)
 	if ((p = pcb_search(pid)) == NULL)
 		/* Not found */
 		return INVALID_PID;
+	
+	/*
+	 * Release all resources acquired by it:
+	 * this work must be done before we set phead, because
+	 * this may move the PCB from one queue to another queue,
+	 * especially when it is blocked in a resource such as mailbox.
+	 */
+	ress_release_killed(pid);
+
 	p->status = TASK_EXITED;
 	phead = p->phead;
 
@@ -618,9 +627,6 @@ pid_t do_kill(pid_t pid)
 	/* wake up proc in wait_queue */
 	while (p->wait_queue != NULL)
 		p->wait_queue = do_unblock(p->wait_queue);
-
-	/* Release all resources acquired by it */
-	ress_release_killed(pid);
 
 	/* Kill all child threads */
 	while (p->pcthread != NULL)

@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
         }
 
         sys_move_cursor(0, print_location);
-        printf("[Server]: recved msg from %d (blocked: %ld, correctBytes: %ld, errorBytes: %ld)",
+        printf("[Server] recved msg from %d (blocked: %ld, correctBytes: %ld, errorBytes: %ld)",
               header.sender, blockedCount, correctRecvBytes, errorRecvBytes);
 
         if (clientInitReq(msgBuffer, header.length)) {

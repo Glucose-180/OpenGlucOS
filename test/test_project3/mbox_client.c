@@ -39,7 +39,8 @@ int main()
     int position = 0;
     sys_mbox_recv(handle_posmq, &position, sizeof(int));
     int blocked = 0;
-    int64_t bytes = 0;
+    //int64_t bytes = 0;
+    int64_t bytes = initReqLen;
 
     sys_move_cursor(0, position);
     printf("[Client] server started");
