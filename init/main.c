@@ -168,6 +168,12 @@ static void init_syscall(void)
 		syscall[SYS_barr_wait] = (long (*)())do_barrier_wait;
 		syscall[SYS_barr_destroy] = (long (*)())do_barrier_destroy;
 	}
+	/* Communication: mailbox */ {
+		syscall[SYS_mbox_open] = (long (*)())do_mbox_open;
+		syscall[SYS_mbox_close] = (long (*)())do_mbox_close;
+		syscall[SYS_mbox_send] = (long (*)())do_mbox_send;
+		syscall[SYS_mbox_recv] = (long (*)())do_mbox_recv;
+	}
 }
 /************************************************************/
 

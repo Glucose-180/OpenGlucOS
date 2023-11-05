@@ -277,27 +277,27 @@ int sys_semaphore_destroy(int sidx)
 	return invoke_syscall(SYS_sema_destroy, sidx, Ignore, Ignore, Ignore, Ignore);
 }
 
-int sys_mbox_open(char * name)
+int sys_mbox_open(const char * name)
 {
-	/* TODO: [p3-task2] call invoke_syscall to implement sys_mbox_open */
-	return 0;
+	return invoke_syscall(SYS_mbox_open, (long)name, Ignore, Ignore, Ignore, Ignore);
 }
 
-void sys_mbox_close(int mbox_id)
+int sys_mbox_close(int midx)
 {
 	/* TODO: [p3-task2] call invoke_syscall to implement sys_mbox_close */
+	return invoke_syscall(SYS_mbox_close, midx, Ignore, Ignore, Ignore, Ignore);
 }
 
-int sys_mbox_send(int mbox_idx, void *msg, int msg_length)
+int sys_mbox_send(int midx, const void *msg, unsigned msg_length)
 {
 	/* TODO: [p3-task2] call invoke_syscall to implement sys_mbox_send */
-	return 0;
+	return invoke_syscall(SYS_mbox_send, midx, (long)msg, msg_length, Ignore, Ignore);
 }
 
-int sys_mbox_recv(int mbox_idx, void *msg, int msg_length)
+int sys_mbox_recv(int midx, void *msg, unsigned msg_length)
 {
 	/* TODO: [p3-task2] call invoke_syscall to implement sys_mbox_recv */
-	return 0;
+	return invoke_syscall(SYS_mbox_recv, midx, (long)msg, msg_length, Ignore, Ignore);
 }
 /************************************************************/
 

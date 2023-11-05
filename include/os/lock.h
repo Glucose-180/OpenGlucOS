@@ -140,7 +140,8 @@ int do_semaphore_up(int sidx);
 int do_semaphore_down(int sidx);
 int do_semaphore_destroy(int sidx);
 
-#define MAX_MBOX_LENGTH (64)
+//#define MAX_MBOX_LENGTH (64)
+#define MAX_MBOX_LENGTH (71)
 
 typedef struct mailbox
 {
@@ -163,10 +164,10 @@ typedef struct mailbox
 } mailbox_t;
 
 #define MBOX_NUM 16
-void init_mbox();
-int do_mbox_open(char *name);
-void do_mbox_close(int midx);
-int do_mbox_send(int midx, uint8_t* msg, unsigned int msg_length);
+void init_mbox(void);
+int do_mbox_open(const char *name);
+int do_mbox_close(int midx);
+int do_mbox_send(int midx, const uint8_t* msg, unsigned int msg_length);
 int do_mbox_recv(int midx, uint8_t* msg, unsigned int msg_length);
 
 /************************************************************/

@@ -27,6 +27,7 @@ void init_locks(void)
 	
 	init_semaphores();
 	init_barriers();
+	init_mbox();
 }
 
 void spin_lock_init(spin_lock_t *lock)
@@ -186,12 +187,13 @@ int do_mutex_lock_release(int mlock_idx)
 }
 
 /*
- * Release all resources (mutex locks, semaphores, barriers, ...)
+ * Release all resources (mutex locks, semaphores, barriers, mailboxes...)
  * occupied by proc kpid. Used when a process is killed.
  */
 void ress_release_killed(pid_t kpid)
 {
 	int i;
+	void mbox_release_killed(pid_t kpid);
 	/* Mutex locks */
 	for (i = 0; i < LOCK_NUM; ++i)
 	{
@@ -234,6 +236,8 @@ void ress_release_killed(pid_t kpid)
 		}
 		spin_lock_release(&(barriers[i].slock));
 	}
+	/* Mailboxes */
+	mbox_release_killed(kpid);
 }
 
 void init_semaphores(void)

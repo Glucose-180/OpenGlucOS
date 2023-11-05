@@ -110,3 +110,16 @@ Release_a_resource(r)
 
   准备制造 Mailbox，将相关代码单独开了个文件`kernel/locking/mbox.c`。
 
+#### [2023-11-05]
+
+  初步实现了信箱（mailbox）但存在 Bug：当按下列顺序执行时：
+
+```bash
+exec mbox_client &
+exec mbox_server &
+kill 3
+kill 2
+```
+
+会报出 Panic：“\*\*Panic: do_kill: Failed to del pcb 2 in queue 0x0\*\*”，初步判断是`do_kill()`中`ress_release_killed(pid);`的执行顺序不太合适。
+

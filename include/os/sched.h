@@ -138,7 +138,7 @@ typedef struct pcb
 	/* Saved regs */
 	switchto_context_t context;
 	/* Name of this process */
-	char name[TASK_NAMELEN];
+	char name[TASK_NAMELEN + 1];
 	/*
 	 * phead: points to the head pointer of the queue
 	 * to which this PCB is belonging. This is used to

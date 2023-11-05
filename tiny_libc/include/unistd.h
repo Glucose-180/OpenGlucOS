@@ -67,10 +67,10 @@ void sys_condition_broadcast(int cond_idx);
 void sys_condition_destroy(int cond_idx);
 
 /* TODO: [P3 task2] mailbox */ 
-int sys_mbox_open(char * name);
-void sys_mbox_close(int mbox_id);
-int sys_mbox_send(int mbox_idx, void *msg, int msg_length);
-int sys_mbox_recv(int mbox_idx, void *msg, int msg_length);
+int sys_mbox_open(const char * name);
+int sys_mbox_close(int midx);
+int sys_mbox_send(int midx, const void *msg, unsigned msg_length);
+int sys_mbox_recv(int midx, void *msg, unsigned msg_length);
 /************************************************************/
 
 int sys_semaphore_init(int key, int value);
