@@ -247,6 +247,7 @@ int main(void)
 		MULTITHREADING, TIMER_INTERVAL_MS);
 #endif
 
+	smp_init();
 	wakeup_other_hart();
 	latency(3U);	/* Delay 3 s */
 	/* Clear screen and start glush */
@@ -302,9 +303,12 @@ int main_s(void)
 {
 	pcb_t *p0;
 	//TODO
-	smp_init();
+	init_exception_s();
+
+	/* Print below the string CPU 0 has printed */
 	p0 = pcb_search(0);
-	screen_move_cursor(0, p0->cursor_y);
+	screen_move_cursor(0, p0->cursor_y + 1);
+
 #if DEBUG_EN != 0
 	writelog("I am CPU %lu and has started!\n", get_current_cpu_id());
 #endif
