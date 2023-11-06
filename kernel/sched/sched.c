@@ -448,6 +448,12 @@ void init_pcb_stack(
 	pcb->context.regs[SR_RA] = (reg_t)ret_from_exception;
 
 	/*
+	 * This stack pointer is used for calling unlock_kernel(),
+	 * in ret_from_exception() just before RESTORE_CONTEXT.
+	 */
+	pcb->context.regs[SR_SP] = pcb->kernel_sp;
+
+	/*
 	 * As the first run of a user process is through sret,
 	 * we simulate a trapframe just like it has been trapped.
 	 * This trapframe will be restored just before sret is executed.

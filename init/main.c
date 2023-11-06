@@ -284,6 +284,9 @@ int main(void)
 	}
 		// If you do preemptive scheduling, they're used to enable CSR_SIE and wfi
 		set_preempt();
+#if DEBUG_EN != 0
+		writelog("CPU 0: Timer interrupt is enabled");
+#endif
 		while (1)
 			// Infinite while loop, where CPU stays in a low-power state (QAQQQQQQQQQQQ)
 			__asm__ volatile("wfi");
@@ -310,11 +313,15 @@ int main_s(void)
 	screen_move_cursor(0, p0->cursor_y + 1);
 
 #if DEBUG_EN != 0
-	writelog("I am CPU %lu and has started!\n", get_current_cpu_id());
+	writelog("I am CPU %lu and has started!", get_current_cpu_id());
 #endif
 	printk("> [INIT] I am CPU %lu and has started!\n", get_current_cpu_id());
 
-	disable_interrupt();
+	set_preempt();
+#if DEBUG_EN != 0
+		writelog("CPU %lu: Timer interrupt is enabled", get_current_cpu_id());
+#endif
+	//disable_interrupt();
 	while (1)
 		asm volatile("wfi");
 	return 0;

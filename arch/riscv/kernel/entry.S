@@ -306,15 +306,26 @@ ENTRY(ret_from_exception)
 	addi	t3, t3, 4
 	sd	t3, OFFSET_REG_SEPC(t0)
 NOT_SYSCALL:
+	call	unlock_kernel
 	RESTORE_CONTEXT
 	sret
 
 ENDPROC(ret_from_exception)
 
+/*
+ * Using global kernel spin lock:
+ * Note that RESTORE_CONTEXT and SVAE_CONTEXT are not
+ * included in critical section, so we must ensure that
+ * one CPU canNOT modify the PCB pointed by current_running
+ * of another CPU except `next` and `status`.
+ */
+
 ENTRY(exception_handler_entry)
 
 	/* TODO: [p2-task3] save context via the provided macro */
 	SAVE_CONTEXT
+
+	call	lock_kernel
 
 	/* TODO: [p2-task3] load ret_from_exception into $ra so that we can return to
 	 * ret_from_exception when interrupt_help complete.
