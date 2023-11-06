@@ -7,6 +7,8 @@
 #include <os/irq.h>
 #include <asm/regs.h>
 
+#include <os/smp.h>
+
 /*
  * Size of stack for every thread
  * 512 has been tried and caused stack overflow!
@@ -32,7 +34,7 @@ static tid_t alloc_tid(pcb_t *proc)
 }
 
 /*
- * thread_create: Create a child thread of current_running process,
+ * thread_create: Create a child thread of cur_cpu() process,
  * and execute function func with argument arg.
  * Return: TID of the child thread and INVALID_TID on error.
  */
@@ -42,10 +44,10 @@ tid_t thread_create(void *(*func)(), reg_t arg)
 	ptr_t stack;
 	tcb_t *pnew, *temp;
 
-	if ((temp = ltcb_add_node_to_tail(current_running->pcthread, &pnew))
+	if ((temp = ltcb_add_node_to_tail(cur_cpu()->pcthread, &pnew))
 		== NULL)
 		return INVALID_TID;
-	current_running->pcthread = temp;
+	cur_cpu()->pcthread = temp;
 	if ((stack = (ptr_t)umalloc_g(Tstack_size)) == 0)
 		return INVALID_TID;
 	pnew->stack = stack;
@@ -54,7 +56,7 @@ tid_t thread_create(void *(*func)(), reg_t arg)
 	 * so that the undefined TID will not affect alloc_tid().
 	 */
 	pnew->tid = INVALID_TID;
-	if ((tid = alloc_tid(current_running)) == INVALID_TID)
+	if ((tid = alloc_tid(cur_cpu())) == INVALID_TID)
 	{
 		ufree_g((void *)stack);
 		return INVALID_TID;
@@ -75,35 +77,35 @@ tid_t thread_create(void *(*func)(), reg_t arg)
 
 /*
  * thread_yield: This thread yields.
- * Switch to another thread of current_running process.
+ * Switch to another thread of cur_cpu() process.
  */
 long thread_yield(void)
 {
 	switchto_context_t *prev, *next;
 
-	if (current_running->cur_thread == NULL)
+	if (cur_cpu()->cur_thread == NULL)
 	{	/* Main thread yields */
-		prev = &(current_running->context);
-		current_running->cur_thread = current_running->pcthread;
-		next = &(current_running->cur_thread->context);
+		prev = &(cur_cpu()->context);
+		cur_cpu()->cur_thread = cur_cpu()->pcthread;
+		next = &(cur_cpu()->cur_thread->context);
 	}
-	else if (current_running->cur_thread->next == NULL)
+	else if (cur_cpu()->cur_thread->next == NULL)
 	{	/* The last child thread yields */
-		prev = &(current_running->cur_thread->context);
+		prev = &(cur_cpu()->cur_thread->context);
 		/* Switch to main thread */
-		current_running->cur_thread = NULL;
-		next = &(current_running->context);
+		cur_cpu()->cur_thread = NULL;
+		next = &(cur_cpu()->context);
 	}
 	else
 	{
 		/* A child thread yields to another child thread */
-		prev = &(current_running->cur_thread->context);
-		current_running->cur_thread = current_running->cur_thread->next;
-		next = &(current_running->cur_thread->context);
+		prev = &(cur_cpu()->cur_thread->context);
+		cur_cpu()->cur_thread = cur_cpu()->cur_thread->next;
+		next = &(cur_cpu()->cur_thread->context);
 	}
 	thswitch_to(prev, next);
-	if (current_running->cur_thread != NULL)
-		return (long)current_running->cur_thread->arg;
+	if (cur_cpu()->cur_thread != NULL)
+		return (long)cur_cpu()->cur_thread->arg;
 	/*
 	 * To support the argument passed to the new born thread.
 	 * The value of arg will finally be written in $a0 after RESTORE_CONTEXT.
@@ -120,16 +122,16 @@ tid_t thread_kill(tid_t const T)
 {
 	tcb_t *pt, *pd;
 
-	if (current_running->cur_thread != NULL)
+	if (cur_cpu()->cur_thread != NULL)
 		/* Only main thread can call this */
 		return INVALID_TID;
-	if ((pt = ltcb_search_node(current_running->pcthread, T)) == NULL)
+	if ((pt = ltcb_search_node(cur_cpu()->pcthread, T)) == NULL)
 		/* Not found */
 		return INVALID_TID;
-	current_running->pcthread = ltcb_del_node(current_running->pcthread, pt, &pd);
+	cur_cpu()->pcthread = ltcb_del_node(cur_cpu()->pcthread, pt, &pd);
 	if (pd == NULL)
 		panic_g("thread_kill: thread %d of precess %d found but cannot be deleted",
-			T, current_running->pid);
+			T, cur_cpu()->pid);
 	ufree_g((void *)pd->stack);
 	kfree_g((void *)pd);
 	return T;
@@ -137,42 +139,42 @@ tid_t thread_kill(tid_t const T)
 
 static void thswitch_to(switchto_context_t *prev, switchto_context_t *next)
 {
-	prev->sepc = current_running->trapframe->sepc;
-	prev->regs[SR_RA] = current_running->trapframe->regs[OFFSET_REG_RA / sizeof(reg_t)];
-	prev->regs[SR_SP] = current_running->trapframe->regs[OFFSET_REG_SP / sizeof(reg_t)];
-	if (prev->regs[SR_SP] != current_running->user_sp)
+	prev->sepc = cur_cpu()->trapframe->sepc;
+	prev->regs[SR_RA] = cur_cpu()->trapframe->regs[OFFSET_REG_RA / sizeof(reg_t)];
+	prev->regs[SR_SP] = cur_cpu()->trapframe->regs[OFFSET_REG_SP / sizeof(reg_t)];
+	if (prev->regs[SR_SP] != cur_cpu()->user_sp)
 		/*
 		 * In SAVE_CONTEXT, user stack pointer is saved in both trapframe->regs[SP]
 		 * and user_sp. They must be the same.
 		 */
-		panic_g("thswitch_to: tarpframe->regs[SP] is not equal to current_running->user_sp!");
-	prev->regs[SR_S0] = current_running->trapframe->regs[OFFSET_REG_S0 / sizeof(reg_t)];
-	prev->regs[SR_S1] = current_running->trapframe->regs[OFFSET_REG_S1 / sizeof(reg_t)];
-	prev->regs[SR_S2] = current_running->trapframe->regs[OFFSET_REG_S2 / sizeof(reg_t)];
-	prev->regs[SR_S3] = current_running->trapframe->regs[OFFSET_REG_S3 / sizeof(reg_t)];
-	prev->regs[SR_S4] = current_running->trapframe->regs[OFFSET_REG_S4 / sizeof(reg_t)];
-	prev->regs[SR_S5] = current_running->trapframe->regs[OFFSET_REG_S5 / sizeof(reg_t)];
-	prev->regs[SR_S6] = current_running->trapframe->regs[OFFSET_REG_S6 / sizeof(reg_t)];
-	prev->regs[SR_S7] = current_running->trapframe->regs[OFFSET_REG_S7 / sizeof(reg_t)];
-	prev->regs[SR_S8] = current_running->trapframe->regs[OFFSET_REG_S8 / sizeof(reg_t)];
-	prev->regs[SR_S9] = current_running->trapframe->regs[OFFSET_REG_S9 / sizeof(reg_t)];
-	prev->regs[SR_S10] = current_running->trapframe->regs[OFFSET_REG_S10 / sizeof(reg_t)];
-	prev->regs[SR_S11] = current_running->trapframe->regs[OFFSET_REG_S11 / sizeof(reg_t)];
+		panic_g("thswitch_to: tarpframe->regs[SP] is not equal to cur_cpu()->user_sp!");
+	prev->regs[SR_S0] = cur_cpu()->trapframe->regs[OFFSET_REG_S0 / sizeof(reg_t)];
+	prev->regs[SR_S1] = cur_cpu()->trapframe->regs[OFFSET_REG_S1 / sizeof(reg_t)];
+	prev->regs[SR_S2] = cur_cpu()->trapframe->regs[OFFSET_REG_S2 / sizeof(reg_t)];
+	prev->regs[SR_S3] = cur_cpu()->trapframe->regs[OFFSET_REG_S3 / sizeof(reg_t)];
+	prev->regs[SR_S4] = cur_cpu()->trapframe->regs[OFFSET_REG_S4 / sizeof(reg_t)];
+	prev->regs[SR_S5] = cur_cpu()->trapframe->regs[OFFSET_REG_S5 / sizeof(reg_t)];
+	prev->regs[SR_S6] = cur_cpu()->trapframe->regs[OFFSET_REG_S6 / sizeof(reg_t)];
+	prev->regs[SR_S7] = cur_cpu()->trapframe->regs[OFFSET_REG_S7 / sizeof(reg_t)];
+	prev->regs[SR_S8] = cur_cpu()->trapframe->regs[OFFSET_REG_S8 / sizeof(reg_t)];
+	prev->regs[SR_S9] = cur_cpu()->trapframe->regs[OFFSET_REG_S9 / sizeof(reg_t)];
+	prev->regs[SR_S10] = cur_cpu()->trapframe->regs[OFFSET_REG_S10 / sizeof(reg_t)];
+	prev->regs[SR_S11] = cur_cpu()->trapframe->regs[OFFSET_REG_S11 / sizeof(reg_t)];
 
-	current_running->trapframe->sepc = next->sepc;
-	current_running->trapframe->regs[OFFSET_REG_RA / sizeof(reg_t)] = next->regs[SR_RA];
-	current_running->trapframe->regs[OFFSET_REG_SP / sizeof(reg_t)] = next->regs[SR_SP];
-	current_running->user_sp = next->regs[SR_SP];
-	current_running->trapframe->regs[OFFSET_REG_S0 / sizeof(reg_t)] = next->regs[SR_S0];
-	current_running->trapframe->regs[OFFSET_REG_S1 / sizeof(reg_t)] = next->regs[SR_S1];
-	current_running->trapframe->regs[OFFSET_REG_S2 / sizeof(reg_t)] = next->regs[SR_S2];
-	current_running->trapframe->regs[OFFSET_REG_S3 / sizeof(reg_t)] = next->regs[SR_S3];
-	current_running->trapframe->regs[OFFSET_REG_S4 / sizeof(reg_t)] = next->regs[SR_S4];
-	current_running->trapframe->regs[OFFSET_REG_S5 / sizeof(reg_t)] = next->regs[SR_S5];
-	current_running->trapframe->regs[OFFSET_REG_S6 / sizeof(reg_t)] = next->regs[SR_S6];
-	current_running->trapframe->regs[OFFSET_REG_S7 / sizeof(reg_t)] = next->regs[SR_S7];
-	current_running->trapframe->regs[OFFSET_REG_S8 / sizeof(reg_t)] = next->regs[SR_S8];
-	current_running->trapframe->regs[OFFSET_REG_S9 / sizeof(reg_t)] = next->regs[SR_S9];
-	current_running->trapframe->regs[OFFSET_REG_S10 / sizeof(reg_t)] = next->regs[SR_S10];
-	current_running->trapframe->regs[OFFSET_REG_S11 / sizeof(reg_t)] = next->regs[SR_S11];
+	cur_cpu()->trapframe->sepc = next->sepc;
+	cur_cpu()->trapframe->regs[OFFSET_REG_RA / sizeof(reg_t)] = next->regs[SR_RA];
+	cur_cpu()->trapframe->regs[OFFSET_REG_SP / sizeof(reg_t)] = next->regs[SR_SP];
+	cur_cpu()->user_sp = next->regs[SR_SP];
+	cur_cpu()->trapframe->regs[OFFSET_REG_S0 / sizeof(reg_t)] = next->regs[SR_S0];
+	cur_cpu()->trapframe->regs[OFFSET_REG_S1 / sizeof(reg_t)] = next->regs[SR_S1];
+	cur_cpu()->trapframe->regs[OFFSET_REG_S2 / sizeof(reg_t)] = next->regs[SR_S2];
+	cur_cpu()->trapframe->regs[OFFSET_REG_S3 / sizeof(reg_t)] = next->regs[SR_S3];
+	cur_cpu()->trapframe->regs[OFFSET_REG_S4 / sizeof(reg_t)] = next->regs[SR_S4];
+	cur_cpu()->trapframe->regs[OFFSET_REG_S5 / sizeof(reg_t)] = next->regs[SR_S5];
+	cur_cpu()->trapframe->regs[OFFSET_REG_S6 / sizeof(reg_t)] = next->regs[SR_S6];
+	cur_cpu()->trapframe->regs[OFFSET_REG_S7 / sizeof(reg_t)] = next->regs[SR_S7];
+	cur_cpu()->trapframe->regs[OFFSET_REG_S8 / sizeof(reg_t)] = next->regs[SR_S8];
+	cur_cpu()->trapframe->regs[OFFSET_REG_S9 / sizeof(reg_t)] = next->regs[SR_S9];
+	cur_cpu()->trapframe->regs[OFFSET_REG_S10 / sizeof(reg_t)] = next->regs[SR_S10];
+	cur_cpu()->trapframe->regs[OFFSET_REG_S11 / sizeof(reg_t)] = next->regs[SR_S11];
 }

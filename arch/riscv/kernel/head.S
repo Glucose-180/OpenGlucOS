@@ -13,12 +13,16 @@
 #include <csr.h>
 
 #define KERNEL_STACK		0x50500000
+#define KERNEL_STACK_S		0x50400000	/* for secondary CPU */
 
 .section ".entry_function","ax"
 ENTRY(_start)
 	/* Mask all interrupts */
 	csrw	CSR_SIE, zero
 	csrw	CSR_SIP, zero
+
+	csrr	t0, CSR_MHARTID
+	bne		t0, zero, secondary
 
 	/* TODO: [p1-task2] clear BSS for flat non-ELF images */
 	la	t1, __bss_start	# the start of .bss is the ADDRESS of __bss_start,
@@ -39,5 +43,13 @@ LE:
 loop:
 	wfi
 	j loop
+
+secondary:
+	li	sp, KERNEL_STACK_S
+	mv	fp, sp
+	jal	main_s
+loop_s:
+	wfi
+	j	loop_s
 
 END(_start)

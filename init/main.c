@@ -99,20 +99,25 @@ static void init_pcb(void)
 	pcb_t *temp;
 
 	ready_queue = NULL;
-	ready_queue = lpcb_add_node_to_tail(ready_queue, &current_running, &ready_queue);
+	ready_queue = lpcb_add_node_to_tail(ready_queue, &current_running[0], &ready_queue);
+	ready_queue = lpcb_add_node_to_tail(ready_queue, &current_running[1], &ready_queue);
 	/*
 	 * NOTE: current_running->phead is ensured in definition of pid0_pcb
 	 */
-	if (ready_queue == NULL)
+	if (ready_queue == NULL || ready_queue->next == ready_queue)
 		panic_g("init_pcb: Failed to init ready_queue");
 	/*
 	 * I'm not sure whether "*current_running = pid0_pcb;" will
 	 * change its member "next" or not. So I use "temp" to save it.
 	 */
-	temp = current_running->next;
-	*current_running = pid0_pcb;
-	current_running->next = temp;
-	if (pcb_table_add(current_running) < 0)
+	temp = current_running[0]->next;
+	*current_running[0] = pid0_pcb;
+	current_running[0]->next = temp;
+	temp = current_running[1]->next;
+	*current_running[1] = pid1_pcb;
+	current_running[1]->next = temp;
+	if (pcb_table_add(current_running[0]) < 0 ||
+		pcb_table_add(current_running[1]) < 0)
 		panic_g("init_pcb: Failed to add 0 to pcb_table");
 }
 
@@ -282,5 +287,12 @@ loc_wfi:
 	while (1)
 		asm volatile("wfi");
 
+	return 0;
+}
+
+/* For secondary CPU */
+int main_s(void)
+{
+	//TODO
 	return 0;
 }

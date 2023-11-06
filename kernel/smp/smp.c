@@ -23,3 +23,11 @@ void unlock_kernel()
 {
 	/* TODO: P3-TASK3 multicore*/
 }
+
+pcb_t *cur_cpu(void)
+{
+	if (get_current_cpu_id() != 0U)
+		return current_running[1];
+	else
+		return current_running[0];
+}

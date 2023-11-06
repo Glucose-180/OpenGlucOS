@@ -17,8 +17,15 @@
 	bne	t0, zero, Exc_from_S_mode
 
 Exc_from_U_mode:
+	csrr	t0, CSR_MHARTID
+	bne	t0, zero, 1f
 	la	t0, current_running
-	ld	t0, 0(t0)	/* Now $t0 equals current_running, or c.r. */
+	ld	t0, 0(t0)	/* Now $t0 equals current_running[0], or c.r. */
+	j	2f
+1:
+	la	t0, current_running
+	ld	t0, 8(t0)	/* Now $t0 equals current_running[1], or c.r. */
+2:
 	sd	sp, PCB_USER_SP(t0)	/* c.r.->user_sp := $sp */
 	ld	sp, PCB_KERNEL_SP(t0)	/* $sp := c.r.->kernel_sp */
 	addi	sp, sp, -OFFSET_SIZE		/* $sp := $sp - sizeof(regs_context_t) */
@@ -29,8 +36,15 @@ Exc_from_S_mode:
 	 * Exception from S-Mode:
 	 * Don't load kernel_sp from PCB!
 	 */
+	csrr	t0, CSR_MHARTID
+	bne	t0, zero, 1f
 	la	t0, current_running
-	ld	t0, 0(t0)	/* Now $t0 equals current_running, or c.r. */
+	ld	t0, 0(t0)	/* Now $t0 equals current_running[0], or c.r. */
+	j	2f
+1:
+	la	t0, current_running
+	ld	t0, 8(t0)	/* Now $t0 equals current_running[1], or c.r. */
+2:
 	sd	sp, PCB_USER_SP(t0)	/* c.r.->user_sp := $sp */
 	addi	sp, sp, -OFFSET_SIZE		/* $sp := $sp - sizeof(regs_context_t) */
 
@@ -110,8 +124,15 @@ Save_gprs:
 .macro RESTORE_CONTEXT
 	/* TODO: Restore all general purpose registers and sepc, sstatus */
 	/* HINT: Pay attention to sp again! */
+	csrr	t0, CSR_MHARTID
+	bne	t0, zero, 1f
 	la	t0, current_running
-	ld	t0, 0(t0)	/* $t0 := c.r. */
+	ld	t0, 0(t0)	/* Now $t0 equals current_running[0], or c.r. */
+	j	2f
+1:
+	la	t0, current_running
+	ld	t0, 8(t0)	/* Now $t0 equals current_running[1], or c.r. */
+2:
 
 	ld	sp, PCB_TRAPFRAME(t0)	/* $sp := c.r.->trapframe */
 
@@ -241,8 +262,16 @@ ENTRY(switch_to)
  * NOTE: please ensure that the current_running points to
  * the new process's PCB before calling switch_to.
  */
+	csrr	t0, CSR_MHARTID
+	bne	t0, zero, 1f
 	la	t0, current_running
-	ld	tp, 0(t0)
+	ld	tp, 0(t0)	/* Now $tp equals current_running[0], or c.r. */
+	j	2f
+1:
+	la	t0, current_running
+	ld	tp, 8(t0)	/* Now $tp equals current_running[1], or c.r. */
+2:
+	//ld	tp, 0(t0)
 	ret
 
 ENDPROC(switch_to)
@@ -257,8 +286,15 @@ ENTRY(ret_from_exception)
 	 */
 	//call	enable_interrupt
 
+	csrr	t0, CSR_MHARTID
+	bne	t0, zero, 1f
 	la	t0, current_running
-	ld	t0, 0(t0)	/* $t0 := c.r. */
+	ld	t0, 0(t0)	/* Now $t0 equals current_running[0], or c.r. */
+	j	2f
+1:
+	la	t0, current_running
+	ld	t0, 8(t0)	/* Now $t0 equals current_running[1], or c.r. */
+2:
 	ld	t0, PCB_TRAPFRAME(t0)	/* $t0 := c.r.->trapframe */
 	ld	t2, OFFSET_REG_SCAUSE(t0)	/* $t2 := c.r.->trapframe->scause */
 	li	t1, 8
@@ -290,8 +326,15 @@ ENTRY(exception_handler_entry)
 	/* TODO: [p2-task3] call interrupt_helper
 	 * NOTE: don't forget to pass parameters for it.
 	 */
+	csrr	t0, CSR_MHARTID
+	bne	t0, zero, 1f
 	la	t0, current_running
-	ld	t0, 0(t0)	/* $t0 := c.r. */
+	ld	t0, 0(t0)	/* Now $t0 equals current_running[0], or c.r. */
+	j	2f
+1:
+	la	t0, current_running
+	ld	t0, 8(t0)	/* Now $t0 equals current_running[1], or c.r. */
+2:
 	ld	a0, PCB_TRAPFRAME(t0)	/* $a0 := c.r.->trapframe */
 	ld	a1, OFFSET_REG_SBADADDR(a0)
 	ld	a2, OFFSET_REG_SCAUSE(a0)

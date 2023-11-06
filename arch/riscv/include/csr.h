@@ -18,6 +18,8 @@
 #define SR_FS_CLEAN     0x00004000
 #define SR_FS_DIRTY     0x00006000
 
+#define SR_SSIE			0x00000002 /* SSIE of $sie */
+
 #define SR_XS           0x00018000 /* Extension Status */
 #define SR_XS_OFF       0x00000000
 #define SR_XS_INITIAL   0x00008000

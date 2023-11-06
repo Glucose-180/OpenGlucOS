@@ -2,7 +2,7 @@
  * Callings of vt100_move_cursor has been modified by Glucose180.
  * As I find that the cursor on the screen is started from 1 rather than 0,
  * the arguments for calling vt100_move_cursor should be 1 greater than
- * current_running->cursor_x/y.
+ * cur_cpu()->cursor_x/y.
  */
 #include <screen.h>
 #include <printk.h>
@@ -11,6 +11,8 @@
 #include <os/irq.h>
 #include <os/kernel.h>
 #include <os/ctype.h>
+
+#include <os/smp.h>
 
 #define SCREEN_WIDTH    80
 #define SCREEN_HEIGHT   50
@@ -55,48 +57,48 @@ void screen_write_ch(char ch)
 	if (ch == '\n')
 	{
 write_lf:
-		current_running->cursor_x = 0;
-		if (current_running->cursor_y < SCREEN_HEIGHT - 1)
+		cur_cpu()->cursor_x = 0;
+		if (cur_cpu()->cursor_y < SCREEN_HEIGHT - 1)
 		{
-			current_running->cursor_y++;
+			cur_cpu()->cursor_y++;
 			flag_limited = 0;
 		}
 		else
 			flag_limited = 1;
-		if (current_running->cylim_l >= 0 &&	/* Auto scroll */
-			current_running->cylim_h >= current_running->cylim_l &&
+		if (cur_cpu()->cylim_l >= 0 &&	/* Auto scroll */
+			cur_cpu()->cylim_h >= cur_cpu()->cylim_l &&
 			(
-				current_running->cursor_y > current_running->cylim_h ||
+				cur_cpu()->cursor_y > cur_cpu()->cylim_h ||
 				flag_limited == 1
 			)
 		)
 		{
 			int y, x;
-			for (y = current_running->cylim_l; y < current_running->cylim_h; ++y)
+			for (y = cur_cpu()->cylim_l; y < cur_cpu()->cylim_h; ++y)
 			{
 				for (x = 0; x < SCREEN_WIDTH; ++x)
 					new_screen[SCREEN_LOC(x, y)] = new_screen[SCREEN_LOC(x, y + 1)];
 			}
-			current_running->cursor_y = y;
+			cur_cpu()->cursor_y = y;
 			for (x = 0; x < SCREEN_WIDTH; ++x)
-				new_screen[SCREEN_LOC(x, current_running->cursor_y)] = ' ';
+				new_screen[SCREEN_LOC(x, cur_cpu()->cursor_y)] = ' ';
 		}
 		return;
 	}
 	else if (ch == '\b' || ch == '\177')
 	{	/* Backspace: by Glucose180 */
-		if (current_running->cursor_x > 0)
-			current_running->cursor_x--;
-		else if (current_running->cursor_y > 0)
+		if (cur_cpu()->cursor_x > 0)
+			cur_cpu()->cursor_x--;
+		else if (cur_cpu()->cursor_y > 0)
 		{
-			current_running->cursor_y--;
-			current_running->cursor_x = SCREEN_WIDTH - 1;
+			cur_cpu()->cursor_y--;
+			cur_cpu()->cursor_x = SCREEN_WIDTH - 1;
 		}
 	}
 	else
 	{
-		new_screen[SCREEN_LOC(current_running->cursor_x, current_running->cursor_y)] = ch;
-		if (++current_running->cursor_x >= SCREEN_WIDTH)
+		new_screen[SCREEN_LOC(cur_cpu()->cursor_x, cur_cpu()->cursor_y)] = ch;
+		if (++cur_cpu()->cursor_x >= SCREEN_WIDTH)
 		{
 			goto write_lf;
 		}
@@ -114,6 +116,7 @@ void init_screen(void)
 void screen_clear(void)
 {
 	int i, j;
+
 	for (i = 0; i < SCREEN_HEIGHT; i++)
 	{
 		for (j = 0; j < SCREEN_WIDTH; j++)
@@ -121,8 +124,8 @@ void screen_clear(void)
 			new_screen[SCREEN_LOC(j, i)] = ' ';
 		}
 	}
-	current_running->cursor_x = 0;
-	current_running->cursor_y = 0;
+	cur_cpu()->cursor_x = 0;
+	cur_cpu()->cursor_y = 0;
 	screen_reflush();
 }
 
@@ -151,8 +154,8 @@ void screen_move_cursor(int x, int y)
 		y = SCREEN_HEIGHT - 1;
 	else if (y < 0)
 		y = 0;
-	current_running->cursor_x = x;
-	current_running->cursor_y = y;
+	cur_cpu()->cursor_x = x;
+	cur_cpu()->cursor_y = y;
 	vt100_move_cursor(x + 1, y + 1);
 }
 
@@ -193,12 +196,13 @@ void screen_reflush(void)
 	}
 
 	/* recover cursor position */
-	vt100_move_cursor(current_running->cursor_x + 1, current_running->cursor_y + 1);
+	vt100_move_cursor(cur_cpu()->cursor_x + 1,
+		cur_cpu()->cursor_y + 1);
 }
 
 /* Set cursor y limit */
 void screen_set_cylim(int cylim_l, int cylim_h)
 {
-	current_running->cylim_l = cylim_l;
-	current_running->cylim_h = cylim_h;
+	cur_cpu()->cylim_l = cylim_l;
+	cur_cpu()->cylim_h = cylim_h;
 }

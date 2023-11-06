@@ -1,5 +1,6 @@
 #include <os/lock.h>
 #include <os/glucose.h>
+#include <os/smp.h>
 
 static mailbox_t mailboxes[MBOX_NUM];
 
@@ -82,7 +83,7 @@ int do_mbox_open(const char *name)
 	spin_lock_acquire(&mailboxes[midx].slock);
 	if (mailboxes[midx].opid == INVALID_PID)
 	{	/* This mailbox is NOT in use */
-		mailboxes[midx].opid = current_running->pid;
+		mailboxes[midx].opid = cur_cpu()->pid;
 		mailboxes[midx].block_queue_r = NULL;
 		mailboxes[midx].block_queue_s = NULL;
 		mailboxes[midx].buf_head = 0U;
@@ -141,7 +142,7 @@ int do_mbox_send(int midx, const uint8_t* msg, unsigned int msg_length)
 	while (MAX_MBOX_LENGTH - len_of_queue(midx) < msg_length)
 	{
 		++block_ymr;
-		current_running->req_len = msg_length;
+		cur_cpu()->req_len = msg_length;
 		do_block(&(ptmbox->block_queue_s), &(ptmbox->slock));
 		/*
 		 * If this process is woken up because the mailbox is closed,
@@ -192,7 +193,7 @@ int do_mbox_recv(int midx, uint8_t* msg, unsigned int msg_length)
 	while (len_of_queue(midx) < msg_length)
 	{
 		++block_ymr;
-		current_running->req_len = msg_length;
+		cur_cpu()->req_len = msg_length;
 		do_block(&(ptmbox->block_queue_r), &(ptmbox->slock));
 		/*
 		 * If this process is woken up because the mailbox is closed,

@@ -1,4 +1,5 @@
 #include <asm/biosdef.h>
+#include <csr.h>
 
 # os size location (os_size could be sectors [p1-task3] or bytes [p1-task4])
 .equ os_size_loc, 0x50200104 # address of kernel size, unit: sector
@@ -45,6 +46,16 @@ secondary:
 	 * 2. let stvec pointer to kernel_main
 	 * 3. enable software interrupt for ipi
 	 */
+	csrw	CSR_SIE, zero
+	csrw	CSR_SIP, zero
+
+	li	t0, kernel
+	not	t1, zero
+	slli	t1, t1, 2	/* $t1 := 0b1...100 */
+	and	t0, t0, t1	/* Clear low 2 bits to represent Direct mode */
+	csrw	CSR_STVEC, t0
+
+	csrw	CSR_SIE, SR_SSIE
 
 wait_for_wakeup:
 	wfi

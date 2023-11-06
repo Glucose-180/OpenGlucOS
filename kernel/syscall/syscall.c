@@ -1,6 +1,7 @@
 #include <sys/syscall.h>
 #include <os/glucose.h>
 #include <printk.h>
+#include <os/smp.h>
 
 long (*syscall[NUM_SYSCALLS])();
 
@@ -27,7 +28,7 @@ void handle_syscall(regs_context_t *regs, uint64_t interrupt, uint64_t cause)
 
 void invalid_syscall(long sysno, long arg0, long arg1, long arg2, long arg3, long arg4)
 {
-	if (current_running->pid != 0)
+	if (cur_cpu()->pid != 0 && cur_cpu()->pid != 1)
 	{
 		printk("**Invalid syscall %ld\n", sysno);
 		do_exit();

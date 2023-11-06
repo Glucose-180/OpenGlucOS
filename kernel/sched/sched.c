@@ -16,12 +16,14 @@
 #include <asm/regs.h>
 #include <csr.h>
 #include <os/irq.h>
+#include <os/smp.h>
 
 //pcb_t pcb[UPROC_MAX];
 /*
  * Has been modified by Glucose180
  */
-const ptr_t pid0_stack = INIT_KERNEL_STACK;// + PAGE_SIZE;
+const ptr_t pid0_stack = INIT_KERNEL_STACK,// + PAGE_SIZE;
+	pid1_stack = INIT_KERNEL_STACK_S;
 
 /*
  * The default size for a user stack and kernel stack.
@@ -51,6 +53,25 @@ pcb_t pid0_pcb = {
 	.phead = &ready_queue
 };
 
+/* It is used for secondary CPU */
+pcb_t pid1_pcb = {
+	.pid = 1,
+	.kernel_sp = (ptr_t)pid1_stack,
+	.user_sp = (ptr_t)pid1_stack,
+	.trapframe = (void *)pid1_stack,
+	/* Add more info */
+	.status = TASK_RUNNING,
+	.wait_queue = NULL,
+	.name = "_main_s",
+	.cursor_x = 0,
+	.cursor_y = 0,
+	.cylim_h = -1,
+	.cylim_l = -1,
+	.pcthread = NULL,
+	/* to make pid0_pcb.phead point to ready_queue */
+	.phead = &ready_queue
+};
+
 //LIST_HEAD(ready_queue);
 /*
  * Circular queue (linked list) of all READY and RUNNING processes
@@ -63,7 +84,7 @@ pcb_t *ready_queue;
 pcb_t *sleep_queue;
 
 /* current running task PCB */
-pcb_t * volatile current_running;
+pcb_t * volatile current_running[2];
 
 /* global process id */
 pid_t process_id = 1;
@@ -118,7 +139,7 @@ pid_t create_proc(const char *taskname)
 	/*if (p0 != NULL)
 	{	// Has removed the 0 proc
 		p0->next = ready_queue;
-		if (p0 != current_running)
+		if (p0 != cur_cpu())
 			panic_g("create_proc: Error happened while removing the proc 0");
 	}*/
 	/*
@@ -140,6 +161,7 @@ pid_t create_proc(const char *taskname)
 void do_scheduler(void)
 {
 	pcb_t *p, *q;
+	uint64_t isscpu = is_scpu();
 	// TODO: [p2-task3] Check sleep queue to wake up PCBs
 
 	/************************************************************/
@@ -147,19 +169,19 @@ void do_scheduler(void)
 	/************************************************************/
 
 	check_sleeping();
-	if (current_running != NULL)
+	if (cur_cpu() != NULL)
 	{
 		pcb_t *nextp;
-		for (p = current_running->next; p != current_running; p = nextp)
+		for (p = cur_cpu()->next; p != cur_cpu(); p = nextp)
 		{	/* Search the linked list and find a READY process */
 			nextp = p->next;	/* Store p->next in case of it is killed */
-			if (p->status == TASK_READY)
-			{
-				if (current_running->status != TASK_EXITED)
-					current_running->status = TASK_READY;
-				q = current_running;
-				current_running = p;
-				current_running->status = TASK_RUNNING;
+			if (p->status == TASK_READY && p->pid + cur_cpu()->pid != 1)
+			{	/* The second condition is to ignore main() of the other CPU */
+				if (cur_cpu()->status != TASK_EXITED)
+					cur_cpu()->status = TASK_READY;
+				q = cur_cpu();
+				current_running[isscpu] = p;
+				cur_cpu()->status = TASK_RUNNING;
 				/*
 				 * Define MULTITHREADING as 1 to support multithreading. When switch_to()
 				 * is called, we should first determine which thread will be switched from
@@ -167,24 +189,24 @@ void do_scheduler(void)
 				 */
 #if MULTITHREADING != 0
 				switch_to(q->cur_thread == NULL ? &(q->context) : &(q->cur_thread->context),
-					current_running->cur_thread == NULL ? &(current_running->context)
-					: &(current_running->cur_thread->context)
+					cur_cpu()->cur_thread == NULL ? &(cur_cpu()->context)
+					: &(cur_cpu()->cur_thread->context)
 				);
 #else
-				switch_to(&(q->context), &(current_running->context));
+				switch_to(&(q->context), &(cur_cpu()->context));
 #endif
 				return;
 			}
 			else if (p->status == TASK_EXITED)
 			{
 				pid_t kpid = p->pid;
-				if (kpid == current_running->pid || kpid != do_kill(kpid))
+				if (kpid == cur_cpu()->pid || kpid != do_kill(kpid))
 					panic_g("do_scheduler: Failed to kill proc %d", p->pid);
 			}
 		}
-		if (current_running->pid != 0)
+		if (cur_cpu()->pid != 0 && cur_cpu()->pid != 1)
 			/*
-			 * If current_running->pid is not 0, then
+			 * If cur_cpu()->pid is not 0, then
 			 * a ready process must be found, because GlucOS keep
 			 * main() of kernel as a proc with PID 0.
 			 */
@@ -192,20 +214,21 @@ void do_scheduler(void)
 		return;
 	}
 	else
-		panic_g("do_scheduler: current_running is NULL");
+		panic_g("do_scheduler: cur_cpu() is NULL");
 }
 
 void do_sleep(uint32_t sleep_time)
 {
 	// TODO: [p2-task3] sleep(seconds)
 	// NOTE: you can assume: 1 second = 1 `timebase` ticks
-	// 1. block the current_running
+	// 1. block the cur_cpu()
 	// 2. set the wake up time for the blocked task
-	// 3. reschedule because the current_running is blocked.
+	// 3. reschedule because the cur_cpu() is blocked.
 	pcb_t *temp, *psleep;
+	uint64_t isscpu = is_scpu();
 
-	for (temp = current_running->next; temp != current_running; temp = temp->next)
-		if (temp->status == TASK_READY)
+	for (temp = cur_cpu()->next; temp != cur_cpu(); temp = temp->next)
+		if (temp->status == TASK_READY && temp->pid + cur_cpu()->pid != 1)
 			break;
 	if (temp->status != TASK_READY)
 		/*
@@ -214,34 +237,34 @@ void do_sleep(uint32_t sleep_time)
 		*/
 		panic_g("do_sleep: Cannot find a READY process");
 
-	ready_queue = lpcb_del_node(ready_queue, current_running, &psleep);
-	if (psleep != current_running)
-		panic_g("do_sleep: Failed to remove current_running");
+	ready_queue = lpcb_del_node(ready_queue, cur_cpu(), &psleep);
+	if (psleep != cur_cpu())
+		panic_g("do_sleep: Failed to remove cur_cpu()");
 	if (ready_queue == NULL)
 		/*
-		 * Note that now we don't permit current_running == NULL,
+		 * Note that now we don't permit cur_cpu() == NULL,
 		 * so this would cause PANIC!
 		 */
-		current_running = NULL;
+		current_running[isscpu] = NULL;
 	else
-		current_running = temp;
+		current_running[isscpu] = temp;
 	if ((sleep_queue = lpcb_insert_node(sleep_queue, psleep, NULL, &sleep_queue)) == NULL)
 		panic_g("do_sleep: Failed to insert proc %d to sleep_queue", psleep->pid);
 	psleep->status = TASK_SLEEPING;
 	if ((psleep->wakeup_time = get_timer() + sleep_time) > time_max_sec)
 		/* Avoid creating a sleeping task that would never be woken up */
 		psleep->wakeup_time = time_max_sec;
-	if (current_running == NULL)
+	if (cur_cpu() == NULL)
 		do_scheduler();
 	else
 #if MULTITHREADING != 0
 		switch_to(psleep->cur_thread == NULL ? &(psleep->context)
 			: &(psleep->cur_thread->context),
-			current_running->cur_thread == NULL ? &(current_running->context)
-			: &(current_running->cur_thread->context)
+			cur_cpu()->cur_thread == NULL ? &(cur_cpu()->context)
+			: &(cur_cpu()->cur_thread->context)
 		);
 #else
-		switch_to(&(psleep->context), &(current_running->context));
+		switch_to(&(psleep->context), &(cur_cpu()->context));
 #endif
 }
 
@@ -289,7 +312,7 @@ err:
 
 /*
  * wake_up: remove *T from sleep_queue and insert it
- * to ready_queue after *current_running.
+ * to ready_queue after *cur_cpu().
  */
 void wake_up(pcb_t * const T)
 {
@@ -301,24 +324,24 @@ void wake_up(pcb_t * const T)
 	if (pw != T)
 		goto err;
 	pw->status = TASK_READY;
-	ready_queue = lpcb_insert_node(ready_queue, pw, current_running, &ready_queue);
+	ready_queue = lpcb_insert_node(ready_queue, pw, cur_cpu(), &ready_queue);
 	if (ready_queue == NULL)
 		goto err;
-	if (current_running == NULL)
+	if (cur_cpu() == NULL)
 		/*
-		 * current_running == NULL means that *pw is joining
+		 * cur_cpu() == NULL means that *pw is joining
 		 * an empty ready_queue, so run it just now by setting
-		 * current_running = ready_queue. Or no task will be
+		 * cur_cpu() = ready_queue. Or no task will be
 		 * run and the system will loop forever.
 		 */
-		current_running = ready_queue;
+		current_running[is_scpu()] = ready_queue;
 	return;
 err:
 	panic_g("wake_up: Failed to wake up proc %d", T->pid);
 }
 
 /*
- * Insert *current_running to tail of *Pqueue, RELEASE spin lock slock
+ * Insert *cur_cpu() to tail of *Pqueue, RELEASE spin lock slock
  * (if it is not NULL) and then reschedule.
  * The lock will be reacquired after being unblocked.
  * Returns: 0 if switch_to() is called, 1 otherwise.
@@ -328,17 +351,17 @@ int do_block(pcb_t ** const Pqueue, spin_lock_t *slock)
 	// TODO: [p2-task2] block the pcb task into the block queue
 	pcb_t *p, *q, *temp;
 
-	for (p = current_running->next; p != current_running; p = p->next)
+	for (p = cur_cpu()->next; p != cur_cpu(); p = p->next)
 	{
-		if (p->status == TASK_READY)
+		if (p->status == TASK_READY && p->pid + cur_cpu()->pid != 1)
 		{
-			q = current_running;
-			current_running = p;
-			current_running->status = TASK_RUNNING;
+			q = cur_cpu();
+			current_running[is_scpu()] = p;
+			cur_cpu()->status = TASK_RUNNING;
 			ready_queue = lpcb_del_node(ready_queue, q, &p);
 			if (p != q)
 				panic_g("do_block: Failed to remove"
-					" current_running from ready_queue");
+					" cur_cpu() from ready_queue");
 			//ptlock->block_queue = do_block(p, &(ptlock->block_queue));
 			p->status = TASK_SLEEPING;
 			temp = lpcb_insert_node(*Pqueue, p, NULL, Pqueue);
@@ -354,10 +377,10 @@ int do_block(pcb_t ** const Pqueue, spin_lock_t *slock)
 				spin_lock_release(slock);
 #if MULTITHREADING != 0
 			switch_to(p->cur_thread == NULL ? &(p->context) : &(p->cur_thread->context),
-				current_running->cur_thread == NULL ? &(current_running->context)
-				: &(current_running->cur_thread->context));
+				cur_cpu()->cur_thread == NULL ? &(cur_cpu()->context)
+				: &(cur_cpu()->cur_thread->context));
 #else
-			switch_to(&(p->context), &(current_running->context));
+			switch_to(&(p->context), &(cur_cpu()->context));
 #endif
 			/* Reacquire the spin lock */
 			if (slock != NULL)
@@ -375,7 +398,7 @@ int do_block(pcb_t ** const Pqueue, spin_lock_t *slock)
 
 /*
  * Remove the head from Queue, set its status to be READY
- * and insert it into ready_queue AFTER current_running.
+ * and insert it into ready_queue AFTER cur_cpu().
  * Return: new head of Queue.
  */
 pcb_t *do_unblock(pcb_t * const Queue)
@@ -394,7 +417,7 @@ pcb_t *do_unblock(pcb_t * const Queue)
 			panic_g("do_unblock: proc %d has error status %d",
 				prec->pid, (int)prec->status);
 	}	/* Don't change status TASK_EXITED. */
-	temp = lpcb_insert_node(ready_queue, prec, current_running, &ready_queue);
+	temp = lpcb_insert_node(ready_queue, prec, cur_cpu(), &ready_queue);
 	if (temp == NULL)
 		panic_g("do_unblock: Failed to insert process (PID=%d) to ready_queue", prec->pid);
 	ready_queue = temp;
@@ -511,7 +534,8 @@ int do_process_show(void)
 
 	for (i = 0; i < UPROC_MAX + 1; ++i)
 	{
-		if (pcb_table[i] != NULL && pcb_table[i]->pid != 0)
+		if (pcb_table[i] != NULL &&
+			pcb_table[i]->pid != 0 && pcb_table[i]->pid != 1)
 		{
 			++uproc_ymr;
 			p = pcb_table[i];
@@ -519,7 +543,7 @@ int do_process_show(void)
 				p->pid, Status[p->status], p->name);
 		}
 	}
-	if (uproc_ymr + 1 != get_proc_num())
+	if (uproc_ymr + 2 != get_proc_num())
 		panic_g("do_process_show: count of proc is error");
 	return uproc_ymr;
 }
@@ -596,12 +620,12 @@ pid_t do_kill(pid_t pid)
 {
 	pcb_t *p, **phead, *pdel;
 
-	if (pid == 0)
-		/* PID 0 cannot be killed */
+	if (pid == 0 || pid == 1)
+		/* PID 0, 1 cannot be killed */
 		return INVALID_PID;
-	if (current_running->pid == pid)
+	if (cur_cpu()->pid == pid)
 	{
-		current_running->status = TASK_EXITED;
+		cur_cpu()->status = TASK_EXITED;
 		do_scheduler();
 		panic_g("do_kill: proc %d is still running after killed", pid);
 	}
@@ -658,8 +682,8 @@ pid_t do_kill(pid_t pid)
 
 void do_exit(void)
 {
-	if (do_kill(current_running->pid) != current_running->pid)
-		panic_g("do_exit: proc %d failed to exit", current_running->pid);
+	if (do_kill(cur_cpu()->pid) != cur_cpu()->pid)
+		panic_g("do_exit: proc %d failed to exit", cur_cpu()->pid);
 }
 
 /*
@@ -675,11 +699,11 @@ pid_t do_waitpid(pid_t pid)
 	if ((p = pcb_search(pid)) == NULL)
 		return INVALID_PID;
 	
-	if (pid == current_running->pid)
+	if (pid == cur_cpu()->pid)
 		/* Cannot wait for itself. */
 		return INVALID_PID;
 	
-	if (lpcb_search_node(current_running->wait_queue, pid) != NULL)
+	if (lpcb_search_node(cur_cpu()->wait_queue, pid) != NULL)
 		/*
 		 * Cannot wait for a proc waiting for itself,
 		 * which causes "deadlock".
@@ -690,8 +714,8 @@ pid_t do_waitpid(pid_t pid)
 	return pid;
 }
 
-/* do_getpid: get current_running->pid */
+/* do_getpid: get cur_cpu()->pid */
 pid_t do_getpid(void)
 {
-	return current_running->pid;
+	return cur_cpu()->pid;
 }

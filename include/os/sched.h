@@ -172,12 +172,12 @@ extern pcb_t *ready_queue;
 extern pcb_t *sleep_queue;
 
 /* current running task PCB */
-extern pcb_t * volatile current_running;
+extern pcb_t * volatile current_running[2];
 extern pid_t process_id;
 
 //extern pcb_t pcb[UPROC_MAX];
-extern pcb_t pid0_pcb;
-extern const ptr_t pid0_stack;
+extern pcb_t pid0_pcb, pid1_pcb;
+extern const ptr_t pid0_stack, pid1_stack;
 
 /* The type of arguments has been modified from pcb_t* to switchto_context_t* */
 extern void switch_to(switchto_context_t *prev, switchto_context_t *next);

@@ -3,6 +3,7 @@
 #include <os/list.h>
 #include <atomic.h>
 #include <os/glucose.h>
+#include <os/smp.h>
 
 spin_lock_t slocks[SPINLOCK_NUM];
 static mutex_lock_t mlocks[LOCK_NUM];
@@ -125,12 +126,12 @@ int do_mutex_lock_acquire(int mlock_idx)
 	 */
 	spin_lock_acquire(&(ptlock->slock));
 
-	while (ptlock->status == LOCKED && ptlock->opid != current_running->pid)
+	while (ptlock->status == LOCKED && ptlock->opid != cur_cpu()->pid)
 	{
 		/* Should be blocked */
 		if (do_block(&(ptlock->block_queue), &(ptlock->slock)) != 0)
 		/*
-		 * block current_running process in block_queue and release the lock.
+		 * block cur_cpu() process in block_queue and release the lock.
 		 * The lock will be reacquired after being unblocked.
 		 */
 		{
@@ -141,7 +142,7 @@ int do_mutex_lock_acquire(int mlock_idx)
 	}
 	/* Acquire the mutex lock */
 	ptlock->status = LOCKED;
-	ptlock->opid = current_running->pid;
+	ptlock->opid = cur_cpu()->pid;
 	/* Remember to release the spin lock */
 	spin_lock_release(&(ptlock->slock));
 	return mlock_idx;
@@ -163,7 +164,7 @@ int do_mutex_lock_release(int mlock_idx)
 	spin_lock_acquire(&(ptlock->slock));
 
 	if (ptlock->status == LOCKED &&
-		ptlock->opid != current_running->pid)
+		ptlock->opid != cur_cpu()->pid)
 	{
 		spin_lock_release(&(ptlock->slock));
 		return -2;	/* The lock is LOCKED by other process */
@@ -268,7 +269,7 @@ int do_semaphore_init(int key, int value)
 		rt = INT32_MIN;
 	else
 	{
-		semaphores[sidx].opid = current_running->pid;
+		semaphores[sidx].opid = cur_cpu()->pid;
 		semaphores[sidx].block_queue = NULL;
 		semaphores[sidx].value = value;
 		rt = sidx;
@@ -356,7 +357,7 @@ int do_semaphore_destroy(int sidx)
 	ptsema = semaphores + sidx;
 	spin_lock_acquire(&(ptsema->slock));
 	if (ptsema->opid != INVALID_PID &&
-		ptsema->opid != current_running->pid)
+		ptsema->opid != cur_cpu()->pid)
 		/* semaphore is occupied by other process */
 		sidx = INT32_MIN;
 	else
@@ -398,7 +399,7 @@ int do_barrier_init(int key, int goal)
 		barriers[bidx].goal = goal;
 		barriers[bidx].come = 0;
 		barriers[bidx].block_queue = NULL;
-		barriers[bidx].opid = current_running->pid;
+		barriers[bidx].opid = cur_cpu()->pid;
 		rt = bidx;
 	}
 	spin_lock_release(&(barriers[bidx].slock));
@@ -426,7 +427,7 @@ int do_barrier_wait(int bidx)
 			ptbar->block_queue = do_unblock(ptbar->block_queue);
 	}
 	else
-		/* Block the current_running */
+		/* Block the cur_cpu() */
 		do_block(&(ptbar->block_queue), &(ptbar->slock));
 err:
 	spin_lock_release(&(ptbar->slock));
@@ -447,7 +448,7 @@ int do_barrier_destroy(int bidx)
 	ptbar = barriers + bidx;
 	spin_lock_acquire(&(ptbar->slock));
 	if (ptbar->opid != INVALID_PID &&
-		ptbar->opid != current_running->pid)
+		ptbar->opid != cur_cpu()->pid)
 		/* Barrier is occupied by other process */
 		rt = INT32_MIN;
 	else
