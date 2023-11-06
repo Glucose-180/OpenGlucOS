@@ -14,6 +14,7 @@ handler_t irq_table[IRQC_COUNT];
 handler_t exc_table[EXCC_COUNT];
 
 static void handle_dasics(regs_context_t *regs, uint64_t stval, uint64_t scause);
+static void handle_soft(regs_context_t *regs, uint64_t stval, uint64_t scause);
 
 void interrupt_helper(regs_context_t *regs, uint64_t stval, uint64_t scause)
 {
@@ -70,6 +71,7 @@ void init_exception()
 	 */
 	//irq_table[IRQC_U_TIMER] = handle_irq_timer;
 	irq_table[IRQC_S_TIMER] = handle_irq_timer;
+	irq_table[IRQ_S_SOFT] = handle_soft;
 
 	/* TODO: [p2-task3] set up the entrypoint of exceptions */
 	setup_exception();
@@ -78,6 +80,16 @@ void init_exception()
 	sstatus |= SR_SPIE;
 	sstatus &= ~SR_SPP;
 	w_sstatus(sstatus);
+}
+
+static void handle_soft(regs_context_t *regs, uint64_t stval, uint64_t scause)
+{
+#if DEBUG_EN != 0
+	writelog("CPU %lu gets soft irq", get_current_cpu_id());
+#else
+	while (1)
+		;
+#endif
 }
 
 void handle_other(regs_context_t *regs, uint64_t stval, uint64_t scause)

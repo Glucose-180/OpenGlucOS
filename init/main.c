@@ -20,6 +20,7 @@
 #include <assert.h>
 #include <type.h>
 #include <csr.h>
+#include <os/smp.h>
 
 extern void ret_from_exception();
 
@@ -73,6 +74,11 @@ static void init_taskinfo(void)
 	uint32_t taskinfo_size = tasknum * sizeof(task_info_t),
 		taskinfo_start_sector, taskinfo_end_sector,
 		taskinfo_sectors;
+	
+	/*
+	 * A location to store taskinfo temporarily.
+	 */
+	const ptr_t Taskinfo_buffer = 0x52510000U;
 
 	if (tasknum == 0U)
 		return;
@@ -83,10 +89,10 @@ static void init_taskinfo(void)
 		bios_putstr("**Warning: taskinfo is too big\n\r");
 
 	/* Load taskinfo into the space of bootloader */
-	bios_sd_read(BOOTLOADER_ADDR, taskinfo_sectors, taskinfo_start_sector);
+	bios_sd_read(Taskinfo_buffer, taskinfo_sectors, taskinfo_start_sector);
 
 	memcpy((uint8_t *)taskinfo,	(uint8_t *)(uint64_t)
-		(BOOTLOADER_ADDR + (taskinfo_offset - taskinfo_start_sector * SECTOR_SIZE)),
+		(Taskinfo_buffer + (taskinfo_offset - taskinfo_start_sector * SECTOR_SIZE)),
 		taskinfo_size);
 }
 
@@ -233,7 +239,7 @@ int main(void)
 	init_syscall();
 	printk("> [INIT] System call initialized successfully.\n");
 #if DEBUG_EN != 0
-	writelog("GlucOS, boot!");
+	writelog("GlucOS, boot! I am CPU %lu.", get_current_cpu_id());
 	printk("\n> [INFO] Debug mode is enabled.\n");
 	printk("> [INFO] Multithreading: %d, Timer_interval_ms: %d.\n",
 		MULTITHREADING, TIMER_INTERVAL_MS);
@@ -241,7 +247,8 @@ int main(void)
 		MULTITHREADING, TIMER_INTERVAL_MS);
 #endif
 
-	latency(2U);	/* Delay 2 s */
+	wakeup_other_hart();
+	latency(3U);	/* Delay 3 s */
 	/* Clear screen and start glush */
 	screen_clear();
 
@@ -293,6 +300,18 @@ loc_wfi:
 /* For secondary CPU */
 int main_s(void)
 {
+	pcb_t *p0;
 	//TODO
+	smp_init();
+	p0 = pcb_search(0);
+	screen_move_cursor(0, p0->cursor_y);
+#if DEBUG_EN != 0
+	writelog("I am CPU %lu and has started!\n", get_current_cpu_id());
+#endif
+	printk("> [INIT] I am CPU %lu and has started!\n", get_current_cpu_id());
+
+	disable_interrupt();
+	while (1)
+		asm volatile("wfi");
 	return 0;
 }

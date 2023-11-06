@@ -55,7 +55,10 @@ secondary:
 	and	t0, t0, t1	/* Clear low 2 bits to represent Direct mode */
 	csrw	CSR_STVEC, t0
 
-	csrw	CSR_SIE, SR_SSIE
+	li	t0, SR_SSIE
+	csrs	CSR_SIE, t0
+	li	t0, SR_SIE
+	csrs	CSR_SSTATUS, t0
 
 wait_for_wakeup:
 	wfi
