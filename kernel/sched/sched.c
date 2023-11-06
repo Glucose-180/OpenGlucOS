@@ -230,7 +230,7 @@ void do_sleep(uint32_t sleep_time)
 	for (temp = cur_cpu()->next; temp != cur_cpu(); temp = temp->next)
 		if (temp->status == TASK_READY && temp->pid + cur_cpu()->pid != 1)
 			break;
-	if (temp->status != TASK_READY)
+	if (temp->status != TASK_READY || temp->pid + cur_cpu()->pid == 1)
 		/*
 		* A ready process must be found, because GlucOS keep
 		* main() of kernel as a proc with PID 0.

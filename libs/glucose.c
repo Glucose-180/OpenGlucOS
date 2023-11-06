@@ -9,6 +9,7 @@
 #include <os/irq.h>
 #include <os/string.h>
 #include <os/time.h>
+#include <os/smp.h>
 
 /*
  * Remove white spaces at the beginning and end of Str.
@@ -162,11 +163,11 @@ void panic_g(const char *fmt, ...)
 	int _vprint(const char *fmt, va_list _va, void (*output)(char*));
 
 	disable_interrupt();
-	printv("\n**Panic: ");
+	printv("\n**CPU %lu Panic: ", get_current_cpu_id());
 
 #if DEBUG_EN != 0
 	time = get_timer();
-	printl("[t=%04lus] **Panic: ", time);
+	printl("[t=%04lus] **CPU %lu Panic: ", time, get_current_cpu_id());
 #endif
 
 	va_start(va, fmt);
