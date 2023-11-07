@@ -49,6 +49,7 @@ pcb_t pid0_pcb = {
 	.cylim_h = -1,
 	.cylim_l = -1,
 	.pcthread = NULL,
+	.cur_thread = NULL,
 	/* to make pid0_pcb.phead point to ready_queue */
 	.phead = &ready_queue
 };
@@ -68,6 +69,7 @@ pcb_t pid1_pcb = {
 	.cylim_h = -1,
 	.cylim_l = -1,
 	.pcthread = NULL,
+	.cur_thread = NULL,
 	/* to make pid0_pcb.phead point to ready_queue */
 	.phead = &ready_queue
 };
@@ -175,7 +177,7 @@ void do_scheduler(void)
 		for (p = cur_cpu()->next; p != cur_cpu(); p = nextp)
 		{	/* Search the linked list and find a READY process */
 			nextp = p->next;	/* Store p->next in case of it is killed */
-			if (p->status == TASK_READY && p->pid + cur_cpu()->pid != 1)
+			if (p->status == TASK_READY && p->pid + (int)isscpu != 1)
 			{	/* The second condition is to ignore main() of the other CPU */
 				if (cur_cpu()->status != TASK_EXITED)
 					cur_cpu()->status = TASK_READY;
@@ -228,9 +230,9 @@ void do_sleep(uint32_t sleep_time)
 	uint64_t isscpu = is_scpu();
 
 	for (temp = cur_cpu()->next; temp != cur_cpu(); temp = temp->next)
-		if (temp->status == TASK_READY && temp->pid + cur_cpu()->pid != 1)
+		if (temp->status == TASK_READY && temp->pid + (int)isscpu != 1)
 			break;
-	if (temp->status != TASK_READY || temp->pid + cur_cpu()->pid == 1)
+	if (temp->status != TASK_READY || temp->pid + (int)isscpu == 1)
 		/*
 		* A ready process must be found, because GlucOS keep
 		* main() of kernel as a proc with PID 0.
@@ -350,13 +352,14 @@ int do_block(pcb_t ** const Pqueue, spin_lock_t *slock)
 {
 	// TODO: [p2-task2] block the pcb task into the block queue
 	pcb_t *p, *q, *temp;
+	int isscpu = is_scpu();
 
 	for (p = cur_cpu()->next; p != cur_cpu(); p = p->next)
 	{
-		if (p->status == TASK_READY && p->pid + cur_cpu()->pid != 1)
+		if (p->status == TASK_READY && p->pid + isscpu != 1)
 		{
 			q = cur_cpu();
-			current_running[is_scpu()] = p;
+			current_running[isscpu] = p;
 			cur_cpu()->status = TASK_RUNNING;
 			ready_queue = lpcb_del_node(ready_queue, q, &p);
 			if (p != q)

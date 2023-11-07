@@ -68,7 +68,9 @@ tid_t thread_create(void *(*func)(), reg_t arg)
 	 * avoid skipping the first instruction (usually addi sp, sp, -32)
 	 * of the function to be entered.
 	 */
+#if MULTITHREADING != 0
 	pnew->context.sepc = (reg_t)((int8_t *)func - 4);
+#endif
 	pnew->context.regs[SR_RA] = (reg_t)func;
 	pnew->context.regs[SR_SP] = ROUNDDOWN(stack + Tstack_size, SP_ALIGN);
 	pnew->arg = arg;
@@ -139,6 +141,7 @@ tid_t thread_kill(tid_t const T)
 
 static void thswitch_to(switchto_context_t *prev, switchto_context_t *next)
 {
+#if MULTITHREADING != 0
 	prev->sepc = cur_cpu()->trapframe->sepc;
 	prev->regs[SR_RA] = cur_cpu()->trapframe->regs[OFFSET_REG_RA / sizeof(reg_t)];
 	prev->regs[SR_SP] = cur_cpu()->trapframe->regs[OFFSET_REG_SP / sizeof(reg_t)];
@@ -177,4 +180,5 @@ static void thswitch_to(switchto_context_t *prev, switchto_context_t *next)
 	cur_cpu()->trapframe->regs[OFFSET_REG_S9 / sizeof(reg_t)] = next->regs[SR_S9];
 	cur_cpu()->trapframe->regs[OFFSET_REG_S10 / sizeof(reg_t)] = next->regs[SR_S10];
 	cur_cpu()->trapframe->regs[OFFSET_REG_S11 / sizeof(reg_t)] = next->regs[SR_S11];
+#endif
 }
