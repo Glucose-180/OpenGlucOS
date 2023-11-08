@@ -239,15 +239,14 @@ void do_sleep(uint32_t sleep_time)
 		*/
 		panic_g("do_sleep: Cannot find a READY process");
 
+	/* NOTE: Forgetting to do this has caused a sever bug! */
+	temp->status = TASK_RUNNING;
+
 	ready_queue = lpcb_del_node(ready_queue, cur_cpu(), &psleep);
 	if (psleep != cur_cpu())
 		panic_g("do_sleep: Failed to remove cur_cpu()");
 	if (ready_queue == NULL)
-		/*
-		 * Note that now we don't permit cur_cpu() == NULL,
-		 * so this would cause PANIC!
-		 */
-		current_running[isscpu] = NULL;
+		panic_g("do_sleep: ready_queue is NULL");
 	else
 		current_running[isscpu] = temp;
 	if ((sleep_queue = lpcb_insert_node(sleep_queue, psleep, NULL, &sleep_queue)) == NULL)
@@ -256,17 +255,14 @@ void do_sleep(uint32_t sleep_time)
 	if ((psleep->wakeup_time = get_timer() + sleep_time) > time_max_sec)
 		/* Avoid creating a sleeping task that would never be woken up */
 		psleep->wakeup_time = time_max_sec;
-	if (cur_cpu() == NULL)
-		do_scheduler();
-	else
 #if MULTITHREADING != 0
-		switch_to(psleep->cur_thread == NULL ? &(psleep->context)
-			: &(psleep->cur_thread->context),
-			cur_cpu()->cur_thread == NULL ? &(cur_cpu()->context)
-			: &(cur_cpu()->cur_thread->context)
-		);
+	switch_to(psleep->cur_thread == NULL ? &(psleep->context)
+		: &(psleep->cur_thread->context),
+		cur_cpu()->cur_thread == NULL ? &(cur_cpu()->context)
+		: &(cur_cpu()->cur_thread->context)
+	);
 #else
-		switch_to(&(psleep->context), &(cur_cpu()->context));
+	switch_to(&(psleep->context), &(cur_cpu()->context));
 #endif
 }
 
