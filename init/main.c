@@ -263,12 +263,23 @@ int main(void)
 	smp_init();
 	wakeup_other_hart();
 #endif
-	latency(3U);	/* Delay 3 s */
+	/*
+	 * Delay 3 s to keep information on the screen
+	 * and wait for another CPU to start.
+	 */
+	latency(3U);
+	/*
+	 * Lock kernel to protect do_exec(glush)
+	 * from being affected by another CPU
+	 */
+	lock_kernel();
 	/* Clear screen and start glush */
 	screen_clear();
 
 	if (do_exec("glush", -1, argv) == INVALID_PID)
 	{
+		panic_g("main: Failed to start glush");
+		/* Ignore these s**t mountain left over from history
 		char **cmds, flag_success = 0;
 
 		printk("Failed to start glush\n");
@@ -295,23 +306,18 @@ int main(void)
 			}
 		}
 		screen_clear();
+		*/
 	}
-		// If you do preemptive scheduling, they're used to enable CSR_SIE and wfi
-		set_preempt();
+	unlock_kernel();
+	// If you do preemptive scheduling, they're used to enable CSR_SIE and wfi
+	set_preempt();
 #if DEBUG_EN != 0
-		writelog("CPU 0: Timer interrupt is enabled");
+	writelog("CPU 0: Timer interrupt is enabled");
 #endif
-		while (1)
-			// Infinite while loop, where CPU stays in a low-power state (QAQQQQQQQQQQQ)
-			__asm__ volatile("wfi");
 
-
-loc_wfi:
-	printk("logout\n");
-	disable_interrupt();
 	while (1)
-		asm volatile("wfi");
-
+		// Infinite while loop, where CPU stays in a low-power state (QAQQQQQQQQQQQ)
+		__asm__ volatile("wfi");
 	return 0;
 }
 
@@ -336,7 +342,7 @@ int main_s(void)
 
 	set_preempt();
 #if DEBUG_EN != 0
-		writelog("CPU %lu: Timer interrupt is enabled", get_current_cpu_id());
+	writelog("CPU %lu: Timer interrupt is enabled", get_current_cpu_id());
 #endif
 	//disable_interrupt();
 	while (1)

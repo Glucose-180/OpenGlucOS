@@ -9,6 +9,7 @@
 #include <os/glucose.h>
 #include <riscv.h>
 #include <csr.h>
+#include <os/smp.h>
 
 handler_t irq_table[IRQC_COUNT];
 handler_t exc_table[EXCC_COUNT];
@@ -20,6 +21,18 @@ void interrupt_helper(regs_context_t *regs, uint64_t stval, uint64_t scause)
 {
 	// TODO: [p2-task3] & [p2-task4] interrupt handler.
 	// call corresponding handler by the value of `scause`
+#if NCPU == 2
+	if (cur_cpu()->status == TASK_EXITING)
+	{
+		/*
+		* ..->status being TASK_EXITING means that it is killed
+		* by process on another CPU while running.
+		*/
+		do_exit();
+		panic_g("interrupt_helper: proc %d is still running after killed",
+			cur_cpu()->pid);
+	}
+#endif
 	if ((int64_t)scause < 0)
 	{	/* Interrupt */
 		scause &= (((uint64_t)~0UL) >> 1);

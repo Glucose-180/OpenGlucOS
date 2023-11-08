@@ -547,7 +547,10 @@ int do_process_show(void)
 		[TASK_SLEEPING]	"Sleeping",
 		[TASK_RUNNING]	"Running",
 		[TASK_READY]	"Ready   ",
-		[TASK_EXITED]	"Exited  "
+		[TASK_EXITED]	"Exited  ",
+#if NCPU == 2
+		[TASK_EXITING]	"Exiting "
+#endif
 	};
 
 	printk("    PID     STATUS       CMD\n");
@@ -651,8 +654,9 @@ pid_t do_kill(pid_t pid)
 {
 	pcb_t *p, **phead, *pdel;
 
-	if (pid == 0 || pid == 1)
+	//if (pid == 0 || pid == 1)
 		/* PID 0, 1 cannot be killed */
+	if (pid < NCPU)
 		return INVALID_PID;
 	if (cur_cpu()->pid == pid)
 	{
@@ -663,6 +667,16 @@ pid_t do_kill(pid_t pid)
 	if ((p = pcb_search(pid)) == NULL)
 		/* Not found */
 		return INVALID_PID;
+#if NCPU == 2
+	if (p->status == TASK_RUNNING)
+	{
+		p->status = TASK_EXITING;
+#if DEBUG_EN != 0
+		writelog("Process %d is to be killed (EXITING)", pid);
+#endif
+		return pid;
+	}
+#endif
 	
 	/*
 	 * Release all resources acquired by it:
