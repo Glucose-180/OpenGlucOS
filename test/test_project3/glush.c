@@ -57,7 +57,8 @@ int main(int argc, char *argv[])
 		// note: backspace maybe 8('\b') or 127(delete)
 		// TODO [P3-task1]: ps, exec, kill, clear
 		cmd = getcmd();
-		printl("glush: %s", cmd);
+		if (flag_autolog != 0)
+			printl("glush: %s", cmd);
 		words = split(cmd, ' ');
 		do {
 			/*
@@ -85,10 +86,10 @@ int main(int argc, char *argv[])
 				continue;
 			if (try_syscall(words) == 1 && try_builtin(words) == 1)
 			{	/* 
-				* Not a syscall. Nor a builtin command.
-				* Try to execute a user program directly.
-				* But now, consider it as an error first.
-				*/
+				 * Not a syscall. Nor a builtin command.
+				 * Try to execute a user program directly.
+				 * But now, consider it as an error first.
+				 */
 				printf("%s%s\n", NotFound, words[0]);
 			}
 			if (words_next != NULL)

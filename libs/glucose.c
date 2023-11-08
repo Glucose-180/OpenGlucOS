@@ -159,13 +159,13 @@ char **split(char *src, const char Sep)
 void panic_g(const char *fmt, ...)
 {
 	va_list va;
-	uint64_t time;
 	int _vprint(const char *fmt, va_list _va, void (*output)(char*));
 
 	disable_interrupt();
 	printv("\n**CPU %lu Panic: ", get_current_cpu_id());
 
 #if DEBUG_EN != 0
+	uint64_t time;
 	time = get_timer();
 	printl("[t=%04lus] **CPU %lu Panic: ", time, get_current_cpu_id());
 #endif

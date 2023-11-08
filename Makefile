@@ -53,12 +53,12 @@ TINTERVAL		= 10
 # Number of CPU
 NCPU			= 2
 
-CFLAGS0         = -O0 -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -DOS_NAME=\"$(OS_NAME)\" -DUSER_NAME=\"$(USER_NAME)\"
+CFLAGS0         = -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -DOS_NAME=\"$(OS_NAME)\" -DUSER_NAME=\"$(USER_NAME)\"
 
 ifneq ($(DEBUG), 0)
-	CFLAGS		= $(CFLAGS0) -ggdb3 -DDEBUG_EN=1
+	CFLAGS		= $(CFLAGS0) -ggdb3 -DDEBUG_EN=1 -O0
 else
-	CFLAGS		= $(CFLAGS0) -DDEBUG_EN=0
+	CFLAGS		= $(CFLAGS0) -DDEBUG_EN=0 -O2
 endif
 
 BOOT_INCLUDE    = -I$(DIR_ARCH)/include
