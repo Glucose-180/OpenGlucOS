@@ -56,8 +56,10 @@ void unlock_kernel()
 
 pcb_t *cur_cpu(void)
 {
+#if NCPU == 2
 	if (get_current_cpu_id() != 0U)
 		return current_running[1];
 	else
+#endif
 		return current_running[0];
 }

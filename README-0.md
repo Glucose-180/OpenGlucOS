@@ -8,11 +8,11 @@ Project 3。
 
 #### 最新更改
 
-[2023-11-08] glush 新增打印 RUNNING 进程 CPU 号的功能。
+[2023-11-08] 修复了多处问题。
 
 #### 可做的优化
 
-  在执行命令`ps`时，打印出多 CPU 运行的进程的信息。**处理`do_kill()`跨 CPU 终止进程的情况**。
+
 
 #### [2023-10-27]
 
@@ -148,4 +148,6 @@ kill 2
   初步修复了`do_sleep()`的 Bug，错误在于切换到下一个进程时没有将其状态设置为`TASK_RUNNING`，导致两个 CPU 同时往一个进程上切的情况。但似乎目前系统仍然不太稳定，启动 multicore 测试的时候偶尔会报 illegal instruction。
 
   新增 glush 打印出 RUNNING 进程的 CPU 号的功能（`do_process_show()`的支持）。
+
+  修复了上述不稳定问题导致的 illegal instruction，靠的是`load_task_img()`里的一个小补丁，当发现某个用户程序已经在运行的时候就不再重新从辅存加载它了。此外，支持了对单 CPU 的兼容，make 时指定变量`NCPU=1`即可禁用多 CPU 模式。已进行上板验证。下一步：处理跨核 `do_kill()`的问题。
 

@@ -54,6 +54,7 @@ pcb_t pid0_pcb = {
 	.phead = &ready_queue
 };
 
+#if NCPU == 2
 /* It is used for secondary CPU */
 pcb_t pid1_pcb = {
 	.pid = 1,
@@ -73,6 +74,7 @@ pcb_t pid1_pcb = {
 	/* to make pid0_pcb.phead point to ready_queue */
 	.phead = &ready_queue
 };
+#endif
 
 //LIST_HEAD(ready_queue);
 /*
@@ -86,10 +88,7 @@ pcb_t *ready_queue;
 pcb_t *sleep_queue;
 
 /* current running task PCB */
-pcb_t * volatile current_running[2];
-
-/* global process id */
-pid_t process_id = 1;
+pcb_t * volatile current_running[NCPU];
 
 /*
  * alloc_pid: find a free PID.
@@ -99,7 +98,7 @@ pid_t process_id = 1;
 pid_t alloc_pid(void)
 {
 	pid_t i;
-	static const pid_t Pid_min = 1, Pid_max = 2 * UPROC_MAX;
+	static const pid_t Pid_min = NCPU, Pid_max = 2 * UPROC_MAX;
 
 	for (i = Pid_min; i <= Pid_max; ++i)
 		if (pcb_search(i) == NULL)
@@ -117,7 +116,7 @@ pid_t create_proc(const char *taskname)
 	pcb_t *pnew, *temp;//, *p0;
 
 	//p0 = NULL;
-	if (taskname == NULL || get_proc_num() >= UPROC_MAX + 1)
+	if (taskname == NULL || get_proc_num() >= UPROC_MAX + NCPU)
 		return INVALID_PID;
 	entry = load_task_img(taskname);
 	if (entry == 0U)
@@ -177,7 +176,11 @@ void do_scheduler(void)
 		for (p = cur_cpu()->next; p != cur_cpu(); p = nextp)
 		{	/* Search the linked list and find a READY process */
 			nextp = p->next;	/* Store p->next in case of it is killed */
+#if NCPU == 2
 			if (p->status == TASK_READY && p->pid + (int)isscpu != 1)
+#else
+			if (p->status == TASK_READY)
+#endif
 			{	/* The second condition is to ignore main() of the other CPU */
 				if (cur_cpu()->status != TASK_EXITED)
 					cur_cpu()->status = TASK_READY;
@@ -230,9 +233,17 @@ void do_sleep(uint32_t sleep_time)
 	uint64_t isscpu = is_scpu();
 
 	for (temp = cur_cpu()->next; temp != cur_cpu(); temp = temp->next)
+#if NCPU == 2
 		if (temp->status == TASK_READY && temp->pid + (int)isscpu != 1)
+#else
+		if (temp->status == TASK_READY)
+#endif
 			break;
+#if NCPU == 2
 	if (temp->status != TASK_READY || temp->pid + (int)isscpu == 1)
+#else
+	if (temp->status != TASK_READY)
+#endif
 		/*
 		* A ready process must be found, because GlucOS keep
 		* main() of kernel as a proc with PID 0.
@@ -352,7 +363,11 @@ int do_block(pcb_t ** const Pqueue, spin_lock_t *slock)
 
 	for (p = cur_cpu()->next; p != cur_cpu(); p = p->next)
 	{
+#if NCPU == 2
 		if (p->status == TASK_READY && p->pid + isscpu != 1)
+#else
+		if (p->status == TASK_READY)
+#endif
 		{
 			q = cur_cpu();
 			current_running[isscpu] = p;
@@ -537,10 +552,11 @@ int do_process_show(void)
 
 	printk("    PID     STATUS       CMD\n");
 
-	for (i = 0; i < UPROC_MAX + 1; ++i)
+	for (i = 0; i < UPROC_MAX + NCPU; ++i)
 	{
 		if (pcb_table[i] != NULL &&
-			pcb_table[i]->pid != 0 && pcb_table[i]->pid != 1)
+			//pcb_table[i]->pid != 0 && pcb_table[i]->pid != 1)
+			pcb_table[i]->pid >= NCPU)
 		{
 			++uproc_ymr;
 			p = pcb_table[i];
@@ -558,7 +574,7 @@ int do_process_show(void)
 					p->pid, Status[p->status], cpuid, p->name);
 		}
 	}
-	if (uproc_ymr + 2 != get_proc_num())
+	if (uproc_ymr + NCPU != get_proc_num())
 		panic_g("do_process_show: count of proc is error");
 	return uproc_ymr;
 }

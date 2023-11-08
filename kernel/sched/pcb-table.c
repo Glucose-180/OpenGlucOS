@@ -2,6 +2,7 @@
 #include <os/sched.h>
 #include <os/lock.h>
 #include <os/glucose.h>
+#include <os/string.h>
 
 /*
  * Use a external array to store pointers to all PCB.
@@ -9,7 +10,7 @@
  * Every time a PCB is created, pcb_table_add should be called;
  * every time a PCB is deleted, pcb_table_del should be called!
  */
-pcb_t *pcb_table[UPROC_MAX + 1];
+pcb_t *pcb_table[UPROC_MAX + NCPU];
 
 /* Count of proc */
 static int proc_ymr = 0;
@@ -28,9 +29,9 @@ static void pcb_table_rearrange(void);
  */
 int pcb_table_add(pcb_t *p)
 {
-	if (proc_ymr >= UPROC_MAX + 1)
+	if (proc_ymr >= UPROC_MAX + NCPU)
 		return -1;
-	if (free_pt >= UPROC_MAX + 1)
+	if (free_pt >= UPROC_MAX + NCPU)
 		pcb_table_rearrange();
 	pcb_table[free_pt++] = p;
 	++proc_ymr;
@@ -73,7 +74,23 @@ pcb_t *pcb_search(pid_t pid)
 	int i;
 
 	for (i = 0; i < free_pt; ++i)
-		if (pcb_table[i]->pid == pid)
+		if (pcb_table[i] != NULL && pcb_table[i]->pid == pid)
+			return pcb_table[i];
+	return NULL;
+}
+
+/*
+ * Search a PCB according to its name.
+ * Returns pointer to it on success, or
+ * NULL if not found.
+ */
+pcb_t *pcb_search_name(const char *name)
+{
+	int i;
+
+	for (i = 0; i < free_pt; ++i)
+		if (pcb_table[i] != NULL &&
+			strncmp(name, pcb_table[i]->name, TASK_NAMELEN) == 0)
 			return pcb_table[i];
 	return NULL;
 }
@@ -94,6 +111,6 @@ static void pcb_table_rearrange(void)
 	if (j != proc_ymr)
 		panic_g("pcb_table_rearrange: algorithm error while rearranging");
 	free_pt = j;
-	while (j < UPROC_MAX + 1)
+	while (j < UPROC_MAX + NCPU)
 		pcb_table[j++] = NULL;
 }

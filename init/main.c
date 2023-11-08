@@ -106,11 +106,17 @@ static void init_pcb(void)
 
 	ready_queue = NULL;
 	ready_queue = lpcb_add_node_to_tail(ready_queue, &current_running[0], &ready_queue);
+#if NCPU == 2
 	ready_queue = lpcb_add_node_to_tail(ready_queue, &current_running[1], &ready_queue);
+#endif
 	/*
 	 * NOTE: current_running->phead is ensured in definition of pid0_pcb
 	 */
+#if NCPU == 2
 	if (ready_queue == NULL || ready_queue->next == ready_queue)
+#else
+	if (ready_queue == NULL)
+#endif
 		panic_g("init_pcb: Failed to init ready_queue");
 	/*
 	 * I'm not sure whether "*current_running = pid0_pcb;" will
@@ -119,11 +125,17 @@ static void init_pcb(void)
 	temp = current_running[0]->next;
 	*current_running[0] = pid0_pcb;
 	current_running[0]->next = temp;
+#if NCPU == 2
 	temp = current_running[1]->next;
 	*current_running[1] = pid1_pcb;
 	current_running[1]->next = temp;
+#endif
 	if (pcb_table_add(current_running[0]) < 0 ||
+#if NCPU == 2
 		pcb_table_add(current_running[1]) < 0)
+#else
+		0)
+#endif
 		panic_g("init_pcb: Failed to add 0 to pcb_table");
 }
 
@@ -241,14 +253,16 @@ int main(void)
 #if DEBUG_EN != 0
 	writelog("GlucOS, boot! I am CPU %lu.", get_current_cpu_id());
 	printk("\n> [INFO] Debug mode is enabled.\n");
-	printk("> [INFO] Multithreading: %d, Timer_interval_ms: %d.\n",
-		MULTITHREADING, TIMER_INTERVAL_MS);
+	printk("> [INFO] Multithreading: %d, Timer_interval_ms: %d, NCPU: %d.\n",
+		MULTITHREADING, TIMER_INTERVAL_MS, NCPU);
 	writelog("Multithreading: %d, Timer_interval_ms: %d.",
 		MULTITHREADING, TIMER_INTERVAL_MS);
 #endif
 
+#if NCPU == 2
 	smp_init();
 	wakeup_other_hart();
+#endif
 	latency(3U);	/* Delay 3 s */
 	/* Clear screen and start glush */
 	screen_clear();
@@ -305,7 +319,10 @@ loc_wfi:
 int main_s(void)
 {
 	pcb_t *p0;
-	//TODO
+
+#if NCPU != 2
+	panic_g("main_s: Only %d CPU but main_s() is entered", NCPU);
+#endif
 	init_exception_s();
 
 	/* Print below the string CPU 0 has printed */

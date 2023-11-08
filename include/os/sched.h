@@ -37,6 +37,10 @@
 #define INVALID_PID (-1)
 #define INVALID_TID (-1)
 
+#if NCPU != 2
+#define NCPU 1
+#endif
+
 /*
  * used to save register infomation:
  * NOTE: this order must be preserved,
@@ -172,7 +176,7 @@ extern pcb_t *ready_queue;
 extern pcb_t *sleep_queue;
 
 /* current running task PCB */
-extern pcb_t * volatile current_running[2];
+extern pcb_t * volatile current_running[NCPU];
 extern pid_t process_id;
 
 //extern pcb_t pcb[UPROC_MAX];
@@ -226,10 +230,11 @@ extern int do_process_show(void);
 extern pid_t do_getpid(void);
 /************************************************************/
 
-extern pcb_t *pcb_table[UPROC_MAX + 1];
+extern pcb_t *pcb_table[UPROC_MAX + NCPU];
 int pcb_table_add(pcb_t *p);
 int pcb_table_del(pcb_t *p);
 int get_proc_num(void);
 pcb_t *pcb_search(pid_t pid);
+pcb_t *pcb_search_name(const char *name);
 
 #endif

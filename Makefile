@@ -50,6 +50,8 @@ YIELD_EN		= 0
 MTHREAD			= 1
 # Timer interval (ms) used for scheduler
 TINTERVAL		= 10
+# Number of CPU
+NCPU			= 2
 
 CFLAGS0         = -O0 -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -DOS_NAME=\"$(OS_NAME)\" -DUSER_NAME=\"$(USER_NAME)\"
 
@@ -63,7 +65,7 @@ BOOT_INCLUDE    = -I$(DIR_ARCH)/include
 BOOT_CFLAGS     = $(CFLAGS) $(BOOT_INCLUDE) -Wl,--defsym=TEXT_START=$(BOOTLOADER_ENTRYPOINT) -T riscv.lds
 
 KERNEL_INCLUDE  = -I$(DIR_ARCH)/include -Iinclude -Idrivers
-KERNEL_CFLAGS   = $(CFLAGS) $(KERNEL_INCLUDE) -DMULTITHREADING=$(MTHREAD) -DTIMER_INTERVAL_MS=$(TINTERVAL) -Wl,--defsym=TEXT_START=$(KERNEL_ENTRYPOINT) -T riscv.lds
+KERNEL_CFLAGS   = $(CFLAGS) $(KERNEL_INCLUDE) -DMULTITHREADING=$(MTHREAD) -DTIMER_INTERVAL_MS=$(TINTERVAL) -DNCPU=$(NCPU) -Wl,--defsym=TEXT_START=$(KERNEL_ENTRYPOINT) -T riscv.lds
 
 USER_INCLUDE    = -I$(DIR_TINYLIBC)/include
 USER_CFLAGS     = $(CFLAGS) $(USER_INCLUDE) -DYIELD_EN=$(YIELD_EN)

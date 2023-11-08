@@ -1,6 +1,7 @@
 #include <os/task.h>
 #include <os/string.h>
 #include <os/kernel.h>
+#include <os/sched.h>
 #include <type.h>
 #include <os/glucose.h>
 
@@ -29,6 +30,17 @@ uint64_t load_task_img(const char *taskname)
 
 	vaddr = taskinfo[i].addr;
 	entry = taskinfo[i].entr;
+
+	/*
+	 * Temporary patch for multiple CPU before virtual memory is implemented.
+	 * Suppose that CPU0 is running a user process `add` in User mode,
+	 * and CPU1 is calling do_exec() to create an `add` again,
+	 * then illegal instruction might be detected as the memory storing
+	 * instructions is changed.
+	 */
+	if (pcb_search_name(taskname) != NULL)
+		return entry;
+
 	taski_start_sector = lbytes2sectors(taskinfo[i].offs);
 	taski_end_sector = lbytes2sectors(taskinfo[i].offs + taskinfo[i].size);
 	taski_sectors = taski_end_sector - taski_start_sector + 1U;
