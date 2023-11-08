@@ -526,16 +526,16 @@ void set_preempt(void)
 int do_process_show(void)
 {
 	int uproc_ymr = 0;
-	int i;
+	int i, cpuid;
 	pcb_t *p;
 	static const char * const Status[] = {
 		[TASK_SLEEPING]	"Sleeping",
-		[TASK_RUNNING]	"Running ",
+		[TASK_RUNNING]	"Running",
 		[TASK_READY]	"Ready   ",
 		[TASK_EXITED]	"Exited  "
 	};
 
-	printk("    PID     STATUS     CMD\n");
+	printk("    PID     STATUS       CMD\n");
 
 	for (i = 0; i < UPROC_MAX + 1; ++i)
 	{
@@ -544,8 +544,18 @@ int do_process_show(void)
 		{
 			++uproc_ymr;
 			p = pcb_table[i];
-			printk("    %02d      %s   %s\n",
-				p->pid, Status[p->status], p->name);
+
+			/* For RUNNING processes */
+			if (current_running[0] == p)
+				cpuid = 0;
+			else
+				cpuid = 1;
+			if (p->status != TASK_RUNNING)
+				printk("    %02d      %s   %s\n",
+					p->pid, Status[p->status], p->name);
+			else
+				printk("    %02d      %s%d   %s\n",
+					p->pid, Status[p->status], cpuid, p->name);
 		}
 	}
 	if (uproc_ymr + 2 != get_proc_num())

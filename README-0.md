@@ -8,7 +8,7 @@ Project 3。
 
 #### 最新更改
 
-[2023-11-08] 初步修复了`do_sleep()`的 Bug。
+[2023-11-08] glush 新增打印 RUNNING 进程 CPU 号的功能。
 
 #### 可做的优化
 
@@ -145,5 +145,7 @@ kill 2
 
 #### [2023-11-08]
 
-  初步修复了`do_sleep()`的 Bug，错误在于切换到下一个进程时没有将其状态设置为`TASK_RUNNING`，导致两个 CPU 同时往一个进程上切的情况。但似乎目前系统仍然不太稳定。
+  初步修复了`do_sleep()`的 Bug，错误在于切换到下一个进程时没有将其状态设置为`TASK_RUNNING`，导致两个 CPU 同时往一个进程上切的情况。但似乎目前系统仍然不太稳定，启动 multicore 测试的时候偶尔会报 illegal instruction。
+
+  新增 glush 打印出 RUNNING 进程的 CPU 号的功能（`do_process_show()`的支持）。
 
