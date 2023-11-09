@@ -51,7 +51,8 @@ pcb_t pid0_pcb = {
 	.pcthread = NULL,
 	.cur_thread = NULL,
 	/* to make pid0_pcb.phead point to ready_queue */
-	.phead = &ready_queue
+	.phead = &ready_queue,
+	.cpu_mask = 1U << 0
 };
 
 #if NCPU == 2
@@ -72,7 +73,8 @@ pcb_t pid1_pcb = {
 	.pcthread = NULL,
 	.cur_thread = NULL,
 	/* to make pid0_pcb.phead point to ready_queue */
-	.phead = &ready_queue
+	.phead = &ready_queue,
+	.cpu_mask = 1U << 1
 };
 #endif
 
@@ -110,7 +112,7 @@ pid_t alloc_pid(void)
  * Use the name of a task to load it and add it in ready_queue.
  * INVALID_PID will be returned on error.
  */
-pid_t create_proc(const char *taskname)
+pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 {
 	ptr_t entry, user_stack, kernel_stack;
 	pcb_t *pnew, *temp;//, *p0;
@@ -150,7 +152,7 @@ pid_t create_proc(const char *taskname)
 	pnew->pid = INVALID_PID;
 	strncpy(pnew->name, taskname, TASK_NAMELEN);
 	pnew->name[TASK_NAMELEN] = '\0';
-	init_pcb_stack(kernel_stack, user_stack, entry, pnew);
+	init_pcb_stack(kernel_stack, user_stack, entry, pnew, cpu_mask);
 	if (pcb_table_add(pnew) < 0)
 		panic_g("create_proc: Failed to add to pcb_table");
 #if DEBUG_EN != 0
@@ -176,11 +178,8 @@ void do_scheduler(void)
 		for (p = cur_cpu()->next; p != cur_cpu(); p = nextp)
 		{	/* Search the linked list and find a READY process */
 			nextp = p->next;	/* Store p->next in case of it is killed */
-#if NCPU == 2
-			if (p->status == TASK_READY && p->pid + (int)isscpu != 1)
-#else
-			if (p->status == TASK_READY)
-#endif
+			if (p->status == TASK_READY &&
+				(p->cpu_mask & (1U << get_current_cpu_id())) != 0U)
 			{	/* The second condition is to ignore main() of the other CPU */
 				if (cur_cpu()->status != TASK_EXITED)
 					cur_cpu()->status = TASK_READY;
@@ -233,21 +232,14 @@ void do_sleep(uint32_t sleep_time)
 	uint64_t isscpu = is_scpu();
 
 	for (temp = cur_cpu()->next; temp != cur_cpu(); temp = temp->next)
-#if NCPU == 2
-		if (temp->status == TASK_READY && temp->pid + (int)isscpu != 1)
-#else
-		if (temp->status == TASK_READY)
-#endif
+		if (temp->status == TASK_READY &&
+			(temp->cpu_mask & (1U << get_current_cpu_id())) != 0U)
 			break;
-#if NCPU == 2
-	if (temp->status != TASK_READY || temp->pid + (int)isscpu == 1)
-#else
-	if (temp->status != TASK_READY)
-#endif
+	if (temp == cur_cpu())
 		/*
-		* A ready process must be found, because GlucOS keep
-		* main() of kernel as a proc with PID 0.
-		*/
+		 * A ready process must be found, because GlucOS keep
+		 * main() of kernel as a proc with PID 0 (and PID 1 for 2 CPU).
+		 */
 		panic_g("do_sleep: Cannot find a READY process");
 
 	/* NOTE: Forgetting to do this has caused a sever bug! */
@@ -363,11 +355,8 @@ int do_block(pcb_t ** const Pqueue, spin_lock_t *slock)
 
 	for (p = cur_cpu()->next; p != cur_cpu(); p = p->next)
 	{
-#if NCPU == 2
-		if (p->status == TASK_READY && p->pid + isscpu != 1)
-#else
-		if (p->status == TASK_READY)
-#endif
+		if (p->status == TASK_READY &&
+			(p->cpu_mask & (1U << get_current_cpu_id())) != 0U)
 		{
 			q = cur_cpu();
 			current_running[isscpu] = p;
@@ -441,7 +430,7 @@ pcb_t *do_unblock(pcb_t * const Queue)
 /************************************************************/
 void init_pcb_stack(
 	ptr_t kernel_stack, ptr_t user_stack, ptr_t entry_point,
-	pcb_t *pcb)
+	pcb_t *pcb, unsigned int cpu_mask)
 {
 	 /* TODO: [p2-task3] initialization of registers on kernel stack
 	  * HINT: sp, ra, sepc, sstatus
@@ -507,6 +496,7 @@ void init_pcb_stack(
 	/* No child thread at the beginning. */
 	pcb->cur_thread = NULL;
 	pcb->pcthread = NULL;
+	pcb->cpu_mask = cpu_mask;
 }
 
 void set_preempt(void)
@@ -553,7 +543,7 @@ int do_process_show(void)
 #endif
 	};
 
-	printk("    PID     STATUS       CMD\n");
+	printk("    PID     STATUS    CPUmask    CMD\n");
 
 	for (i = 0; i < UPROC_MAX + NCPU; ++i)
 	{
@@ -570,11 +560,11 @@ int do_process_show(void)
 			else
 				cpuid = 1;
 			if (p->status != TASK_RUNNING)
-				printk("    %02d      %s   %s\n",
-					p->pid, Status[p->status], p->name);
+				printk("    %02d      %s    0x%x    %s\n",
+					p->pid, Status[p->status], p->cpu_mask & 0xffU, p->name);
 			else
-				printk("    %02d      %s%d   %s\n",
-					p->pid, Status[p->status], cpuid, p->name);
+				printk("    %02d      %s%d    0x%x    %s\n",
+					p->pid, Status[p->status], cpuid, p->cpu_mask & 0xffU, p->name);
 		}
 	}
 	if (uproc_ymr + NCPU != get_proc_num())
@@ -603,7 +593,12 @@ pid_t do_exec(const char *name, int argc, char *argv[])
 	int l;
 	char **argv_base;
 
-	if (argc > ARGC_MAX || (pid = create_proc(name)) == INVALID_PID)
+	if (argc > ARGC_MAX ||
+		/*
+		 * By default, a process has the same cpu_mask as the process
+		 * that creates it.
+		 */
+		(pid = create_proc(name, cur_cpu()->cpu_mask)) == INVALID_PID)
 		/* Failed */
 		return INVALID_PID;
 	if (argv != NULL)
@@ -763,4 +758,42 @@ pid_t do_waitpid(pid_t pid)
 pid_t do_getpid(void)
 {
 	return cur_cpu()->pid;
+}
+
+/*
+ * do_taskset: Set CPU affinity of a process.
+ * If `create` is zero, it will set an existing process according to PID
+ * and `name` will be ignored. Otherwise, it will create a new process
+ * according to its `name` and `pid` will be ignored.
+ * Returns: PID of set process on success and INVALID_PID on error.
+ */
+pid_t do_taskset(int create, char *name, pid_t pid, unsigned int cpu_mask)
+{
+	pid_t npid;
+	pcb_t *p;
+
+	if (create != 0)
+	{
+		npid = do_exec(name, 1, &name);
+		if (npid == INVALID_PID)
+			/* Failed */
+			return npid;
+		p = pcb_search(npid);
+		if (p == NULL)
+			panic_g("do_taskset: Cannot find process \"%s\" with PID %d",
+				name, npid);
+		p->cpu_mask = cpu_mask;
+		return npid;
+	}
+	else
+	{
+		if (pid < NCPU)
+			/* Cannot set 0, 1 */
+			return INVALID_PID;
+		p = pcb_search(pid);
+		if (p == NULL)
+			return INVALID_PID;
+		p->cpu_mask = cpu_mask;
+		return pid;
+	}
 }

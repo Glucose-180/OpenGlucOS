@@ -202,7 +202,7 @@ static void init_syscall(void)
 
 int main(void)
 {
-
+	pid_t pid;
 #ifndef TERMINAL_BEGIN
 #define TERMINAL_BEGIN "17"
 #endif
@@ -276,7 +276,7 @@ int main(void)
 	/* Clear screen and start glush */
 	screen_clear();
 
-	if (do_exec("glush", -1, argv) == INVALID_PID)
+	if ((pid = do_exec("glush", -1, argv)) == INVALID_PID)
 	{
 		panic_g("main: Failed to start glush");
 		/* Ignore these s**t mountain left over from history
@@ -308,6 +308,8 @@ int main(void)
 		screen_clear();
 		*/
 	}
+	if (do_taskset(0, NULL, pid, ~0U) != pid)
+		panic_g("main: Failed to set cpu_mask of glush %d", pid);
 	unlock_kernel();
 	// If you do preemptive scheduling, they're used to enable CSR_SIE and wfi
 	set_preempt();

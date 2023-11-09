@@ -173,6 +173,11 @@ typedef struct pcb
 	 * request when blocked in queue of mailbox.
 	 */
 	unsigned int req_len;
+	/*
+	 * cpu_mask is used to set CPU affinity. If a CPU has ID i,
+	 * this process can run on it if and only if (1<<i)&cpu_mask is not zero.
+	 */
+	unsigned int cpu_mask;
 } pcb_t;
 
 /* ready queue to run */
@@ -185,7 +190,6 @@ extern pcb_t *sleep_queue;
 
 /* current running task PCB */
 extern pcb_t * volatile current_running[NCPU];
-extern pid_t process_id;
 
 //extern pcb_t pcb[UPROC_MAX];
 extern pcb_t pid0_pcb, pid1_pcb;
@@ -195,7 +199,7 @@ extern const ptr_t pid0_stack, pid1_stack;
 extern void switch_to(switchto_context_t *prev, switchto_context_t *next);
 
 pid_t alloc_pid(void);
-pid_t create_proc(const char *taskname);
+pid_t create_proc(const char *taskname, unsigned int cpu_mask);
 
 void do_scheduler(void);
 void do_sleep(uint32_t);
@@ -217,7 +221,7 @@ pcb_t *do_unblock(pcb_t * const Queue);
 
 void init_pcb_stack(
 	ptr_t kernel_sp, ptr_t user_sp, ptr_t entry_point,
-	pcb_t *pcb);
+	pcb_t *pcb, unsigned int cpu_mask);
 void set_preempt(void);
 
 tid_t thread_create(void *(*func)(), reg_t arg);
@@ -236,6 +240,7 @@ extern int do_kill(pid_t pid);
 extern pid_t do_waitpid(pid_t pid);
 extern int do_process_show(void);
 extern pid_t do_getpid(void);
+pid_t do_taskset(int create, char *name, pid_t pid, unsigned int cpu_mask);
 /************************************************************/
 
 extern pcb_t *pcb_table[UPROC_MAX + NCPU];
