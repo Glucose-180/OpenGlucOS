@@ -156,6 +156,7 @@ static void init_syscall(void)
 		syscall[SYS_sleep] = (long (*)())do_sleep;
 		syscall[SYS_yield] = (long (*)())do_scheduler;
 		syscall[SYS_ps] = (long (*)())do_process_show;
+		syscall[SYS_taskset] = (long (*)())do_taskset;
 		/*
 		 * When multithreading is not supported, a user process calling
 		 * thread_create() or thread_yield() will cause invalid_syscall().

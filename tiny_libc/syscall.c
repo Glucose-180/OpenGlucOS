@@ -208,6 +208,10 @@ pid_t sys_getpid()
 {
 	// TODO: [p3-task1] call invoke_syscall to implement sys_getchar
 }*/
+pid_t sys_taskset(int create, char *name, pid_t pid, unsigned int cpu_mask)
+{
+	return invoke_syscall(SYS_taskset,create, (long)name, (long)pid, (long)cpu_mask, Ignore);
+}
 
 int sys_barrier_init(int key, int goal)
 {

@@ -163,7 +163,7 @@ int try_syscall(char **cmds)
 					printf("**glush: too few args for exec\n");
 					return 2;
 				}
-					pid = sys_exec(cmds[1], -1, cmds + 1);
+				pid = sys_exec(cmds[1], -1, cmds + 1);
 				if (pid == INVALID_PID)
 				{
 					printf("**glush: failed to exec %s\n", cmds[1]);
@@ -206,6 +206,49 @@ int try_syscall(char **cmds)
 					stime = 0;
 				printf("glush: sleeping for %d sec...\n", stime);
 				sys_sleep(stime);
+				continue;
+			}
+			else if (strcmp(cmds[0], "taskset") == 0)
+			{
+				int cmprt;
+				int cpu_mask;
+				pid_t pid;
+
+				if (cmds[1] == NULL || cmds[2] == NULL ||
+					((cmprt = strcmp(cmds[1], "-p")) == 0 && cmds[3] == NULL))
+				{
+					printf("**glush: too few args for taskset\n");
+					return 2;
+				}
+				if (cmprt != 0)
+				{	/* Not "-p", so create */
+					cpu_mask = atoi(cmds[1]);
+					if ((pid = sys_taskset(1, cmds[2], 0, cpu_mask)) == INVALID_PID)
+					{
+						printf("**glush: failed to exec %s\n", cmds[2]);
+						return 2;
+					}
+					if (cmds_next == NULL)
+					{	/* "&" is not found */
+						/* Call sys_waitpid() to wait the new process */
+						if (sys_waitpid(pid) != pid)
+							printf("**glush: failed to wait for %d\n", pid);
+					}
+					else
+						printf("%s: PID is %d with CPU mask 0x%x\n", cmds[2], pid, cpu_mask);
+				}
+				else
+				{	/* "-p", so just set */
+					cpu_mask = atoi(cmds[2]);
+					pid = atoi(cmds[3]);
+					if (sys_taskset(0, NULL, pid, cpu_mask) == INVALID_PID)
+					{
+						printf("**glush: failed to set mask 0x%x of proc %d\n", cpu_mask, pid);
+						return 2;
+					}
+					else
+						printf("CPU mask of proc %d is set to 0x%x\n", pid, cpu_mask);
+				}
 				continue;
 			}
 			else
