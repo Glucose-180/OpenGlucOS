@@ -161,3 +161,6 @@ kill 2
 
   新增`sys_taskset()`并在 glush 中支持，初步完成 Task 4 并在 QEMU 上用 -O2 编译验证，可正常运行。
 
+#### [2023-11-12]
+
+  填充`README.md`，Project 3 算是告一段落。
