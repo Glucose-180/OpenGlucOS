@@ -310,3 +310,14 @@ void sys_kprint_avail_table(void)
 	invoke_syscall(SYS_kprint_avail_table, Ignore, Ignore,
 		Ignore, Ignore, Ignore);
 }
+
+void* sys_shmpageget(int key)
+{
+    /* TODO: [p4-task4] call invoke_syscall to implement sys_shmpageget */
+}
+
+void sys_shmpagedt(void *addr)
+{
+    /* TODO: [p4-task4] call invoke_syscall to implement sys_shmpagedt */
+}
+/************************************************************/

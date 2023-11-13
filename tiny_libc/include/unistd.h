@@ -13,6 +13,8 @@ typedef int32_t pid_t;
 #define USER_NAME "glucose180"
 #endif
 
+typedef pid_t pthread_t;
+
 void sys_sleep(uint32_t time);
 void sys_yield(void);
 void sys_write(char *buff);
@@ -71,6 +73,11 @@ int sys_mbox_open(const char * name);
 int sys_mbox_close(int midx);
 int sys_mbox_send(int midx, const void *msg, unsigned msg_length);
 int sys_mbox_recv(int midx, void *msg, unsigned msg_length);
+
+/* TODO: [P4-task5] shmpageget/dt */
+/* shmpageget/dt */
+void* sys_shmpageget(int key);
+void sys_shmpagedt(void *addr);
 /************************************************************/
 
 int sys_semaphore_init(int key, int value);
