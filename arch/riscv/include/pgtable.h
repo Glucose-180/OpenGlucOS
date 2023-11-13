@@ -20,26 +20,26 @@
  */
 static inline void local_flush_tlb_all(void)
 {
-    __asm__ __volatile__ ("sfence.vma" : : : "memory");
+	__asm__ __volatile__ ("sfence.vma" : : : "memory");
 }
 
 /* Flush one page from local TLB */
 static inline void local_flush_tlb_page(unsigned long addr)
 {
-    __asm__ __volatile__ ("sfence.vma %0" : : "r" (addr) : "memory");
+	__asm__ __volatile__ ("sfence.vma %0" : : "r" (addr) : "memory");
 }
 
 static inline void local_flush_icache_all(void)
 {
-    asm volatile ("fence.i" ::: "memory");
+	asm volatile ("fence.i" ::: "memory");
 }
 
 static inline void set_satp(
-    unsigned mode, unsigned asid, unsigned long ppn)
+	unsigned mode, unsigned asid, unsigned long ppn)
 {
-    unsigned long __v =
-        (unsigned long)(((unsigned long)mode << SATP_MODE_SHIFT) | ((unsigned long)asid << SATP_ASID_SHIFT) | ppn);
-    __asm__ __volatile__("sfence.vma\ncsrw satp, %0" : : "rK"(__v) : "memory");
+	unsigned long __v =
+		(unsigned long)(((unsigned long)mode << SATP_MODE_SHIFT) | ((unsigned long)asid << SATP_ASID_SHIFT) | ppn);
+	__asm__ __volatile__("sfence.vma\ncsrw satp, %0" : : "rK"(__v) : "memory");
 }
 
 #define PGDIR_PA 0x51000000lu  // use 51000000 page as PGDIR
@@ -59,7 +59,7 @@ static inline void set_satp(
 #define _PAGE_USER (1 << 4)     /* User */
 #define _PAGE_GLOBAL (1 << 5)   /* Global */
 #define _PAGE_ACCESSED (1 << 6) /* Set by hardware on any access \
-                                 */
+								 */
 #define _PAGE_DIRTY (1 << 7)    /* Set by hardware on any write */
 #define _PAGE_SOFT (1 << 8)     /* Reserved for software */
 
@@ -75,43 +75,43 @@ typedef uint64_t PTE;
 /* Translation between physical addr and kernel virtual addr */
 static inline uintptr_t kva2pa(uintptr_t kva)
 {
-    /* TODO: [P4-task1] */
+	/* TODO: [P4-task1] */
 }
 
 static inline uintptr_t pa2kva(uintptr_t pa)
 {
-    /* TODO: [P4-task1] */
+	/* TODO: [P4-task1] */
 }
 
 /* get physical page addr from PTE 'entry' */
 static inline uint64_t get_pa(PTE entry)
 {
-    /* TODO: [P4-task1] */
+	/* TODO: [P4-task1] */
 }
 
 /* Get/Set page frame number of the `entry` */
 static inline long get_pfn(PTE entry)
 {
-    /* TODO: [P4-task1] */
+	/* TODO: [P4-task1] */
 }
 static inline void set_pfn(PTE *entry, uint64_t pfn)
 {
-    /* TODO: [P4-task1] */
+	/* TODO: [P4-task1] */
 }
 
 /* Get/Set attribute(s) of the `entry` */
 static inline long get_attribute(PTE entry, uint64_t mask)
 {
-    /* TODO: [P4-task1] */
+	/* TODO: [P4-task1] */
 }
 static inline void set_attribute(PTE *entry, uint64_t bits)
 {
-    /* TODO: [P4-task1] */
+	/* TODO: [P4-task1] */
 }
 
 static inline void clear_pgdir(uintptr_t pgdir_addr)
 {
-    /* TODO: [P4-task1] */
+	/* TODO: [P4-task1] */
 }
 
 #endif  // PGTABLE_H

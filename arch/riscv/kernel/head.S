@@ -1,8 +1,9 @@
 /*
- * head.S: The boot loader will execute code below first.
+ * head.S: _start is called from boot_kernel() in boot.c.
  * This program clear .bss segment and reset sp, then jump to
  * main() of GlucOS.
-*/
+ * NOTE: Virtual memory is enabled since CPU jumps into here!!!
+ */
 
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
@@ -12,8 +13,9 @@
 #include <asm.h>
 #include <csr.h>
 
-#define KERNEL_STACK		0x50500000
-#define KERNEL_STACK_S		0x50400000	/* for secondary CPU */
+/* Coresponding with pid0_stack and pid1_stack */
+#define KERNEL_STACK		0xffffffc051000000
+#define KERNEL_STACK_S		0xffffffc050f00000	/* for secondary CPU */
 
 .section ".entry_function","ax"
 ENTRY(_start)

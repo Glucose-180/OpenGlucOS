@@ -1,4 +1,10 @@
 /*
+ * NOTE: These functions will not work any more
+ * after virtual memory is implemented.
+ * Everywhere these functions are called should
+ * be redesigned!!!
+ */
+/*
  * Memory allocation without compression.
  * Modified from the program of "Data Structure" course by Glucose180.
  * NOTE: You'd better add checking code in the xfree_g() functions,
@@ -21,8 +27,12 @@ void malloc_init()
 {
 	header* p, *q;
 
-	kallocbuf = (void *)allocKernelPage(KSL);
-	uallocbuf = (void *)allocUserPage(USL);
+	/*
+	 * Use this allocPage() just to avoid compilation error!
+	 * These functions in this file should be REVOKED!
+	 */
+	kallocbuf = (void *)allocPage(KSL);
+	uallocbuf = (void *)allocPage(USL);
 
 	kpav = (header*)kallocbuf;
 	p = kpav;

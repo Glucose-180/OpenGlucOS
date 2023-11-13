@@ -11,25 +11,25 @@
 
 .section ".bootkernel_entry","ax"
 ENTRY(_boot)
-  /*
-   * this is the entrypoint of the kernel. 
-   * Don't clear BSS here
-   */
+	/*
+	 * this is the entrypoint of the kernel. 
+	 * Don't clear BSS here
+	 */
 
-  /* Mask all interrupts */
-  csrw CSR_SIE, zero
-  csrw CSR_SIP, zero
+	/* Mask all interrupts */
+	csrw CSR_SIE, zero
+	csrw CSR_SIP, zero
 
-  la sp, boot_stack_top_base
+	la sp, boot_stack_top_base
 
-  csrr a0, CSR_MHARTID 
+	csrr a0, CSR_MHARTID 
 
-  // this will never return
-  call boot_kernel
+	// this will never return
+	call boot_kernel
 
 
 loop:
-  wfi
-  j loop
+	wfi
+	j loop
 
 END(_boot)

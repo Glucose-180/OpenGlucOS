@@ -22,8 +22,8 @@
 /*
  * Has been modified by Glucose180
  */
-const ptr_t pid0_stack = INIT_KERNEL_STACK,// + PAGE_SIZE;
-	pid1_stack = INIT_KERNEL_STACK_S;
+const ptr_t pid0_stack = 0xffffffc051000000,
+	pid1_stack = 0xffffffc050f00000;
 
 /*
  * The default size for a user stack and kernel stack.

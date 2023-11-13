@@ -33,11 +33,9 @@
 #define MAP_USER 2
 #define MEM_SIZE 32
 #define PAGE_SIZE 4096 // 4K
-#define INIT_KERNEL_STACK 0xffffffc052000000
-//#define INIT_KERNEL_STACK_S 0x50400000
-#define INIT_KERNEL_STACK_S 0xffffffc050400000
-#define INIT_USER_STACK 0x52500000
-#define FREEMEM_KERNEL (INIT_KERNEL_STACK+PAGE_SIZE)
+//#define INIT_KERNEL_STACK 0xffffffc052000000
+//#define FREEMEM_KERNEL (INIT_KERNEL_STACK+PAGE_SIZE)
+#define FREEMEM_KERNEL 0xffffffc052000000
 
 /* Rounding; only works for n = power of two */
 #define ROUND(a, n)     (((((uint64_t)(a))+(n)-1)) & ~((n)-1))
