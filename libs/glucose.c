@@ -154,6 +154,19 @@ char **split(char *src, const char Sep)
 }
 
 /*
+ * Disenable interrupt and stop running.
+ */
+void glucos_brake(void)
+{
+	disable_interrupt();
+#if DEBUG_EN != 0
+	writelog("CPU %lu applied brake", get_current_cpu_id());
+#endif
+	while (1)
+		__asm__ volatile("wfi");
+}
+
+/*
  * Print error information
  */
 void panic_g(const char *fmt, ...)
@@ -179,6 +192,7 @@ void panic_g(const char *fmt, ...)
 	va_end(va);
 
 	printv("**\n");
+	glucos_brake();
 	while (1)
 		;
 }

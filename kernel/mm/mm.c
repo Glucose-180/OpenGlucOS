@@ -33,6 +33,23 @@ void *kmalloc(size_t size)
 	// TODO [P4-task1] (design you 'kmalloc' here if you need):
 }
 
+/*
+ * alloc_pagetable: virtual memory version of alloc_page()
+ * in boot.c.
+ */
+uintptr_t alloc_pagetable()
+{
+	/*
+	 * Three pages have been used in while boot_kernel(),
+	 * and one of them will be revoked, so set pg_base like this.
+	 * NOTE: if boot.c is modified, pay attention to
+	 * the number of paged used by it!!!
+	 */
+	static uintptr_t pg_base = PGDIR_VA +
+		NORMAL_PAGE_SIZE + NORMAL_PAGE_SIZE;
+	pg_base += NORMAL_PAGE_SIZE;
+	return pg_base - NORMAL_PAGE_SIZE;
+}
 
 /* this is used for mapping kernel virtual address into user page table */
 void share_pgtable(uintptr_t dest_pgdir, uintptr_t src_pgdir)

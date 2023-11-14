@@ -45,6 +45,7 @@ int getchar(void);
 int getline(char* str, const int Len);
 char *getcmd(void);
 char **split(char *src, const char Sep);
+void glucos_brake(void);
 void panic_g(const char *fmt, ...);
 void writelog(const char *fmt, ...);
 int do_ulog(const char *str);

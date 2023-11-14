@@ -4,13 +4,16 @@
 
 #define ARRTIBUTE_BOOTKERNEL __attribute__((section(".bootkernel")))
 
-typedef void (*kernel_entry_t)(unsigned long);
+typedef void (*kernel_entry_t)(unsigned long, unsigned long);
+
+static unsigned long npages_used = 1U;
 
 /********* setup memory mapping ***********/
 static uintptr_t ARRTIBUTE_BOOTKERNEL alloc_page()
 {
 	static uintptr_t pg_base = PGDIR_PA;
 	pg_base += 0x1000;
+	++npages_used;
 	return pg_base;
 }
 
@@ -57,7 +60,7 @@ static void ARRTIBUTE_BOOTKERNEL setup_vm()
 		 kva < 0xffffffc060000000lu; kva += 0x200000lu) {
 		map_page(kva, kva2pa(kva), early_pgdir);
 	}
-	// map boot address
+	// map boot address TEMPorarily
 	for (uint64_t pa = 0x50000000lu; pa < 0x51000000lu;
 		 pa += 0x200000lu) {
 		map_page(pa, pa, early_pgdir);
@@ -77,7 +80,7 @@ int ARRTIBUTE_BOOTKERNEL boot_kernel(unsigned long mhartid)
 	}
 
 	/* enter kernel */
-	((kernel_entry_t)pa2kva((uintptr_t)_start))(mhartid);
+	((kernel_entry_t)pa2kva((uintptr_t)_start))(mhartid, npages_used);
 
 	return 0;
 }

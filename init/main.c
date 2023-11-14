@@ -199,9 +199,27 @@ static void init_syscall(void)
 		syscall[SYS_mbox_recv] = (long (*)())do_mbox_recv;
 	}
 }
-/************************************************************/
 
-int main(void)
+/*
+ * Revoke the temporary mapping from
+ * 0x50000000 to 0x51000000.
+ */
+static void revoke_temp_mapping(void)
+{
+	uintptr_t va = 0x51000000UL;
+	va &= VA_MASK;
+	uint64_t vpn2 =
+		va >> (NORMAL_PAGE_SHIFT + PPN_BITS + PPN_BITS);
+	((PTE*)PGDIR_VA)[vpn2] = 0UL;
+}
+
+/************************************************************/
+/*
+ * a0, a1 are arguments passed from boot_kernel() and _start.
+ * Now, a0 is CPU ID, and a1 is `npages_used` in boot.c.
+ */
+#pragma diagnostic ignored "-Wmain"
+int main(reg_t a0, reg_t a1)
 {
 	pid_t pid;
 #ifndef TERMINAL_BEGIN
@@ -263,12 +281,20 @@ int main(void)
 #if NCPU == 2
 	smp_init();
 	wakeup_other_hart();
+#else
+	if (a1 != 3UL)
+		panic_g("main: npages_used from boot.c is %lu", a1);
+	revoke_temp_mapping();
 #endif
 	/*
 	 * Delay 3 s to keep information on the screen
 	 * and wait for another CPU to start.
 	 */
 	latency(3U);
+
+	/* Brake! As virtual memory don't support user process now. */
+	glucos_brake();
+
 	/*
 	 * Lock kernel to protect do_exec(glush)
 	 * from being affected by another CPU
@@ -312,7 +338,7 @@ int main(void)
 	if (do_taskset(0, NULL, pid, ~0U) != pid)
 		panic_g("main: Failed to set cpu_mask of glush %d", pid);
 	unlock_kernel();
-	// If you do preemptive scheduling, they're used to enable CSR_SIE and wfi
+
 	set_preempt();
 #if DEBUG_EN != 0
 	writelog("CPU 0: Timer interrupt is enabled");
@@ -325,13 +351,17 @@ int main(void)
 }
 
 /* For secondary CPU */
-int main_s(void)
+int main_s(reg_t a0, reg_t a1)
 {
 	pcb_t *p0;
 
 #if NCPU != 2
 	panic_g("main_s: Only %d CPU but main_s() is entered", NCPU);
 #endif
+	if (a1 != 3UL)
+		panic_g("main: npages_used from boot.c is %lu", a1);
+	revoke_temp_mapping();
+
 	init_exception_s();
 
 	/* Print below the string CPU 0 has printed */
@@ -342,6 +372,9 @@ int main_s(void)
 	writelog("I am CPU %lu and has started!", get_current_cpu_id());
 #endif
 	printk("> [INIT] I am CPU %lu and has started!\n", get_current_cpu_id());
+
+	/* Brake! As virtual memory don't support user process now. */
+	glucos_brake();
 
 	set_preempt();
 #if DEBUG_EN != 0
