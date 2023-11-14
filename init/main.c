@@ -69,8 +69,8 @@ static void init_taskinfo(void)
 	// TODO: [p1-task4] Init 'tasks' array via reading app-info sector
 	// NOTE: You need to get some related arguments from bootblock first
 	uint32_t //imagesize = *(uint32_t *)(BOOTLOADER_ADDR + 256),	/* unit: sector */
-		taskinfo_offset = *(uint32_t *)(BOOTLOADER_ADDR + 264);
-	tasknum = *(uint32_t *)(BOOTLOADER_ADDR + 268);
+		taskinfo_offset = *(uint32_t *)(BOOTLOADER_VADDR + 264);
+	tasknum = *(uint32_t *)(BOOTLOADER_VADDR + 268);
 	uint32_t taskinfo_size = tasknum * sizeof(task_info_t),
 		taskinfo_start_sector, taskinfo_end_sector,
 		taskinfo_sectors;
@@ -91,9 +91,10 @@ static void init_taskinfo(void)
 	/* Load taskinfo into the space of bootloader */
 	bios_sd_read(Taskinfo_buffer, taskinfo_sectors, taskinfo_start_sector);
 
-	memcpy((uint8_t *)taskinfo,	(uint8_t *)(uint64_t)
-		(Taskinfo_buffer + (taskinfo_offset - taskinfo_start_sector * SECTOR_SIZE)),
-		taskinfo_size);
+	memcpy((uint8_t*)taskinfo,
+		(uint8_t *)pa2kva(
+			(Taskinfo_buffer + (taskinfo_offset - taskinfo_start_sector * SECTOR_SIZE))
+		), taskinfo_size);
 }
 
 /* NOTE: static function "init_pcb_stack" has been moved to sched.c */
@@ -102,12 +103,16 @@ static void init_pcb(void)
 {
 	/* TODO: [p2-task1] load needed tasks and init their corresponding PCB */
 	/* TODO: [p2-task1] remember to initialize 'current_running' */
-	pcb_t *temp;
+	//pcb_t *temp;
 
 	ready_queue = NULL;
-	ready_queue = lpcb_add_node_to_tail(ready_queue, &current_running[0], &ready_queue);
+	//ready_queue = lpcb_add_node_to_tail(ready_queue, &current_running[0], &ready_queue);
+	ready_queue = lpcb_insert_node(ready_queue, &pid0_pcb, NULL, &ready_queue);
+	current_running[0] = &pid0_pcb;
 #if NCPU == 2
-	ready_queue = lpcb_add_node_to_tail(ready_queue, &current_running[1], &ready_queue);
+	//ready_queue = lpcb_add_node_to_tail(ready_queue, &current_running[1], &ready_queue);
+	ready_queue = lpcb_insert_node(ready_queue, &pid1_pcb, NULL, &ready_queue);
+	current_running[1] = &pid1_pcb;
 #endif
 	/*
 	 * NOTE: current_running->phead is ensured in definition of pid0_pcb
@@ -121,7 +126,7 @@ static void init_pcb(void)
 	/*
 	 * I'm not sure whether "*current_running = pid0_pcb;" will
 	 * change its member "next" or not. So I use "temp" to save it.
-	 */
+	 *//*
 	temp = current_running[0]->next;
 	*current_running[0] = pid0_pcb;
 	current_running[0]->next = temp;
@@ -129,7 +134,7 @@ static void init_pcb(void)
 	temp = current_running[1]->next;
 	*current_running[1] = pid1_pcb;
 	current_running[1]->next = temp;
-#endif
+#endif */
 	if (pcb_table_add(current_running[0]) < 0 ||
 #if NCPU == 2
 		pcb_table_add(current_running[1]) < 0)
@@ -218,7 +223,7 @@ static void revoke_temp_mapping(void)
  * a0, a1 are arguments passed from boot_kernel() and _start.
  * Now, a0 is CPU ID, and a1 is `npages_used` in boot.c.
  */
-#pragma diagnostic ignored "-Wmain"
+#pragma GCC diagnostic ignored "-Wmain"
 int main(reg_t a0, reg_t a1)
 {
 	pid_t pid;

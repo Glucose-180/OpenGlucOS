@@ -105,7 +105,7 @@ static inline void set_pfn(PTE *entry, uint64_t pfn)
 {
 	/* TODO: [P4-task1] */
 	*entry = (*entry & ~_PAGE_PPN_MASK) |
-		((pfn << _PAGE_PFN_SHIFT) & ~_PAGE_PPN_MASK);
+		((pfn << _PAGE_PFN_SHIFT) & _PAGE_PPN_MASK);
 }
 
 /* Get/Set attribute(s) of the `entry` */

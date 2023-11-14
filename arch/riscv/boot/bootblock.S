@@ -26,11 +26,28 @@ main:
 
 
 	/* TODO: [p1-task2] call BIOS to read kernel in SD card */
-	li	a0, os_size_loc
-	lhu	a1, 0(a0)	# num_of_blocks
+	li	s0, os_size_loc
+	lhu	s1, 0(s0)	# num_of_blocks
+	li	s2, 64		# read 64 sectors every time
+	li	s3, kernel	# mem_address
+	li	s4, 1		# block_id
+GE64:
+	blt	s1, s2, LT64
 	li	a7, BIOS_SDREAD
-	li	a0, kernel	# mem_address
-	li	a2, 1		# block_id
+	mv	a0, s3		# mem_address
+	li	a1, 64		# num_of_blocks
+	mv	a2, s4		# block_id
+	jal	bios_func_entry
+	li	t0, 32768
+	add	s3, s3, t0	# mem_address += 32 KiB
+	addi	s1, s1, -64
+	addi	s4, s4, 64
+	j	GE64
+LT64:
+	li	a7, BIOS_SDREAD
+	mv	a0, s3		# mem_address
+	mv	a1, s1		# num_of_blocks
+	mv	a2, s4		# block_id
 	jal	bios_func_entry
 
 

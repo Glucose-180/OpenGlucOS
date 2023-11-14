@@ -25,7 +25,7 @@ static void read_phdr(Elf64_Phdr *phdr, FILE *fp, int ph, Elf64_Ehdr ehdr);
 static uint32_t get_filesz(Elf64_Phdr phdr);
 //static uint32_t get_memsz(Elf64_Phdr phdr);
 static void write_segment(Elf64_Phdr phdr, FILE *fp, FILE *img, int *phyaddr,
-	uint32_t vaddr0, int phyaddr0);
+	uint64_t vaddr0, int phyaddr0);
 static void write_padding(FILE *img, int *phyaddr, int new_phyaddr);
 static void write_img_info(uint32_t kernel_size,
 	uint32_t taskinfo_offset, uint32_t tasknum, task_info_t *taskinfo, FILE *img);
@@ -83,7 +83,7 @@ static void create_image(int nfiles, char *files[])
 	 * vaddr (in main memory) and phyaddr (in image file) of the first
 	 * loadable Segment (Segment0) for EVERY user task ELF file.
 	 */
-	uint32_t vaddr0;
+	uint64_t vaddr0;
 	int phyaddr0;
 
 	FILE *fp = NULL, *img = NULL;
@@ -217,7 +217,7 @@ static uint32_t get_filesz(Elf64_Phdr phdr)
 }*/
 
 static void write_segment(Elf64_Phdr phdr, FILE *fp, FILE *img, int *phyaddr,
-	uint32_t vaddr0, int phyaddr0)
+	uint64_t vaddr0, int phyaddr0)
 {
 	if (phdr.p_memsz != 0 && phdr.p_type == PT_LOAD) {
 		/* write the segment itself */

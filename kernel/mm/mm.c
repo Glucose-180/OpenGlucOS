@@ -31,6 +31,7 @@ void freePage(ptr_t baseAddr)
 void *kmalloc(size_t size)
 {
 	// TODO [P4-task1] (design you 'kmalloc' here if you need):
+	return NULL;
 }
 
 /*
@@ -63,11 +64,13 @@ void share_pgtable(uintptr_t dest_pgdir, uintptr_t src_pgdir)
 uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir)
 {
 	// TODO [P4-task1] alloc_page_helper:
+	return 0;
 }
 
 uintptr_t shm_page_get(int key)
 {
 	// TODO [P4-task4] shm_page_get:
+	return 0;
 }
 
 void shm_page_dt(uintptr_t addr)
