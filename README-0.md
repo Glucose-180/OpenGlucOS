@@ -36,3 +36,5 @@ Project 4。
 
   修复了`pg_base`符号冲突问题，并且进行了上板测试，能够用虚存启动内核并制动。
 
+  修改了 createimage 工具以及 GlucOS 中对用户程序的定义`task_info_t`，新增`m_size`成员用于记录该程序在主存中的总大小。
+

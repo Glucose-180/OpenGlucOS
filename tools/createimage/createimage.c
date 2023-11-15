@@ -85,6 +85,11 @@ static void create_image(int nfiles, char *files[])
 	 */
 	uint64_t vaddr0;
 	int phyaddr0;
+	/*
+	 * vaddr and mem size of the last segment.
+	 * Used to calc the total mem size of an ELF file.
+	 */
+	uint64_t vaddr_last, m_size_last;
 
 	FILE *fp = NULL, *img = NULL;
 	Elf64_Ehdr ehdr;
@@ -102,6 +107,7 @@ static void create_image(int nfiles, char *files[])
 
 		/* 0 means that has not been decided */
 		vaddr0 = phyaddr0 = 0;
+		vaddr_last = m_size_last = 0U;
 
 		/* open input file */
 		fp = fopen(*files, "r");
@@ -112,7 +118,7 @@ static void create_image(int nfiles, char *files[])
 		printf("off 0x%04x: %s (e_entry: 0x%04lx)\n", phyaddr, *files, ehdr.e_entry);
 		if (fidx >= 2)
 		{	/* Ensure that it is an app rather than bootblock or kernel */
-			taskinfo[fidx - 2].offs = phyaddr;
+			taskinfo[fidx - 2].offset = phyaddr;
 			strncpy(taskinfo[fidx - 2].name, *files, TASK_NAMELEN);
 			taskinfo[fidx - 2].name[TASK_NAMELEN] = '\0';
 		}
@@ -135,6 +141,8 @@ static void create_image(int nfiles, char *files[])
 				if (phyaddr0 == 0)
 					phyaddr0 = phyaddr;
 			}
+			vaddr_last = phdr.p_vaddr;
+			m_size_last = phdr.p_memsz;
 
 			/* write segment to the image */
 			write_segment(phdr, fp, img, &phyaddr, vaddr0, phyaddr0);
@@ -160,9 +168,11 @@ static void create_image(int nfiles, char *files[])
 		else if (fidx >= 2)
 		{
 			assert(vaddr0 != 0U);	/* vaddr0 must have been decided */
-			taskinfo[fidx - 2].addr = vaddr0;
-			taskinfo[fidx - 2].entr = ehdr.e_entry;
-			taskinfo[fidx - 2].size = phyaddr - taskinfo[fidx - 2].offs;
+			taskinfo[fidx - 2].v_addr = vaddr0;
+			taskinfo[fidx - 2].v_entr = ehdr.e_entry;
+			taskinfo[fidx - 2].f_size = phyaddr - taskinfo[fidx - 2].offset;
+			taskinfo[fidx - 2].m_size = vaddr_last - vaddr0 + m_size_last;
+			printf("\ttotal mem size: 0x%x\n", taskinfo[fidx - 2].m_size);
 		}
 
 		fclose(fp);

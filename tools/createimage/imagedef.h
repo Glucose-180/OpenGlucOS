@@ -15,10 +15,11 @@
 #define TASK_NAMELEN 31	/* Max length of app's name */
 /* TODO: [p1-task4] design your own task_info_t */
 typedef struct {
-	uint32_t offs;	/* Offset in image file */
-	uint32_t size;	/* Size in image file */
-	uint32_t addr;	/* Start addr, or vaddr of segment 0 */
-	uint32_t entr;	/* Entry addr in main memory */
+	uint32_t offset;	/* Offset in image file */
+	uint32_t f_size;	/* Size in image file */
+	uint64_t v_addr;	/* Start addr, or vaddr of segment 0 */
+	uint64_t v_entr;	/* Entry addr in main memory */
+	uint32_t m_size;	/* Size in main memory */
 	char name[TASK_NAMELEN + 1];
 } task_info_t;
 

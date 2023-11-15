@@ -28,8 +28,8 @@ uint64_t load_task_img(const char *taskname)
 	if (i >= tasknum)
 		return 0UL;	/* Not found */
 
-	vaddr = taskinfo[i].addr;
-	entry = taskinfo[i].entr;
+	vaddr = taskinfo[i].v_addr;
+	entry = taskinfo[i].v_entr;
 
 	/*
 	 * Temporary patch for multiple CPU before virtual memory is implemented.
@@ -41,15 +41,15 @@ uint64_t load_task_img(const char *taskname)
 	if (pcb_search_name(taskname) != NULL)
 		return entry;
 
-	taski_start_sector = lbytes2sectors(taskinfo[i].offs);
-	taski_end_sector = lbytes2sectors(taskinfo[i].offs + taskinfo[i].size);
+	taski_start_sector = lbytes2sectors(taskinfo[i].offset);
+	taski_end_sector = lbytes2sectors(taskinfo[i].offset + taskinfo[i].f_size);
 	taski_sectors = taski_end_sector - taski_start_sector + 1U;
 
 	bios_sd_read(vaddr, taski_sectors, taski_start_sector);
 
 	memcpy((uint8_t *)vaddr, (uint8_t *)(uint64_t)
-		(vaddr + (taskinfo[i].offs - taski_start_sector * SECTOR_SIZE)),
-		taskinfo[i].size);
+		(vaddr + (taskinfo[i].offset - taski_start_sector * SECTOR_SIZE)),
+		taskinfo[i].f_size);
 
     return entry;
 }
