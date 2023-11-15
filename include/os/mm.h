@@ -58,7 +58,8 @@ extern ptr_t allocLargePage(int numPage);
 
 // TODO [P4-task1] */
 extern void* kmalloc(size_t size);
-extern void share_pgtable(uintptr_t dest_pgdir, uintptr_t src_pgdir);
+uintptr_t alloc_pagetable(void);
+extern void share_pgtable(PTE* dest_pgdir, PTE* src_pgdir);
 extern uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir_kva);
 
 // TODO [P4-task4]: shm_page_get/dt */

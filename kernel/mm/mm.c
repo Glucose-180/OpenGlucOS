@@ -67,15 +67,27 @@ uintptr_t alloc_pagetable()
 	return pg_base - NORMAL_PAGE_SIZE;
 }
 
-/* this is used for mapping kernel virtual address into user page table */
-void share_pgtable(uintptr_t dest_pgdir, uintptr_t src_pgdir)
+/*
+ * share_pgtable: mapping kernel virtual address into user page table.
+ * Note that dest_pgdir and src_pgdir are KVA.
+ */
+void share_pgtable(PTE* dest_pgdir, PTE* src_pgdir)
 {
 	// TODO [P4-task1] share_pgtable:
+	unsigned int i;
+	/*
+	 * i starts from 256 and ends at 511.
+	 * The highest (38th) bit of kernel virtual address is 1,
+	 * so VPN2 starts from 256.
+	 */
+	for (i = (1U << (PPN_BITS - 1U)); i < (1U << PPN_BITS); ++i)
+		dest_pgdir[i] = src_pgdir[i];
 }
 
-/* allocate physical page for `va`, mapping it into `pgdir_kva`,
-   return the kernel virtual address for the page
-   */
+/*
+ * allocate a physical page for `va`, mapping it into `pgdir_kva`,
+ * return the kernel virtual address for the page
+ */
 uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir_kva)
 {
 	// TODO [P4-task1] alloc_page_helper:
@@ -136,6 +148,16 @@ uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir_kva)
 	}
 	return pg_kva;
 }
+
+/*
+ * alloc_pages: allocate `npages` pages for virtual address `va`
+ * and map va to va + npages * 4KiB - 1 into pgdir_kva.
+ * Return the KVA of the first page and 0 on error.
+uintptr_t alloc_pages(uintptr_t va, unsigned npages, PTE* pgdir_kva)
+{
+
+}
+ */
 
 uintptr_t shm_page_get(int key)
 {

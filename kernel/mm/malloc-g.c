@@ -1,8 +1,6 @@
 /*
- * NOTE: These functions will not work any more
- * after virtual memory is implemented.
- * Everywhere these functions are called should
- * be redesigned!!!
+ * NOTE: Only kernel memory allocation should be reserved.
+ * And the allocation space should be in .bss section (_kallocbuf).
  */
 /*
  * Memory allocation without compression.
@@ -12,10 +10,12 @@
  */
 #include <os/malloc-g.h>
 
-/* Memory space to be allocated (Kernel, User) */
-int8_t* kallocbuf, * uallocbuf;
+/* Use a 4 MiB space in .bss section of GlucOS kernel */
+static uint64_t _kallocbuf[KSL / 8U];
 
-static header* kpav, * upav;
+static int8_t* kallocbuf;
+
+static header* kpav;
 
 /* point to the foot of the node p points */
 static inline header* foot_loc(header* p)
@@ -27,30 +27,13 @@ void malloc_init()
 {
 	header* p, *q;
 
-	/*
-	 * Use this alloc_page() just to avoid compilation error!
-	 * These functions in this file should be REVOKED!
-	 */
-	kallocbuf = (void *)alloc_page(KSL);
-	uallocbuf = (void *)alloc_page(USL);
+	kallocbuf = (void *)_kallocbuf;
 
 	kpav = (header*)kallocbuf;
 	p = kpav;
 
 	p->next = p;
-	p->size = KSL * PAGE_SIZE;
-	p->tag = FREE;
-	p->last = p;
-
-	q = foot_loc(p);
-	q->head = p;
-	q->tag = FREE;
-
-	upav = (header*)uallocbuf;
-	p = upav;
-
-	p->next = p;
-	p->size = USL * PAGE_SIZE;
+	p->size = KSL;
 	p->tag = FREE;
 	p->last = p;
 
@@ -120,7 +103,7 @@ void kfree_g(void* const P)
 	if (((int64_t)P & (ADDR_ALIGN - 1)) != 0 ||
 		((int64_t)f & (ADDR_ALIGN - 1)) != 0 ||
 		f->head != h)
-		panic_g("kfree_g: Addr 0x%lx is not allocated by xmalloc_g\n", (int64_t)P);
+		panic_g("kfree_g: Addr 0x%lx is not allocated by kmalloc_g\n", (int64_t)P);
 
 	lf = h - 1;	/* foot of the left block */
 	if ((int8_t*)h - kallocbuf <= 0)
@@ -129,7 +112,7 @@ void kfree_g(void* const P)
 		lf_tag = lf->tag;
 
 	rh = f + 1;	/* head of the right block */
-	if ((int8_t*)rh - kallocbuf >= KSL * PAGE_SIZE)
+	if ((int8_t*)rh - kallocbuf >= KSL)
 		rh_tag = 1;
 	else
 		rh_tag = rh->tag;
@@ -205,136 +188,4 @@ void kprint_avail_table()
 		writelog("kprint_alail_table: Start: 0x%lx, Size: %u, End: 0x%lx, Tag: %d;\n",
 			(ptr_t)p, p->size, (ptr_t)p + p->size - 1U, p->tag);
 	} while ((p = p->next) != kpav);
-}
-
-/* umalloc: First fit */
-void* umalloc_g(const uint32_t Size)
-{
-	uint32_t n;
-	header* h, *f;
-
-	n = Size + 2U * sizeof(header);
-	n = ROUND(n, ADDR_ALIGN);	/* ensure that n%8==0 */
-	for (h = upav; h != NULL && h->size < n && h->next != upav; h = h->next)
-		;
-	if (h == NULL || h->size < n)
-		return NULL;	/* Not found */
-	f = foot_loc(h);
-	upav = h->next;	/* Convention */
-	if (h->size - n < EU)
-	{	/* allocate the single block */
-		if (h == upav)
-			/* no free space left */
-			upav = NULL;
-		else
-		{
-			h->last->next = upav;
-			upav->last = h->last;
-		}
-		h->tag = f->tag = OCCUPIED;
-	}
-	else
-	{	/* allocate the last n bytes */
-		f->tag = OCCUPIED;
-		h->size -= n;
-		f = foot_loc(h);
-		f->tag = FREE;
-		f->head = h;
-		h = f + 1;
-		h->size = n;
-		h->tag = OCCUPIED;
-		f = foot_loc(h);
-		f->head = h;
-		/* Set f->head = h for checking in xfree_g */
-	}
-	if (((int64_t)(h + 1) & (ADDR_ALIGN - 1)) != 0)
-		panic_g("umalloc_g: addr %x is not %d-byte aligned", (int32_t)(int64_t)(h + 1), ADDR_ALIGN);
-	/* return the true address(after the header) */
-	return (void*)(h + 1);
-}
-
-void ufree_g(void* const P)
-{
-	header* h, *f;
-	uint32_t n;
-	header* lf, * rh, * lh;
-	int lf_tag, rh_tag;
-
-	h = (header*)P - 1;
-	f = foot_loc(h);
-	n = h->size;
-
-	/* Check whether the block is allocated by xmalloc_g */
-	if (((int64_t)P & (ADDR_ALIGN - 1)) != 0 ||
-		((int64_t)f & (ADDR_ALIGN - 1)) != 0 ||
-		f->head != h)
-		panic_g("ufree_g: Addr 0x%lx is not allocated by xmalloc_g\n", (int64_t)P);
-
-	lf = h - 1;	/* foot of the left block */
-	if ((int8_t*)h - uallocbuf <= 0)
-		lf_tag = 1;	/* left terminal, consider as left block is occupied */
-	else
-		lf_tag = lf->tag;
-
-	rh = f + 1;	/* head of the right block */
-	if ((int8_t*)rh - uallocbuf >= USL * PAGE_SIZE)
-		rh_tag = 1;
-	else
-		rh_tag = rh->tag;
-	switch ((lf_tag << 1) + rh_tag)
-	{
-	case 3:	/* both L and F are occupied */
-		h->tag = f->tag = FREE;
-		f->head = h;
-		if (upav == NULL)
-			upav = h->next = h->last = h;
-		else
-		{	/* insert h */
-			h->next = upav;
-			h->last = upav->last;
-			upav->last->next = h;
-			upav->last = h;
-			upav = h;
-		}
-		break;
-	case 2:	/* L is occupied */
-		/* merge R and h */
-		h->size = rh->size + n;
-		if (rh->next == rh)
-		{	/* only 1 block */
-			h->next = h;
-			h->last = h;
-		}
-		else
-		{
-			h->next = rh->next;
-			h->last = rh->last;
-		}
-		f = foot_loc(h);
-		f->head = h;
-		h->tag = f->tag = FREE;
-		h->last->next = h;
-		h->next->last = h;
-		upav = h;	/* it is necessary */
-		break;
-	case 1:	/* R is occupied */
-		/* merge L and h */
-		lh = lf->head;
-		lh->size += n;
-		f = foot_loc(h);
-		f->head = lh;
-		f->tag = FREE;
-		break;
-	default:/* both L and F are free */
-		/* merge L and h */
-		lh = lf->head;
-		lh->size += n + rh->size;
-		lf = foot_loc(lh);
-		lf->head = lh;
-		/* delete node R */
-		rh->last->next = rh->next;
-		rh->next->last = rh->last;
-		upav = lh;	/* it is necessary */
-		break;
-	}
 }

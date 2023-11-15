@@ -12,7 +12,7 @@ Project 4。
 
 #### 可做的优化
 
-
+去除 Project 2 的多线程留下的历史包袱。
 
 #### [2023-11-13]
 
@@ -38,3 +38,4 @@ Project 4。
 
   修改了 createimage 工具以及 GlucOS 中对用户程序的定义`task_info_t`，新增`m_size`成员用于记录该程序在主存中的总大小。
 
+  修改了`create_proc()`、`load_task_img()`、`init_pcb_stack()`等函数使其支持虚存，**但未经过任何测试**；修改了`kmalloc_g()`函数的分配缓冲区为内核 .bss 段的 4 MiB 空间；取消对`umalloc_g()`的支持，但背上了 Project 2 多线程的历史包袱（make 编译时需带上`MTHREAD=0`）；目前，在 QEMU 上内核仍然可以用虚存来启动。

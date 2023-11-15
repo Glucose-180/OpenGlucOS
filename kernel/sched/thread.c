@@ -41,15 +41,17 @@ static tid_t alloc_tid(pcb_t *proc)
 tid_t thread_create(void *(*func)(), reg_t arg)
 {
 	tid_t tid;
-	ptr_t stack;
+	ptr_t stack = 0;
+	//ptr_t stack;
 	tcb_t *pnew, *temp;
 
 	if ((temp = ltcb_add_node_to_tail(cur_cpu()->pcthread, &pnew))
 		== NULL)
 		return INVALID_TID;
 	cur_cpu()->pcthread = temp;
-	if ((stack = (ptr_t)umalloc_g(Tstack_size)) == 0)
-		return INVALID_TID;
+	/* umalloc_g() has been revoked. */
+	//if ((stack = (ptr_t)umalloc_g(Tstack_size)) == 0)
+	//	return INVALID_TID;
 	pnew->stack = stack;
 	/*
 	 * Set TID of new born thread to INVALID_TID
@@ -58,7 +60,7 @@ tid_t thread_create(void *(*func)(), reg_t arg)
 	pnew->tid = INVALID_TID;
 	if ((tid = alloc_tid(cur_cpu())) == INVALID_TID)
 	{
-		ufree_g((void *)stack);
+		//ufree_g((void *)stack);
 		return INVALID_TID;
 	}
 	pnew->tid = tid;
@@ -134,7 +136,7 @@ tid_t thread_kill(tid_t const T)
 	if (pd == NULL)
 		panic_g("thread_kill: thread %d of precess %d found but cannot be deleted",
 			T, cur_cpu()->pid);
-	ufree_g((void *)pd->stack);
+	//ufree_g((void *)pd->stack);
 	kfree_g((void *)pd);
 	return T;
 }

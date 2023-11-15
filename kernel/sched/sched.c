@@ -25,11 +25,13 @@
 const ptr_t pid0_stack = 0xffffffc051000000,
 	pid1_stack = 0xffffffc050f00000;
 
+static const uintptr_t User_sp = 0xf00010000UL;
+
 /*
  * The default size for a user stack and kernel stack.
- * 16 KiB, 16 KiB.
+ * 4 KiB, 16 KiB.
  */
-static const uint32_t Ustack_size = 16 * 1024,
+static const uint32_t// Ustack_size = PAGE_SIZE,
 	Kstask_size = 16 * 1024;
 
 /*
@@ -117,41 +119,43 @@ pid_t alloc_pid(void)
 pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 {
 	ptr_t entry, user_stack, kernel_stack;
-	pcb_t *pnew, *temp;//, *p0;
+	pcb_t *pnew, *temp;
+	PTE* pgdir_kva;
 
-	//p0 = NULL;
 	if (taskname == NULL || get_proc_num() >= UPROC_MAX + NCPU)
 		return INVALID_PID;
-	entry = load_task_img(taskname);
+	
+	pgdir_kva = (PTE*)alloc_pagetable();
+	share_pgtable(pgdir_kva, (PTE*)PGDIR_VA);
+
+	entry = load_task_img(taskname, pgdir_kva);
 	if (entry == 0U)
+		/*
+		 * TODO: We need to free the page table
+		 * allocated just now.
+		 */
 		return INVALID_PID;
-	user_stack = (ptr_t)umalloc_g(Ustack_size);
+	//TODO
+	//user_stack = (ptr_t)umalloc_g(Ustack_size);
+	user_stack = alloc_page_helper(User_sp - PAGE_SIZE, (uintptr_t)pgdir_kva);
+
 	kernel_stack = (ptr_t)kmalloc_g(Kstask_size);
+
 	if (user_stack == 0 || kernel_stack == 0)
 		return INVALID_PID;
-	/*if (ready_queue->pid == pid0_pcb.pid)
-	{
-		ready_queue = lpcb_del_node(ready_queue, ready_queue, &p0);
-		if (ready_queue != NULL || p0 == NULL || p0->pid != pid0_pcb.pid)
-			panic_g("create_proc: Failed to remove the proc whose ID is 0");
-	}*/
 	if ((temp = lpcb_add_node_to_tail(ready_queue, &pnew, &ready_queue)) == NULL)
 	{
-		ufree_g((void *)user_stack);
+		//ufree_g((void *)user_stack);
+		//TODO: Free user stack and kernel stack
 		return INVALID_PID;
 	}
 	ready_queue = temp;
-	/*if (p0 != NULL)
-	{	// Has removed the 0 proc
-		p0->next = ready_queue;
-		if (p0 != cur_cpu())
-			panic_g("create_proc: Error happened while removing the proc 0");
-	}*/
 	/*
 	 * Set PID of new born process to INVALID_PID
 	 * so that the undefined PID will not affect alloc_pid().
 	 */
 	pnew->pid = INVALID_PID;
+	pnew->pgdir_kva = (uintptr_t)pgdir_kva;
 	strncpy(pnew->name, taskname, TASK_NAMELEN);
 	pnew->name[TASK_NAMELEN] = '\0';
 	init_pcb_stack(kernel_stack, user_stack, entry, pnew, cpu_mask);
@@ -444,8 +448,13 @@ void init_pcb_stack(
 		 - sizeof(regs_context_t);
 	pcb->kernel_sp = ROUNDDOWN(pcb->kernel_sp, SP_ALIGN);
 	pcb->user_stack = user_stack;
-	pcb->user_sp = user_stack + ROUND(Ustack_size, ADDR_ALIGN);
-	pcb->user_sp = ROUNDDOWN(pcb->user_sp, SP_ALIGN);
+	//pcb->user_sp = user_stack + ROUND(Ustack_size, ADDR_ALIGN);
+	//pcb->user_sp = ROUNDDOWN(pcb->user_sp, SP_ALIGN);
+	/*
+	 * pcb->user_sp saves the user virtual address (UVA)
+	 * rather than KVA.
+	 */
+	pcb->user_sp = User_sp;
 	/*
 	 * After switch_to(), it will
 	 * be switched to ret_from_exception.
@@ -694,6 +703,7 @@ pid_t do_kill(pid_t pid)
 	while (p->wait_queue != NULL)
 		p->wait_queue = do_unblock(p->wait_queue);
 
+#if MULTITHREADING != 0
 	/* Kill all child threads */
 	while (p->pcthread != NULL)
 	{
@@ -705,10 +715,12 @@ pid_t do_kill(pid_t pid)
 		ufree_g((void *)pd->stack);
 		kfree_g((void *)pd);
 	}
+#endif
 
 	/* Free stacks of it */
 	kfree_g((void *)p->kernel_stack);
-	ufree_g((void *)p->user_stack);
+	//ufree_g((void *)p->user_stack);
+	// TODO: free user stack
 
 	*phead = lpcb_del_node(*phead, p, &pdel);
 	if (pdel == NULL)

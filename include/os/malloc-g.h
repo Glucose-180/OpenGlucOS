@@ -10,13 +10,9 @@
 #include <printk.h>
 #include <os/glucose.h>
 
-/* Total memory size: unit: PAGE (default: 4 KiB) */
-#ifndef KSL
-	#define KSL 4096	/* 16 MiB */
-#endif
-#ifndef USL
-	#define USL 4096	/* 16 MiB */
-#endif
+/* Total memory size for kmalloc_g(). unit: B */
+#define KSL (4U * 1024U * 1024U)	/* 4 MiB */
+
 /* Size less than EU will not be preserved */
 #ifndef EU
 	#define EU 64U
@@ -47,8 +43,5 @@ void malloc_init(void);
 void* kmalloc_g(const uint32_t Size);
 void kfree_g(void* const P);
 void kprint_avail_table(void);
-void* umalloc_g(const uint32_t Size);
-void ufree_g(void* const P);
-//void uprint_avail_table(void);
 
 #endif
