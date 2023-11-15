@@ -52,7 +52,8 @@ pcb_t pid0_pcb = {
 	.cur_thread = NULL,
 	/* to make pid0_pcb.phead point to ready_queue */
 	.phead = &ready_queue,
-	.cpu_mask = 1U << 0
+	.cpu_mask = 1U << 0,
+	.pgdir_kva = PGDIR_VA
 };
 
 #if NCPU == 2
@@ -74,7 +75,8 @@ pcb_t pid1_pcb = {
 	.cur_thread = NULL,
 	/* to make pid0_pcb.phead point to ready_queue */
 	.phead = &ready_queue,
-	.cpu_mask = 1U << 1
+	.cpu_mask = 1U << 1,
+	.pgdir_kva = PGDIR_VA
 };
 #endif
 

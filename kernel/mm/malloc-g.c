@@ -28,11 +28,11 @@ void malloc_init()
 	header* p, *q;
 
 	/*
-	 * Use this allocPage() just to avoid compilation error!
+	 * Use this alloc_page() just to avoid compilation error!
 	 * These functions in this file should be REVOKED!
 	 */
-	kallocbuf = (void *)allocPage(KSL);
-	uallocbuf = (void *)allocPage(USL);
+	kallocbuf = (void *)alloc_page(KSL);
+	uallocbuf = (void *)alloc_page(USL);
 
 	kpav = (header*)kallocbuf;
 	p = kpav;

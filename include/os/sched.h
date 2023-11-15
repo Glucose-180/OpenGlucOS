@@ -178,6 +178,11 @@ typedef struct pcb
 	 * this process can run on it if and only if (1<<i)&cpu_mask is not zero.
 	 */
 	unsigned int cpu_mask;
+	/*
+	 * pgdir_kva is the kernel virtual address of page
+	 * directory of this process.
+	 */
+	uintptr_t pgdir_kva;
 } pcb_t;
 
 /* ready queue to run */
