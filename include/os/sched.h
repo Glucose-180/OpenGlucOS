@@ -31,6 +31,7 @@
 
 #include <type.h>
 //#include <os/lock.h>
+#include <pgtable.h>
 
 #define UPROC_MAX 16
 #define TASK_NAMELEN 31
@@ -95,6 +96,9 @@ typedef struct pcb
 {
 	/* register context */
 	// NOTE: this order must be preserved, which is defined in regs.h!!
+	/*
+	 * kernel_sp is KVA while user_sp is UVA.
+	 */
 	reg_t kernel_sp, user_sp;
 	/*
 	 * NOTE: user_sp and kernel_sp of PCB of PID 0:
@@ -105,9 +109,8 @@ typedef struct pcb
 	 */
 	regs_context_t *trapframe;
 	/*
-	 * the start (lowest) address of kernel and user stack.
-	 * Different from kernel/user_sp which are stack pointers,
-	 * as stack grows from high address to low.
+	 * The start (lowest) address of kernel and user stack.
+	 * Both of them are KVA.
 	 */
 	reg_t kernel_stack, user_stack;
 	/*
@@ -155,7 +158,7 @@ typedef struct pcb
 	 * pgdir_kva is the kernel virtual address of page
 	 * directory of this process.
 	 */
-	uintptr_t pgdir_kva;
+	PTE* pgdir_kva;
 } pcb_t;
 
 /* ready queue to run */

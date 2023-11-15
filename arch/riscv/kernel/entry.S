@@ -114,10 +114,8 @@ Save_gprs:
 	 * space.
 	 */
 	 /* See riscv-privileged-20211203.pdf: Page 79, 4.1.1.2 and Page 40, 3.1.1.6 */
-	li t0, SR_SUM | SR_FS
-	csrc	CSR_SSTATUS, t0
-
-	/* TODO: [p2-task3] save sstatus, sepc, stval and scause on kernel stack */
+	//li t0, SR_SUM | SR_FS
+	//csrc	CSR_SSTATUS, t0
 
 .endm
 

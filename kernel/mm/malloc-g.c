@@ -10,7 +10,12 @@
  */
 #include <os/malloc-g.h>
 
-/* Use a 4 MiB space in .bss section of GlucOS kernel */
+/*
+ * Use a 4 MiB space in .bss section of GlucOS kernel.
+ * It is in .bss section, so clearing it is unnecessary and
+ * time consuming. Just let kallocbuf point to an address
+ * after __BSS_END__ can be considered.
+ */
 static uint64_t _kallocbuf[KSL / 8U];
 
 static int8_t* kallocbuf;

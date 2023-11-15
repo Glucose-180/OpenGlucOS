@@ -90,8 +90,8 @@ void init_exception()
 	setup_exception();
 
 	sstatus = r_sstatus();
-	sstatus |= SR_SPIE;
-	sstatus &= ~SR_SPP;
+	sstatus |= SR_SPIE | SR_SUM;
+	sstatus &= ~(SR_SPP | SR_FS);
 	w_sstatus(sstatus);
 }
 

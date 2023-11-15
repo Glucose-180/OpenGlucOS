@@ -52,7 +52,7 @@ pcb_t pid0_pcb = {
 	/* to make pid0_pcb.phead point to ready_queue */
 	.phead = &ready_queue,
 	.cpu_mask = 1U << 0,
-	.pgdir_kva = PGDIR_VA
+	.pgdir_kva = (PTE*)PGDIR_VA
 };
 
 #if NCPU == 2
@@ -73,7 +73,7 @@ pcb_t pid1_pcb = {
 	/* to make pid0_pcb.phead point to ready_queue */
 	.phead = &ready_queue,
 	.cpu_mask = 1U << 1,
-	.pgdir_kva = PGDIR_VA
+	.pgdir_kva = (PTE*)PGDIR_VA
 };
 #endif
 
@@ -150,7 +150,7 @@ pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 	 * so that the undefined PID will not affect alloc_pid().
 	 */
 	pnew->pid = INVALID_PID;
-	pnew->pgdir_kva = (uintptr_t)pgdir_kva;
+	pnew->pgdir_kva = pgdir_kva;
 	strncpy(pnew->name, taskname, TASK_NAMELEN);
 	pnew->name[TASK_NAMELEN] = '\0';
 	init_pcb_stack(kernel_stack, user_stack, entry, pnew, cpu_mask);
