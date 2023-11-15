@@ -66,9 +66,6 @@ typedef struct switchto_context
 	 * ra, sp, s0~s11.
 	 */
 	reg_t regs[14];
-#if MULTITHREADING != 0
-	reg_t sepc;
-#endif
 } switchto_context_t;
 
 enum Saved_regs {
@@ -92,19 +89,6 @@ typedef enum {
 } task_status_t;
 
 typedef pid_t tid_t;
-/* Thread control block */
-typedef struct tcb {
-	/*
-	 * This order must be preserved. That is,
-	 * arg must be after and next to context.
-	 */
-	switchto_context_t context;
-	reg_t arg;
-
-	tid_t tid;
-	ptr_t stack;	/* Base of stack */
-	struct tcb *next;
-} tcb_t;
 
 /* Process Control Block */
 typedef struct pcb
@@ -157,17 +141,6 @@ typedef struct pcb
 	 * find the queue.
 	 */
 	struct pcb ** phead;
-	/*
-	 * Pointer to list of child threads,
-	 * NULL means that no child threads.
-	 */
-	tcb_t *pcthread;
-	/*
-	 * Pointer to current thread,
-	 * NULL means that current thread is 
-	 * parent thread, or main().
-	 */
-	tcb_t *cur_thread;
 	/*
 	 * req_len is used to store the length of mailbox
 	 * request when blocked in queue of mailbox.
@@ -228,10 +201,6 @@ void init_pcb_stack(
 	ptr_t kernel_sp, ptr_t user_sp, ptr_t entry_point,
 	pcb_t *pcb, unsigned int cpu_mask);
 void set_preempt(void);
-
-tid_t thread_create(void *(*func)(), reg_t arg);
-long thread_yield(void);
-tid_t thread_kill(tid_t const T);
 
 /************************************************************/
 /* TODO [P3-TASK1] exec exit kill waitpid ps*/

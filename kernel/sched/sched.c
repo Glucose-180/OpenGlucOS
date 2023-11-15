@@ -1,6 +1,5 @@
 #include <os/list.h>
 #include <os/pcb-list-g.h>
-#include <os/tcb-list-g.h>
 #include <os/lock.h>
 #include <os/sched.h>
 #include <os/time.h>
@@ -50,8 +49,6 @@ pcb_t pid0_pcb = {
 	.cursor_y = 0,
 	.cylim_h = -1,
 	.cylim_l = -1,
-	.pcthread = NULL,
-	.cur_thread = NULL,
 	/* to make pid0_pcb.phead point to ready_queue */
 	.phead = &ready_queue,
 	.cpu_mask = 1U << 0,
@@ -73,8 +70,6 @@ pcb_t pid1_pcb = {
 	.cursor_y = 0,
 	.cylim_h = -1,
 	.cylim_l = -1,
-	.pcthread = NULL,
-	.cur_thread = NULL,
 	/* to make pid0_pcb.phead point to ready_queue */
 	.phead = &ready_queue,
 	.cpu_mask = 1U << 1,
@@ -192,19 +187,7 @@ void do_scheduler(void)
 				q = cur_cpu();
 				current_running[isscpu] = p;
 				cur_cpu()->status = TASK_RUNNING;
-				/*
-				 * Define MULTITHREADING as 1 to support multithreading. When switch_to()
-				 * is called, we should first determine which thread will be switched from
-				 * and to. If multithreading is disabled, just keep switch_to() as normal.
-				 */
-#if MULTITHREADING != 0
-				switch_to(q->cur_thread == NULL ? &(q->context) : &(q->cur_thread->context),
-					cur_cpu()->cur_thread == NULL ? &(cur_cpu()->context)
-					: &(cur_cpu()->cur_thread->context)
-				);
-#else
 				switch_to(&(q->context), &(cur_cpu()->context));
-#endif
 				return;
 			}
 			else if (p->status == TASK_EXITED)
@@ -264,15 +247,7 @@ void do_sleep(uint32_t sleep_time)
 	if ((psleep->wakeup_time = get_timer() + sleep_time) > time_max_sec)
 		/* Avoid creating a sleeping task that would never be woken up */
 		psleep->wakeup_time = time_max_sec;
-#if MULTITHREADING != 0
-	switch_to(psleep->cur_thread == NULL ? &(psleep->context)
-		: &(psleep->cur_thread->context),
-		cur_cpu()->cur_thread == NULL ? &(cur_cpu()->context)
-		: &(cur_cpu()->cur_thread->context)
-	);
-#else
 	switch_to(&(psleep->context), &(cur_cpu()->context));
-#endif
 }
 
 /*
@@ -384,13 +359,8 @@ int do_block(pcb_t ** const Pqueue, spin_lock_t *slock)
 			 */
 			if (slock != NULL)
 				spin_lock_release(slock);
-#if MULTITHREADING != 0
-			switch_to(p->cur_thread == NULL ? &(p->context) : &(p->cur_thread->context),
-				cur_cpu()->cur_thread == NULL ? &(cur_cpu()->context)
-				: &(cur_cpu()->cur_thread->context));
-#else
 			switch_to(&(p->context), &(cur_cpu()->context));
-#endif
+
 			/* Reacquire the spin lock */
 			if (slock != NULL)
 				spin_lock_acquire(slock);
@@ -503,10 +473,7 @@ void init_pcb_stack(
 	pcb->cylim_h = pcb->cylim_l = -1;
 	if ((pcb->pid = alloc_pid()) == INVALID_PID)
 		panic_g("init_pcb_stack: No invalid PID can be used");
-	
-	/* No child thread at the beginning. */
-	pcb->cur_thread = NULL;
-	pcb->pcthread = NULL;
+
 	pcb->cpu_mask = cpu_mask;
 }
 
@@ -702,20 +669,6 @@ pid_t do_kill(pid_t pid)
 	/* wake up proc in wait_queue */
 	while (p->wait_queue != NULL)
 		p->wait_queue = do_unblock(p->wait_queue);
-
-#if MULTITHREADING != 0
-	/* Kill all child threads */
-	while (p->pcthread != NULL)
-	{
-		tcb_t *pd;
-		p->pcthread = ltcb_del_node(p->pcthread, p->pcthread, &pd);
-		if (pd == NULL)
-			panic_g("do_kill: thread %d of process %d found but cannot be deleted",
-				p->pcthread->tid, p->pid);
-		ufree_g((void *)pd->stack);
-		kfree_g((void *)pd);
-	}
-#endif
 
 	/* Free stacks of it */
 	kfree_g((void *)p->kernel_stack);
