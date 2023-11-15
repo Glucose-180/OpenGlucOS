@@ -11,10 +11,14 @@ static unsigned long npages_used = 1U;
 /********* setup memory mapping ***********/
 static uintptr_t ARRTIBUTE_BOOTKERNEL alloc_page()
 {
-	static uintptr_t pg_base = PGDIR_PA;
-	pg_base += 0x1000;
+	/*
+	 * symbol name `pg_base` may be used in mm.c,
+	 * so usee `pg_base_s` instead.
+	 */
+	static uintptr_t pg_base_s = PGDIR_PA;
+	pg_base_s += 0x1000;
 	++npages_used;
-	return pg_base;
+	return pg_base_s;
 }
 
 // using 2MB large page
