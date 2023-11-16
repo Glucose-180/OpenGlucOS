@@ -89,5 +89,5 @@ stop:
 
 .data
 
-msg: .string "It's a bootloader...\n\r"
+msg: .string "Loading GlucOS from image...\n\r"
 

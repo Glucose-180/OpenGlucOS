@@ -16,7 +16,13 @@
  * time consuming. Just let kallocbuf point to an address
  * after __BSS_END__ can be considered.
  */
-static uint64_t _kallocbuf[KSL / 8U];
+//static uint64_t _kallocbuf[KSL / 8U];
+
+/*
+ * Use a free space after .bss section instead
+ * to avoid spending time clearing it.
+ */
+extern int __BSS_END__[];
 
 static int8_t* kallocbuf;
 
@@ -32,7 +38,12 @@ void malloc_init()
 {
 	header* p, *q;
 
-	kallocbuf = (void *)_kallocbuf;
+	//kallocbuf = (void *)_kallocbuf;
+	kallocbuf = (void *)ROUND((uintptr_t)__BSS_END__ + 16UL, 16UL);
+
+	if ((uintptr_t)kallocbuf + KSL > 0xffffffc050e00000UL)
+		panic_g("malloc_init: no enough space for kallocbuf: 0x%lx",
+			(uintptr_t)kallocbuf);
 
 	kpav = (header*)kallocbuf;
 	p = kpav;
