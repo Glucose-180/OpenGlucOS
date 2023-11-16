@@ -289,7 +289,7 @@ int main(reg_t a0, reg_t a1)
 	latency(3U);
 
 	/* Brake! As virtual memory don't support user process now. */
-	glucos_brake();
+	//glucos_brake();
 
 	/*
 	 * Lock kernel to protect do_exec(glush)
@@ -370,7 +370,7 @@ int main_s(reg_t a0, reg_t a1)
 	printk("> [INIT] I am CPU %lu and has started!\n", get_current_cpu_id());
 
 	/* Brake! As virtual memory don't support user process now. */
-	glucos_brake();
+	//glucos_brake();
 
 	set_preempt();
 #if DEBUG_EN != 0

@@ -62,6 +62,8 @@ uintptr_t alloc_pagetable(void);
 extern void share_pgtable(PTE* dest_pgdir, PTE* src_pgdir);
 extern uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir_kva);
 
+uintptr_t va2kva(uintptr_t va, PTE* pgdir_kva);
+
 // TODO [P4-task4]: shm_page_get/dt */
 uintptr_t shm_page_get(int key);
 void shm_page_dt(uintptr_t addr);

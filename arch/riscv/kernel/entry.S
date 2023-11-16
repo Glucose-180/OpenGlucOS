@@ -269,7 +269,22 @@ ENTRY(switch_to)
 	la	t0, current_running
 	ld	tp, 8(t0)	/* Now $tp equals current_running[1], or c.r. */
 2:
-	//ld	tp, 0(t0)
+	/* Update $satp and refresh TLB */
+	csrr	t0, satp
+	li	t1, (1 << 60) - 1
+	not	t1, t1
+	and	t0, t1, t0	/* Clear ASID and PPN */
+	lwu	t2, PCB_PID(tp)	
+	sll	t2, t2, 44
+	sll	t1, t1, 60
+	not	t1, t1
+	and	t2, t1, t2
+	or	t0, t2, t0	/* Set ASID, or PID */
+	lwu	t2, PCB_PGDIR(tp) /* use lwu to load physical addr */
+	srl	t2, t2, 12	/* Physical page number */
+	or	t0, t2, t0
+	csrw	satp, t0
+	sfence.vma
 	ret
 
 ENDPROC(switch_to)

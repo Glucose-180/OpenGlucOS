@@ -96,6 +96,7 @@ typedef struct pcb
 {
 	/* register context */
 	// NOTE: this order must be preserved, which is defined in regs.h!!
+	/* --- order preserved starts --- */
 	/*
 	 * kernel_sp is KVA while user_sp is UVA.
 	 */
@@ -109,6 +110,14 @@ typedef struct pcb
 	 */
 	regs_context_t *trapframe;
 	/*
+	 * pgdir_kva is the kernel virtual address of page
+	 * directory of this process.
+	 */
+	PTE* pgdir_kva;
+	/* process id */
+	pid_t pid;
+	/* --- order preserved ends --- */
+	/*
 	 * The start (lowest) address of kernel and user stack.
 	 * Both of them are KVA.
 	 */
@@ -121,8 +130,6 @@ typedef struct pcb
 	//list_node_t list;
 	/* next pointer */
 	struct pcb *next;
-	/* process id */
-	pid_t pid;
 	/* SLEEPING | READY | RUNNING */
 	task_status_t status;
 	/* cursor position */
@@ -154,11 +161,6 @@ typedef struct pcb
 	 * this process can run on it if and only if (1<<i)&cpu_mask is not zero.
 	 */
 	unsigned int cpu_mask;
-	/*
-	 * pgdir_kva is the kernel virtual address of page
-	 * directory of this process.
-	 */
-	PTE* pgdir_kva;
 } pcb_t;
 
 /* ready queue to run */
@@ -201,8 +203,7 @@ void wake_up(pcb_t * const T);
 pcb_t *do_unblock(pcb_t * const Queue);
 
 void init_pcb_stack(
-	ptr_t kernel_sp, ptr_t user_sp, ptr_t entry_point,
-	pcb_t *pcb, unsigned int cpu_mask);
+	ptr_t kernel_sp, ptr_t user_sp, ptr_t entry_point, pcb_t *pcb);
 void set_preempt(void);
 
 /************************************************************/

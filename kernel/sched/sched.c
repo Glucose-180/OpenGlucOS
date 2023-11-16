@@ -130,8 +130,7 @@ pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 		 * allocated just now.
 		 */
 		return INVALID_PID;
-	//TODO
-	//user_stack = (ptr_t)umalloc_g(Ustack_size);
+
 	user_stack = alloc_page_helper(User_sp - PAGE_SIZE, (uintptr_t)pgdir_kva);
 
 	kernel_stack = (ptr_t)kmalloc_g(Kstask_size);
@@ -153,7 +152,14 @@ pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 	pnew->pgdir_kva = pgdir_kva;
 	strncpy(pnew->name, taskname, TASK_NAMELEN);
 	pnew->name[TASK_NAMELEN] = '\0';
-	init_pcb_stack(kernel_stack, user_stack, entry, pnew, cpu_mask);
+	pnew->status = TASK_READY;
+	pnew->wait_queue = NULL;
+	pnew->cursor_x = pnew->cursor_y = 0;
+	pnew->cylim_h = pnew->cylim_l = -1;
+	pnew->cpu_mask = cpu_mask;
+	if ((pnew->pid = alloc_pid()) == INVALID_PID)
+		panic_g("create_proc: No invalid PID");
+	init_pcb_stack(kernel_stack, user_stack, entry, pnew);
 	if (pcb_table_add(pnew) < 0)
 		panic_g("create_proc: Failed to add to pcb_table");
 #if DEBUG_EN != 0
@@ -405,8 +411,7 @@ pcb_t *do_unblock(pcb_t * const Queue)
 
 /************************************************************/
 void init_pcb_stack(
-	ptr_t kernel_stack, ptr_t user_stack, ptr_t entry_point,
-	pcb_t *pcb, unsigned int cpu_mask)
+	ptr_t kernel_stack, ptr_t user_stack, ptr_t entry_point, pcb_t *pcb)
 {
 	 /* TODO: [p2-task3] initialization of registers on kernel stack
 	  * HINT: sp, ra, sepc, sstatus
@@ -466,15 +471,6 @@ void init_pcb_stack(
 	 * call do_exit() directly to cause exception (trying to access kernel).
 	 */
 	pcb->trapframe->regs[OFFSET_REG_RA / sizeof(reg_t)] = (reg_t)do_exit;
-
-	pcb->status = TASK_READY;
-	pcb->wait_queue = NULL;
-	pcb->cursor_x = pcb->cursor_y = 0;
-	pcb->cylim_h = pcb->cylim_l = -1;
-	if ((pcb->pid = alloc_pid()) == INVALID_PID)
-		panic_g("init_pcb_stack: No invalid PID can be used");
-
-	pcb->cpu_mask = cpu_mask;
 }
 
 void set_preempt(void)
@@ -569,7 +565,7 @@ pid_t do_exec(const char *name, int argc, char *argv[])
 	pcb_t *pnew;
 	int i = 0;
 	int l;
-	char **argv_base;
+	char **argv_base, **argv_base_kva;
 
 	if (argc > ARGC_MAX ||
 		/*
@@ -592,20 +588,36 @@ pid_t do_exec(const char *name, int argc, char *argv[])
 	pnew = lpcb_search_node(ready_queue, pid);
 	if (pnew == NULL)
 		panic_g("do_exec: Cannot find PCB of %d: %s", pid, name);
+	/*
+	 * NOTE: command arguments should NOT be too large to
+	 * ensure that writing them wouldnot exceed a page!
+	 */
 	pnew->user_sp -= (sizeof(char *)) * (unsigned int)(argc + 1);
-	/* argv_base is the value of argv in user main() */
+	/*
+	 * `argv_base` is the value of argv in user main().
+	 * `argv_base_kva` is the coresponding KVA.
+	 */
 	argv_base = (char **)(pnew->user_sp);
-	argv_base[argc] = NULL;
+	argv_base_kva = (char **)va2kva((uintptr_t)argv_base, pnew->pgdir_kva);
+	if (argv_base_kva == NULL)
+		panic_g("do_exec: Failed to translate virtual address 0x%lx in page dir 0x%lx",
+			pnew->user_sp, (uint64_t)pnew->pgdir_kva);
+	argv_base_kva[argc] = NULL;
 
 	for (i = 0; i < argc; ++i)
 	{	/* Copy every arg to user stack */
+		char *arg_kva;
 		l = strlen(argv[i]);
 		/* The longer part of argv[i] is ignored */
 		if (l > ARG_LEN)
 			l = ARG_LEN;
-		argv_base[i] = (char *)(pnew->user_sp -= (unsigned int)(l + 1));
-		strncpy(argv_base[i], argv[i], l);
-		argv_base[i][l] = '\0';
+		argv_base_kva[i] = (char *)(pnew->user_sp -= (unsigned int)(l + 1));
+		arg_kva = (char *)va2kva((uintptr_t)argv_base_kva[i], pnew->pgdir_kva);
+		if (arg_kva == NULL)
+			panic_g("do_exec: Failed to translate virtual address 0x%lx in page dir 0x%lx",
+				argv_base_kva[i], (uint64_t)pnew->pgdir_kva);
+		strncpy(arg_kva, argv[i], l);
+		arg_kva[l] = '\0';
 	}
 	pnew->user_sp = ROUNDDOWN(pnew->user_sp, SP_ALIGN);
 	pnew->trapframe->regs[OFFSET_REG_SP / sizeof(reg_t)] = pnew->user_sp;

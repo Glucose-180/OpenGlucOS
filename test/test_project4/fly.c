@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <unistd.h>
-// #include <kernel.h>
+#include <stdlib.h>
 
 /**
  * The ascii airplane is designed by Joan Stark
@@ -16,11 +16,20 @@ static char plane5[] = {"    `~~~~~/ /~~` "};
 static char plane6[] = {"      -==/ /     "};
 static char plane7[] = {"        '-'      "};
 
-int main(void)
+/**
+ * NOTE: bios APIs is used for p2-task1 and p2-task2. You need to change
+ * to syscall APIs after implementing syscall in p2-task3!
+*/
+int main(int argc, char *argv[])
 {
     int j = 10;
 
-    while (1)
+    int rep_ymr = INT32_MAX;
+
+    if (argc > 1)
+        rep_ymr = atoi(argv[1]);
+
+    while (rep_ymr-- > 0)
     {
         for (int i = 0; i < 50; i++)
         {
@@ -46,7 +55,9 @@ int main(void)
             sys_move_cursor(i, j + 6);
             printf("%s", plane7);
         }
-        // sys_yield();
+#if YIELD_EN != 0
+        sys_yield();
+#endif
 
         sys_move_cursor(0, j + 0);
         printf("%s", blank);
@@ -69,4 +80,5 @@ int main(void)
         sys_move_cursor(0, j + 6);
         printf("%s", blank);
     }
+    return 0;
 }

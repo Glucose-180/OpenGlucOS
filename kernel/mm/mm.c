@@ -3,14 +3,14 @@
 
 // NOTE: A/C-core
 #if DEBUG_EN != 0
-ptr_t kernel_mem_curr = FREEMEM_KERNEL;
-uintptr_t pg_base = PGDIR_VA + NORMAL_PAGE_SIZE + NORMAL_PAGE_SIZE;
+volatile ptr_t kernel_mem_curr = FREEMEM_KERNEL;
+volatile uintptr_t pg_base = PGDIR_VA + NORMAL_PAGE_SIZE + NORMAL_PAGE_SIZE;
 #endif
 
 ptr_t alloc_page(unsigned int npages)
 {
 #if DEBUG_EN == 0
-	static ptr_t kernel_mem_curr = FREEMEM_KERNEL;
+	static volatile ptr_t kernel_mem_curr = FREEMEM_KERNEL;
 #endif
 	// align PAGE_SIZE
 	ptr_t ret = ROUND(kernel_mem_curr, PAGE_SIZE);
@@ -46,7 +46,7 @@ void *kmalloc(size_t size)
 /*
  * alloc_pagetable: virtual memory version of alloc_page()
  * in boot.c.
- * Allocate a page as a pagetable and return its
+ * Allocate a page as a pagetable, CLEAR it and return its
  * KERNEL VIRTUAL ADDRESS.
  */
 uintptr_t alloc_pagetable()
@@ -58,12 +58,13 @@ uintptr_t alloc_pagetable()
 	 * the number of paged used by it!!!
 	 */
 #if DEBUG_EN == 0
-	static uintptr_t pg_base = PGDIR_VA +
+	static volatile uintptr_t pg_base = PGDIR_VA +
 		NORMAL_PAGE_SIZE + NORMAL_PAGE_SIZE;
 #endif
 	pg_base += NORMAL_PAGE_SIZE;
 	if (pg_base > 0xffffffc051f00000UL)
 		panic_g("alloc_pagetable: 0x%lx overflow!", pg_base);
+	clear_pgdir(pg_base - NORMAL_PAGE_SHIFT);
 	return pg_base - NORMAL_PAGE_SIZE;
 }
 
@@ -98,14 +99,13 @@ uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir_kva)
 	va &= VA_MASK;
 	vpn2 = va >> (NORMAL_PAGE_SHIFT + PPN_BITS + PPN_BITS);
 	vpn1 = (vpn2 << PPN_BITS) ^ (va >> (NORMAL_PAGE_SHIFT + PPN_BITS));
-	vpn0 = (va >> NORMAL_PAGE_SHIFT) & ~(~0UL << NORMAL_PAGE_SHIFT);
+	vpn0 = (va >> NORMAL_PAGE_SHIFT) & ~(~0UL << PPN_BITS);
 
 	if (pgdir[vpn2] == 0UL)
 	{
 		pgdir_l1 = (PTE*)alloc_pagetable();
 		set_pfn(&pgdir[vpn2], kva2pa((uintptr_t)pgdir_l1) >> NORMAL_PAGE_SHIFT);
 		set_attribute(&pgdir[vpn2], _PAGE_PRESENT);
-		clear_pgdir((uintptr_t)pgdir_l1);
 	}
 	else
 	{
@@ -119,8 +119,7 @@ uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir_kva)
 	{
 		pgdir_l0 = (PTE*)alloc_pagetable();
 		set_pfn(&pgdir_l1[vpn1], kva2pa((uintptr_t)pgdir_l0) >> NORMAL_PAGE_SHIFT);
-		set_attribute(&pgdir[vpn1], _PAGE_PRESENT);
-		clear_pgdir((uintptr_t)pgdir_l0);
+		set_attribute(&pgdir_l1[vpn1], _PAGE_PRESENT);
 	}
 	else
 	{
@@ -158,6 +157,60 @@ uintptr_t alloc_pages(uintptr_t va, unsigned npages, PTE* pgdir_kva)
 
 }
  */
+
+/*
+ * uva2kva: look up the page table at `pgdir_kva`
+ * and translate the virtual address `va` to
+ * kernel virtual address.
+ * Return the KVA on success and 0UL on error.
+ */
+uintptr_t va2kva(uintptr_t va, PTE* pgdir_kva)
+{
+	uint64_t vpn2, vpn1, vpn0, offset;
+	PTE *pgdir_l1 = NULL, *pgdir_l0 = NULL;
+
+#define _PAGE_XWR (_PAGE_EXEC | _PAGE_WRITE | _PAGE_READ)
+
+	va &= VA_MASK;
+	vpn2 = va >> (NORMAL_PAGE_SHIFT + PPN_BITS + PPN_BITS);
+	vpn1 = (vpn2 << PPN_BITS) ^ (va >> (NORMAL_PAGE_SHIFT + PPN_BITS));
+	vpn0 = (va >> NORMAL_PAGE_SHIFT) & ~(~0UL << NORMAL_PAGE_SHIFT);
+	offset = va & (NORMAL_PAGE_SIZE - 1U);
+	if (get_attribute(pgdir_kva[vpn2], _PAGE_PRESENT) != 0L)
+	{
+		if (get_attribute(pgdir_kva[vpn2], _PAGE_XWR) == 0L)
+			/* Point to next level of page table */
+			pgdir_l1 = (PTE *)pa2kva(get_pa(pgdir_kva[vpn2]));
+		else
+			/* It is leave page table */
+			return pa2kva((pgdir_kva[vpn2]) + (vpn1 << (NORMAL_PAGE_SHIFT + PPN_BITS)) +
+				(vpn0 << NORMAL_PAGE_SHIFT) + offset);
+	}
+	else
+		return 0UL;	/* Failed */
+	if (get_attribute(pgdir_l1[vpn1], _PAGE_PRESENT) != 0L)
+	{
+		if (get_attribute(pgdir_l1[vpn1], _PAGE_XWR) == 0L)
+			/* Point to next level of page table */
+			pgdir_l0 = (PTE *)pa2kva(get_pa(pgdir_l1[vpn1]));
+		else
+			/* It is leave page table */
+			return pa2kva(get_pa(pgdir_l1[vpn1]) +
+				(vpn0 << NORMAL_PAGE_SHIFT) + offset);
+	}
+	else
+		return 0UL;
+	if (get_attribute(pgdir_l0[vpn0], _PAGE_PRESENT) != 0L)
+	{
+		if (get_attribute(pgdir_l0[vpn0], _PAGE_XWR) == 0L)
+			/* It's error as X, W, R are all 0! */
+			return 0UL;
+		else
+			return pa2kva(get_pa(pgdir_l0[vpn0]) + offset);
+	}
+	else
+		return 0UL;
+}
 
 uintptr_t shm_page_get(int key)
 {
