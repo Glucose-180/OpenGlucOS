@@ -239,8 +239,8 @@ int main(reg_t a0, reg_t a1)
 	// Init task information (〃'▽'〃)
 	init_taskinfo();
 
-	// Init memory alloc
-	malloc_init();
+	// Init memory management
+	init_mm();
 	
 	// Init Process Control Blocks |•'-'•) ✧
 	init_pcb();

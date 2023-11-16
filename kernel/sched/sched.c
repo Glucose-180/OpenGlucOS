@@ -116,14 +116,18 @@ pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 	ptr_t entry, user_stack, kernel_stack;
 	pcb_t *pnew, *temp;
 	PTE* pgdir_kva;
+	pid_t pid;
 
 	if (taskname == NULL || get_proc_num() >= UPROC_MAX + NCPU)
 		return INVALID_PID;
+
+	if ((pid = alloc_pid()) == INVALID_PID)
+		panic_g("create_proc: No invalid PID");
 	
 	pgdir_kva = (PTE*)alloc_pagetable();
 	share_pgtable(pgdir_kva, (PTE*)PGDIR_VA);
 
-	entry = load_task_img(taskname, pgdir_kva);
+	entry = load_task_img(taskname, pgdir_kva, pid);
 	if (entry == 0U)
 		/*
 		 * TODO: We need to free the page table
@@ -131,7 +135,7 @@ pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 		 */
 		return INVALID_PID;
 
-	user_stack = alloc_page_helper(User_sp - PAGE_SIZE, (uintptr_t)pgdir_kva);
+	user_stack = alloc_page_helper(User_sp - PAGE_SIZE, (uintptr_t)pgdir_kva, pid);
 
 	kernel_stack = (ptr_t)kmalloc_g(Kstask_size);
 
@@ -157,8 +161,7 @@ pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 	pnew->cursor_x = pnew->cursor_y = 0;
 	pnew->cylim_h = pnew->cylim_l = -1;
 	pnew->cpu_mask = cpu_mask;
-	if ((pnew->pid = alloc_pid()) == INVALID_PID)
-		panic_g("create_proc: No invalid PID");
+	pnew->pid = pid;
 	init_pcb_stack(kernel_stack, user_stack, entry, pnew);
 	if (pcb_table_add(pnew) < 0)
 		panic_g("create_proc: Failed to add to pcb_table");

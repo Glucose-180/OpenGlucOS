@@ -53,7 +53,7 @@ TINTERVAL		= 10
 # Number of CPU
 NCPU			= 2
 
-CFLAGS0         = -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -DOS_NAME=\"$(OS_NAME)\" -DUSER_NAME=\"$(USER_NAME)\"
+CFLAGS0         = -fno-builtin -nostdlib -nostdinc -Wall -mcmodel=medany -DOS_NAME=\"$(OS_NAME)\" -DUSER_NAME=\"$(USER_NAME)\" -fmax-errors=5
 
 ifneq ($(DEBUG), 0)
 	CFLAGS		= $(CFLAGS0) -ggdb3 -DDEBUG_EN=1 -O0

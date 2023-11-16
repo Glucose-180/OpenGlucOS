@@ -1,23 +1,69 @@
 #include <os/mm.h>
 #include <os/glucose.h>
 
-// NOTE: A/C-core
+/*
+ * Use "char map" (like bitmap) to manage page frames.
+ */
 #if DEBUG_EN != 0
-volatile ptr_t kernel_mem_curr = FREEMEM_KERNEL;
-volatile uintptr_t pg_base = PGDIR_VA + NORMAL_PAGE_SIZE + NORMAL_PAGE_SIZE;
+const uintptr_t Pg_base = ROUND(FREEMEM_KERNEL, PAGE_SIZE);
+volatile uint8_t pg_charmap[NPF];
+unsigned int pg_ffree;
+volatile uintptr_t pgtable_base = PGDIR_VA + NORMAL_PAGE_SIZE + NORMAL_PAGE_SIZE;
+#else
+static const uintptr_t Pg_base = ROUND(FREEMEM_KERNEL, PAGE_SIZE);
+/*
+ * pg_charmap[]: pg_charmap[i] being CMAP_FREE means that i-th page is free.
+ * Otherwise, pg_charmap[i] means the PID of the process occupying it.
+ */
+static volatile uint8_t pg_charmap[NPF];
+static unsigned int pg_ffree;	/* index of first free page */
 #endif
 
-ptr_t alloc_page(unsigned int npages)
+void init_mm(void)
 {
-#if DEBUG_EN == 0
-	static volatile ptr_t kernel_mem_curr = FREEMEM_KERNEL;
-#endif
+	void malloc_init(void);
+	unsigned int i;
+
+	malloc_init();
+
+	pg_ffree = 0U;
+	if (CMAP_FREE == 0xffu)
+		for (i = 0U; i < NPF / 8U; ++i)
+			/* use int64_t to speed up initialization */
+			((int64_t*)pg_charmap)[i] = (int64_t)-1;
+	else
+		for (i = 0U; i < NPF; ++i)
+			pg_charmap[i] = CMAP_FREE;
+	
+}
+
+/*
+ * alloc_page: Allocate ONE page frame for process `pid`.
+ * Return the KVA of it or 0UL on error.
+ */
+uintptr_t alloc_page(unsigned int npages, pid_t pid)
+{
+	uintptr_t rt;
+	if (npages != 1U)
+		panic_g("alloc_page: only supports 1 page up to now");
 	// align PAGE_SIZE
-	ptr_t ret = ROUND(kernel_mem_curr, PAGE_SIZE);
+/*	ret = ROUND(kernel_mem_curr, PAGE_SIZE);
 	kernel_mem_curr = ret + npages * PAGE_SIZE;
 	if (kernel_mem_curr > FREEMEM_KERNEL + 0x0a000000UL)
 		panic_g("alloc_page: 0x%lx overflow!", kernel_mem_curr);
-	return ret;
+*/
+	if ((uint8_t)pid == CMAP_FREE)
+		panic_g("alloc_page: pid is invalid: 0x%x", (int)CMAP_FREE);
+	if (pg_ffree >= NPF)
+		/* No free page */
+		return 0UL;
+	rt = Pg_base + pg_ffree * PAGE_SIZE;
+	pg_charmap[pg_ffree] = (uint8_t)pid;
+	/* Update pg_ffree */
+	for (; pg_ffree < NPF; ++pg_ffree)
+		if (pg_charmap[pg_ffree] == CMAP_FREE)
+			break;
+	return rt;
 }
 
 // NOTE: Only need for S-core to alloc 2MB large page
@@ -37,12 +83,6 @@ void freePage(ptr_t baseAddr)
 	// TODO [P4-task1] (design you 'freePage' here if you need):
 }
 
-void *kmalloc(size_t size)
-{
-	// TODO [P4-task1] (design you 'kmalloc' here if you need):
-	return NULL;
-}
-
 /*
  * alloc_pagetable: virtual memory version of alloc_page()
  * in boot.c.
@@ -53,19 +93,19 @@ uintptr_t alloc_pagetable()
 {
 	/*
 	 * Three pages have been used in while boot_kernel(),
-	 * and one of them will be revoked, so set pg_base like this.
+	 * and one of them will be revoked, so set pgtable_base like this.
 	 * NOTE: if boot.c is modified, pay attention to
 	 * the number of paged used by it!!!
 	 */
 #if DEBUG_EN == 0
-	static volatile uintptr_t pg_base = PGDIR_VA +
+	static volatile uintptr_t pgtable_base = PGDIR_VA +
 		NORMAL_PAGE_SIZE + NORMAL_PAGE_SIZE;
 #endif
-	pg_base += NORMAL_PAGE_SIZE;
-	if (pg_base > 0xffffffc051f00000UL)
-		panic_g("alloc_pagetable: 0x%lx overflow!", pg_base);
-	clear_pgdir(pg_base - NORMAL_PAGE_SHIFT);
-	return pg_base - NORMAL_PAGE_SIZE;
+	pgtable_base += NORMAL_PAGE_SIZE;
+	if (pgtable_base > 0xffffffc051f00000UL)
+		panic_g("alloc_pagetable: 0x%lx overflow!", pgtable_base);
+	clear_pgdir(pgtable_base - NORMAL_PAGE_SHIFT);
+	return pgtable_base - NORMAL_PAGE_SIZE;
 }
 
 /*
@@ -87,9 +127,10 @@ void share_pgtable(PTE* dest_pgdir, PTE* src_pgdir)
 
 /*
  * allocate a physical page for `va`, mapping it into `pgdir_kva`,
- * return the kernel virtual address for the page
+ * return the kernel virtual address for the page.
+ * `pid` is the PID of the process for which the page is used.
  */
-uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir_kva)
+uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir_kva, pid_t pid)
 {
 	// TODO [P4-task1] alloc_page_helper:
 	uint64_t vpn2, vpn1, vpn0;
@@ -133,7 +174,7 @@ uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir_kva)
 			_PAGE_EXEC | _PAGE_ACCESSED | _PAGE_DIRTY)
 	if (pgdir_l0[vpn0] == 0UL)
 	{
-		pg_kva = alloc_page(1U);
+		pg_kva = alloc_page(1U, pid);
 		set_pfn(&pgdir_l0[vpn0], kva2pa(pg_kva) >> NORMAL_PAGE_SHIFT);
 		set_attribute(&pgdir_l0[vpn0], _PAGE_VURWXAD);
 	}

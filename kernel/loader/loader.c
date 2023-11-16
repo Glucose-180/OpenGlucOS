@@ -9,7 +9,7 @@
 const uint32_t App_addr = TASK_MEM_BASE,	/* App1 address */
 	App_size = TASK_SIZE;	/* App2 addr - App1 addr */
 
-uint64_t load_task_img(const char *taskname, PTE* pgdir_kva)
+uint64_t load_task_img(const char *taskname, PTE* pgdir_kva, pid_t pid)
 {
 	/**
 	* TODO:
@@ -69,7 +69,7 @@ uint64_t load_task_img(const char *taskname, PTE* pgdir_kva)
 	{
 		//if (i % PAGE_SIZE == 0U)
 		if ((i & (PAGE_SIZE - 1U)) == 0)	/* & is faster than % */
-			pg_kva = (int8_t*)alloc_page_helper(vaddr + i, (uintptr_t)pgdir_kva);
+			pg_kva = (int8_t*)alloc_page_helper(vaddr + i, (uintptr_t)pgdir_kva, pid);
 		pg_kva[i & (PAGE_SIZE - 1U)] = ut_buf[uoffset + i];
 	}
 
@@ -77,7 +77,7 @@ uint64_t load_task_img(const char *taskname, PTE* pgdir_kva)
 	if ((i & (PAGE_SIZE - 1U)) != 0)
 		i = (i & ~(PAGE_SIZE - 1U)) + PAGE_SIZE;
 	for (; i < msize; i += PAGE_SIZE)
-		pg_kva = (int8_t*)alloc_page_helper(vaddr + i, (uintptr_t)pgdir_kva);
+		pg_kva = (int8_t*)alloc_page_helper(vaddr + i, (uintptr_t)pgdir_kva, pid);
 
 	kfree_g(ut_buf);
     return entry;

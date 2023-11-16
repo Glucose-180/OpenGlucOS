@@ -1,12 +1,8 @@
 /*
- * NOTE: Only kernel memory allocation should be reserved.
- * And the allocation space should be in .bss section (_kallocbuf).
- */
-/*
  * Memory allocation without compression.
  * Modified from the program of "Data Structure" course by Glucose180.
- * NOTE: You'd better add checking code in the xfree_g() functions,
- * to check whether the memory is allocated by xmalloc_g().
+ * NOTE: You'd better add checking code in the kfree_g() functions,
+ * to check whether the memory is allocated by kmalloc_g().
  */
 #include <os/malloc-g.h>
 

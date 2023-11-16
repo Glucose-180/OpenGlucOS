@@ -37,11 +37,17 @@
 //#define FREEMEM_KERNEL (INIT_KERNEL_STACK+PAGE_SIZE)
 #define FREEMEM_KERNEL 0xffffffc052000000
 
+/* Number of page frames */
+#define NPF 50U * 1024U
+
+#define CMAP_FREE (uint8_t)0xff
+
 /* Rounding; only works for n = power of two */
 #define ROUND(a, n)     (((((uint64_t)(a))+(n)-1)) & ~((n)-1))
 #define ROUNDDOWN(a, n) (((uint64_t)(a)) & ~((n)-1))
 
-extern ptr_t alloc_page(unsigned int npages);
+void init_mm(void);
+extern uintptr_t alloc_page(unsigned int npages, pid_t pid);
 // TODO [P4-task1] */
 void freePage(ptr_t baseAddr);
 
@@ -57,10 +63,9 @@ extern ptr_t allocLargePage(int numPage);
 #endif
 
 // TODO [P4-task1] */
-extern void* kmalloc(size_t size);
 uintptr_t alloc_pagetable(void);
 extern void share_pgtable(PTE* dest_pgdir, PTE* src_pgdir);
-extern uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir_kva);
+extern uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir_kva, pid_t pid);
 
 uintptr_t va2kva(uintptr_t va, PTE* pgdir_kva);
 
