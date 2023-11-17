@@ -37,8 +37,17 @@
 //#define FREEMEM_KERNEL (INIT_KERNEL_STACK+PAGE_SIZE)
 #define FREEMEM_KERNEL 0xffffffc052000000
 
-/* Number of page frames */
+/*
+ * Number of page frames: these page frames will occupy
+ * 0x52000000 to 0x5e800000-1 (physical address)
+ */
 #define NPF 50U * 1024U
+
+/*
+ * Number of page tables: these page tables will occupy
+ * 0x51000000 to 0x51f00000-1 (physical address)
+ */
+#define NPT 3840U
 
 #define CMAP_FREE (uint8_t)0xff
 
@@ -49,7 +58,7 @@
 void init_mm(void);
 extern uintptr_t alloc_page(unsigned int npages, pid_t pid);
 // TODO [P4-task1] */
-void freePage(ptr_t baseAddr);
+void free_page(uintptr_t pg_kva);
 
 // #define S_CORE
 // NOTE: only need for S-core to alloc 2MB large page
@@ -63,7 +72,8 @@ extern ptr_t allocLargePage(int numPage);
 #endif
 
 // TODO [P4-task1] */
-uintptr_t alloc_pagetable(void);
+uintptr_t alloc_pagetable(pid_t pid);
+void free_pagetable(uintptr_t pgtb_kva);
 extern void share_pgtable(PTE* dest_pgdir, PTE* src_pgdir);
 extern uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir_kva, pid_t pid);
 

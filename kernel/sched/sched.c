@@ -124,7 +124,7 @@ pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 	if ((pid = alloc_pid()) == INVALID_PID)
 		panic_g("create_proc: No invalid PID");
 	
-	pgdir_kva = (PTE*)alloc_pagetable();
+	pgdir_kva = (PTE*)alloc_pagetable(pid);
 	share_pgtable(pgdir_kva, (PTE*)PGDIR_VA);
 
 	entry = load_task_img(taskname, pgdir_kva, pid);

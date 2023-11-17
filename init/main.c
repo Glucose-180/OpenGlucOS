@@ -207,6 +207,7 @@ static void revoke_temp_mapping(void)
 	uint64_t vpn2 =
 		va >> (NORMAL_PAGE_SHIFT + PPN_BITS + PPN_BITS);
 	((PTE*)PGDIR_VA)[vpn2] = 0UL;
+	local_flush_tlb_all();
 }
 
 /************************************************************/
@@ -277,6 +278,7 @@ int main(reg_t a0, reg_t a1)
 #if NCPU == 2
 	smp_init();
 	wakeup_other_hart();
+	local_flush_tlb_all();
 #else
 	if (a1 != 3UL)
 		panic_g("main: npages_used from boot.c is %lu", a1);
@@ -285,11 +287,12 @@ int main(reg_t a0, reg_t a1)
 	/*
 	 * Delay 3 s to keep information on the screen
 	 * and wait for another CPU to start.
+	 * NOTE: CPU0 cannot start a user process before
+	 * the other CPU enters kernel, because the temporary
+	 * page table (the 3rd page table) will be used to
+	 * start the first process.
 	 */
 	latency(3U);
-
-	/* Brake! As virtual memory don't support user process now. */
-	//glucos_brake();
 
 	/*
 	 * Lock kernel to protect do_exec(glush)
@@ -369,14 +372,10 @@ int main_s(reg_t a0, reg_t a1)
 #endif
 	printk("> [INIT] I am CPU %lu and has started!\n", get_current_cpu_id());
 
-	/* Brake! As virtual memory don't support user process now. */
-	//glucos_brake();
-
 	set_preempt();
 #if DEBUG_EN != 0
 	writelog("CPU %lu: Timer interrupt is enabled", get_current_cpu_id());
 #endif
-	//disable_interrupt();
 	while (1)
 		asm volatile("wfi");
 	return 0;

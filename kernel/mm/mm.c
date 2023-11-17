@@ -2,21 +2,28 @@
 #include <os/glucose.h>
 
 /*
- * Use "char map" (like bitmap) to manage page frames.
+ * Use "char map" (like bitmap) to manage page frames and page tables.
+ * When `DEBUG_EN` is not zero, declear these variables as external
+ * so that we can watch their values.
  */
 #if DEBUG_EN != 0
-const uintptr_t Pg_base = ROUND(FREEMEM_KERNEL, PAGE_SIZE);
+const uintptr_t Pg_base = ROUND(FREEMEM_KERNEL, PAGE_SIZE),
+	Pgtb_base = PGDIR_VA;
 volatile uint8_t pg_charmap[NPF];
-unsigned int pg_ffree;
-volatile uintptr_t pgtable_base = PGDIR_VA + NORMAL_PAGE_SIZE + NORMAL_PAGE_SIZE;
+volatile uint8_t pgtb_charmap[NPT];
+/* index of first free page frame/table */
+volatile unsigned int pg_ffree, pgtb_ffree;
 #else
-static const uintptr_t Pg_base = ROUND(FREEMEM_KERNEL, PAGE_SIZE);
+static const uintptr_t Pg_base = ROUND(FREEMEM_KERNEL, PAGE_SIZE),
+	Pgtb_base = PGDIR_VA;
 /*
  * pg_charmap[]: pg_charmap[i] being CMAP_FREE means that i-th page is free.
  * Otherwise, pg_charmap[i] means the PID of the process occupying it.
  */
 static volatile uint8_t pg_charmap[NPF];
-static unsigned int pg_ffree;	/* index of first free page */
+static volatile uint8_t pgtb_charmap[NPT];
+/* index of first free page frame/table */
+static volatile unsigned int pg_ffree, pgtb_ffree;
 #endif
 
 void init_mm(void)
@@ -27,7 +34,7 @@ void init_mm(void)
 	malloc_init();
 
 	pg_ffree = 0U;
-	if (CMAP_FREE == 0xffu)
+	if (CMAP_FREE == 0xffu && (NPF & 0x7U) == 0U)
 		for (i = 0U; i < NPF / 8U; ++i)
 			/* use int64_t to speed up initialization */
 			((int64_t*)pg_charmap)[i] = (int64_t)-1;
@@ -35,6 +42,15 @@ void init_mm(void)
 		for (i = 0U; i < NPF; ++i)
 			pg_charmap[i] = CMAP_FREE;
 	
+	pgtb_ffree = 2U;
+	if (CMAP_FREE == 0xffu && (NPT & 0x7U) == 0U)
+		for (i = 0U; i < NPT / 8U; ++i)
+			((int64_t*)pgtb_charmap)[i] = (int64_t)-1;
+	else
+		for (i = 0U; i < NPT; ++i)
+			pgtb_charmap[i] = CMAP_FREE;
+	/* The first two page tables are used by kernel */
+	pgtb_charmap[0] = pgtb_charmap[1] = 0U;
 }
 
 /*
@@ -46,12 +62,6 @@ uintptr_t alloc_page(unsigned int npages, pid_t pid)
 	uintptr_t rt;
 	if (npages != 1U)
 		panic_g("alloc_page: only supports 1 page up to now");
-	// align PAGE_SIZE
-/*	ret = ROUND(kernel_mem_curr, PAGE_SIZE);
-	kernel_mem_curr = ret + npages * PAGE_SIZE;
-	if (kernel_mem_curr > FREEMEM_KERNEL + 0x0a000000UL)
-		panic_g("alloc_page: 0x%lx overflow!", kernel_mem_curr);
-*/
 	if ((uint8_t)pid == CMAP_FREE)
 		panic_g("alloc_page: pid is invalid: 0x%x", (int)CMAP_FREE);
 	if (pg_ffree >= NPF)
@@ -66,46 +76,62 @@ uintptr_t alloc_page(unsigned int npages, pid_t pid)
 	return rt;
 }
 
-// NOTE: Only need for S-core to alloc 2MB large page
-#ifdef S_CORE
-static ptr_t largePageMemCurr = LARGE_PAGE_FREEMEM;
-ptr_t allocLargePage(int numPage)
-{
-	// align LARGE_PAGE_SIZE
-	ptr_t ret = ROUND(largePageMemCurr, LARGE_PAGE_SIZE);
-	largePageMemCurr = ret + numPage * LARGE_PAGE_SIZE;
-	return ret;    
-}
-#endif
-
-void freePage(ptr_t baseAddr)
+void free_page(uintptr_t pg_kva)
 {
 	// TODO [P4-task1] (design you 'freePage' here if you need):
+	unsigned int pg_idx;
+
+	//pg_idx = (pg_kva - Pg_base) / PAGE_SIZE;
+	pg_idx = (pg_kva - Pg_base) >> NORMAL_PAGE_SHIFT;
+	if (pg_kva < Pg_base || (pg_kva & (PAGE_SIZE - 1UL)) != 0UL || pg_idx >= NPF)
+		panic_g("free_page: invalid addr of page: 0x%lx", pg_kva);
+	if (pg_charmap[pg_idx] == CMAP_FREE)
+		panic_g("free_page: page 0x%lx is already free", pg_kva);
+	pg_charmap[pg_idx] = CMAP_FREE;
+	/* Update `pg_ffree` */
+	pg_ffree = (pg_idx < pg_ffree ? pg_idx : pg_ffree);
 }
 
 /*
  * alloc_pagetable: virtual memory version of alloc_page()
  * in boot.c.
- * Allocate a page as a pagetable, CLEAR it and return its
- * KERNEL VIRTUAL ADDRESS.
+ * Allocate a page as a pagetable for the process with PID `pid`,
+ * CLEAR it and return its KERNEL VIRTUAL ADDRESS.
  */
-uintptr_t alloc_pagetable()
+uintptr_t alloc_pagetable(pid_t pid)
 {
-	/*
-	 * Three pages have been used in while boot_kernel(),
-	 * and one of them will be revoked, so set pgtable_base like this.
-	 * NOTE: if boot.c is modified, pay attention to
-	 * the number of paged used by it!!!
-	 */
-#if DEBUG_EN == 0
-	static volatile uintptr_t pgtable_base = PGDIR_VA +
-		NORMAL_PAGE_SIZE + NORMAL_PAGE_SIZE;
-#endif
-	pgtable_base += NORMAL_PAGE_SIZE;
-	if (pgtable_base > 0xffffffc051f00000UL)
-		panic_g("alloc_pagetable: 0x%lx overflow!", pgtable_base);
-	clear_pgdir(pgtable_base - NORMAL_PAGE_SHIFT);
-	return pgtable_base - NORMAL_PAGE_SIZE;
+	uintptr_t rt;
+
+	if ((uint8_t)pid == CMAP_FREE)
+		panic_g("alloc_pagetable: pid is invalid: %d", pid);
+	if (pgtb_ffree >= NPT)
+		/* No free page table */
+		return 0UL;
+	rt = Pgtb_base + pgtb_ffree * PAGE_SIZE;
+	clear_pgdir(rt);
+	pgtb_charmap[pgtb_ffree] = (uint8_t)pid;
+	/* Update `pgtb_ffree` */
+	for (; pgtb_ffree < NPT; ++pgtb_ffree)
+		if (pgtb_charmap[pgtb_ffree] == CMAP_FREE)
+			break;
+	return rt;
+}
+
+void free_pagetable(uintptr_t pgtb_kva)
+{
+	unsigned pgtb_idx;
+
+	pgtb_idx = (pgtb_kva - Pgtb_base) >> NORMAL_PAGE_SHIFT;
+	if (pgtb_kva < Pgtb_base || (pgtb_kva & (PAGE_SIZE - 1UL)) != 0UL ||
+		pgtb_idx >= NPT)
+		panic_g("free_pagetable: invalid addr of page table: 0x%lx", pgtb_kva);
+	if (pgtb_charmap[pgtb_idx] == 0U)
+		panic_g("free_page: cannot free page table 0x%lx used by kernel", pgtb_kva);
+	if (pgtb_charmap[pgtb_idx] == CMAP_FREE)
+		panic_g("free_pagetable: page table 0x%lx is already free", pgtb_kva);
+	pgtb_charmap[pgtb_idx] = CMAP_FREE;
+	/* Update `pgtb_free` */
+	pgtb_ffree = (pgtb_idx < pgtb_ffree ? pgtb_idx : pgtb_ffree);
 }
 
 /*
@@ -144,7 +170,7 @@ uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir_kva, pid_t pid)
 
 	if (pgdir[vpn2] == 0UL)
 	{
-		pgdir_l1 = (PTE*)alloc_pagetable();
+		pgdir_l1 = (PTE*)alloc_pagetable(pid);
 		set_pfn(&pgdir[vpn2], kva2pa((uintptr_t)pgdir_l1) >> NORMAL_PAGE_SHIFT);
 		set_attribute(&pgdir[vpn2], _PAGE_PRESENT);
 	}
@@ -158,7 +184,7 @@ uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir_kva, pid_t pid)
 
 	if (pgdir_l1[vpn1] == 0UL)
 	{
-		pgdir_l0 = (PTE*)alloc_pagetable();
+		pgdir_l0 = (PTE*)alloc_pagetable(pid);
 		set_pfn(&pgdir_l1[vpn1], kva2pa((uintptr_t)pgdir_l0) >> NORMAL_PAGE_SHIFT);
 		set_attribute(&pgdir_l1[vpn1], _PAGE_PRESENT);
 	}
