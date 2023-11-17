@@ -426,8 +426,6 @@ void init_pcb_stack(
 		 - sizeof(regs_context_t);
 	pcb->kernel_sp = ROUNDDOWN(pcb->kernel_sp, SP_ALIGN);
 	pcb->user_stack = user_stack;
-	//pcb->user_sp = user_stack + ROUND(Ustack_size, ADDR_ALIGN);
-	//pcb->user_sp = ROUNDDOWN(pcb->user_sp, SP_ALIGN);
 	/*
 	 * pcb->user_sp saves the user virtual address (UVA)
 	 * rather than KVA.

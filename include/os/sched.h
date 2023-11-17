@@ -101,13 +101,6 @@ typedef struct pcb
 	 * kernel_sp is KVA while user_sp is UVA.
 	 */
 	reg_t kernel_sp, user_sp;
-	/*
-	 * NOTE: user_sp and kernel_sp of PCB of PID 0:
-	 * After SAVE_CONTEXT, user_sp and trapframe->sp equal
-	 * $sp just at the beginning of the trap, and kernel_sp
-	 * equals $sp after SAVE_CONTEXT. After RESTORE_CONTEXT,
-	 * they three are all equal to $sp just at the beginning.
-	 */
 	regs_context_t *trapframe;
 	/*
 	 * pgdir_kva is the kernel virtual address of page

@@ -2,6 +2,21 @@
 #include <csr.h>
 #include <asm/regs.h>
 
+/*
+ * SAVE_CONTEXT: When the trap is taken from U-mode:
+ * 1. $sp is saved in `user_sp` of PCB;
+ * 2. $sp is set to the `kernel_sp` of PCB;
+ * 3. $sp and `kernel_sp` are decresed by sizeof(regs_context_t);
+ * 4. GPRs except $sp and $t0 and some CSRs are saved in the space in kernel stack;
+ * 5. `trapframe` of PCB is set to $sp after saveing;
+ * 6. `trapframe->regs[#sp]` is set to `user_sp`, or original $sp;
+ * 7. $t0 is saved in the corresponding space of the frame in kernel stack.
+ * However, When the trap is taken from S-mode:
+ * only 3, 4 and 7 above are executed, and ((regs_context_t*)$sp)->regs[#sp]
+ * is set to the original $sp (before 3. decreasement).
+ * This is to suppport traps such as page fault that are taken
+ * from S-mode!
+ */
 .macro SAVE_CONTEXT
 	/* TODO: [p2-task3] save all general purpose registers here! */
 	/* HINT: Pay attention to the function of tp and sp, and save them carefully! */
@@ -34,7 +49,8 @@ Exc_from_U_mode:
 Exc_from_S_mode:
 	/*
 	 * Exception from S-Mode:
-	 * Don't load kernel_sp from PCB!
+	 * Don't load `kernel_sp` from PCB, and don't save $sp
+	 * in `user_sp` and `trapframe` of PCB!
 	 */
 	csrr	t0, CSR_MHARTID
 	bne	t0, zero, 1f
@@ -45,7 +61,6 @@ Exc_from_S_mode:
 	la	t0, current_running
 	ld	t0, 8(t0)	/* Now $t0 equals current_running[1], or c.r. */
 2:
-	sd	sp, PCB_USER_SP(t0)	/* c.r.->user_sp := $sp */
 	addi	sp, sp, -OFFSET_SIZE		/* $sp := $sp - sizeof(regs_context_t) */
 
 Save_gprs:
@@ -93,16 +108,22 @@ Save_gprs:
 	csrr	t1, CSR_SCAUSE
 	sd	t1, OFFSET_REG_SCAUSE(sp)
 
+	csrr	t1, CSR_SSTATUS
+	andi	t1, t1, SR_SPP
+	bne	t1, zero, Exc_from_S_mode_2
+
+Exc_from_U_mode_2:
 	ld	t1, PCB_USER_SP(t0)	/* $t1 := c.r.->user_sp */
 	sd	t1, OFFSET_REG_SP(sp)
-
-	sd	sp, PCB_KERNEL_SP(t0)	/* c.r.->kernel_sp := $sp */
 	sd	sp, PCB_TRAPFRAME(t0)	/* c.r.->trapframe := $sp */
+	j	Save_gpr_t0
 
+Exc_from_S_mode_2:
+	addi	t2, sp, OFFSET_SIZE	/* $t2 := $sp + sizeof(regs_context_t) */
+	sd	t2, OFFSET_REG_SP(sp)	/* Save original $sp in trapframe->sp */
+Save_gpr_t0:
+	sd	sp, PCB_KERNEL_SP(t0)	/* c.r.->kernel_sp := $sp */
 	/* Restore $t0 and save it */
-	//ld	t0, PCB_USER_SP(t0)	/* $t0 := c.r.->user_sp */
-	//mv	t0, t1	/* $t0 := c.r.->user_sp */
-	//ld	t0, -8(t0)
 	csrr	t0, CSR_SSCRATCH
 	sd	t0, OFFSET_REG_T0(sp)
 
@@ -119,6 +140,16 @@ Save_gprs:
 
 .endm
 
+/*
+ * RESTORE_CONTEXT: When it is returning to U-mode:
+ * 1. some CSRs and all GPRs except $sp, $t0 and $t1
+ * are restored from *(regs_context_t*)$sp (`trapframe` of PCB is not used);
+ * 2. $sp are incresed by sizeof(regs_context_t) and then saved in `kernel_sp`;
+ * 3. $sp is set to `user_sp` of PCB;
+ * 4. $t0 and $t1 are restored;
+ * However, when it is returning to S-mode,
+ * only 1, 2 and 4 are executed, which means that $sp is not set as `user_sp`.
+ */
 .macro RESTORE_CONTEXT
 	/* TODO: Restore all general purpose registers and sepc, sstatus */
 	/* HINT: Pay attention to sp again! */
@@ -132,7 +163,7 @@ Save_gprs:
 	ld	t0, 8(t0)	/* Now $t0 equals current_running[1], or c.r. */
 2:
 
-	ld	sp, PCB_TRAPFRAME(t0)	/* $sp := c.r.->trapframe */
+	//ld	sp, PCB_TRAPFRAME(t0)	/* $sp := c.r.->trapframe */
 
 	/*
 	 * $sstatus, $sepc and $scause should also be restored.
@@ -152,7 +183,7 @@ Save_gprs:
 	ld	gp, OFFSET_REG_GP(sp)
 	ld	tp, OFFSET_REG_TP(sp)
 	//ld	t0, OFFSET_REG_T0(sp)
-	ld	t1, OFFSET_REG_T1(sp)
+	//ld	t1, OFFSET_REG_T1(sp)
 	ld	t2, OFFSET_REG_T2(sp)
 	ld	s0, OFFSET_REG_S0(sp)
 	ld	s1, OFFSET_REG_S1(sp)
@@ -181,15 +212,20 @@ Save_gprs:
 
 	addi	sp, sp, OFFSET_SIZE	/* $sp := $sp + sizeof(regs_context_t) */
 	sd	sp, PCB_KERNEL_SP(t0)	/* c.r.->kernel_sp := $sp */
+
+	csrr	t1, CSR_SSTATUS
+	andi	t1, t1, SR_SPP
+	bne	t1, zero, Ret_to_S_mode
+Ret_to_U_mode:
 	ld	sp, PCB_USER_SP(t0)	/* $sp := c.r.->user_sp */
-	/*
-	 * For info about kernel_sp and user_sp of PCB of PID 0,
-	 * see the comments in struct pcb in sched.h.
-	 */
-
 	ld	t0, PCB_TRAPFRAME(t0)	/* $t0 := c.r.->trapframe */
+	ld	t1, OFFSET_REG_T1(t0)
 	ld	t0, OFFSET_REG_T0(t0)	/* $t0 := c.r.->trapframe->regs[#t0] */
-
+	j	Ret_continue
+Ret_to_S_mode:	/* Don't load `user_sp`of PCB! */
+	ld	t0, (OFFSET_REG_T0 - OFFSET_SIZE)(sp)
+	ld	t1, (OFFSET_REG_T1 - OFFSET_SIZE)(sp)
+Ret_continue:
 .endm
 
 ENTRY(enable_preempt)
@@ -359,7 +395,11 @@ ENTRY(exception_handler_entry)
 	la	t0, current_running
 	ld	t0, 8(t0)	/* Now $t0 equals current_running[1], or c.r. */
 2:
-	ld	a0, PCB_TRAPFRAME(t0)	/* $a0 := c.r.->trapframe */
+	ld	a0, PCB_KERNEL_SP(t0)	/* $a0 := c.r.->kernel_sp */
+	/*
+	 * Shouldn't be c.r.->trapframe! Because when trap is taken from
+	 * S-mode, `trapframe` is not kept as $sp!
+	 */
 	ld	a1, OFFSET_REG_SBADADDR(a0)
 	ld	a2, OFFSET_REG_SCAUSE(a0)
 	call	interrupt_helper

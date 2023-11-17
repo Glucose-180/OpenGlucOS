@@ -71,7 +71,6 @@ extern ptr_t allocLargePage(int numPage);
 #define USER_STACK_ADDR 0xf00010000
 #endif
 
-// TODO [P4-task1] */
 uintptr_t alloc_pagetable(pid_t pid);
 void free_pagetable(uintptr_t pgtb_kva);
 extern void share_pgtable(PTE* dest_pgdir, PTE* src_pgdir);

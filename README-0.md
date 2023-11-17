@@ -52,7 +52,9 @@ Project 4。
 
 #### [2023-11-17]
 
-  使用“位图”（Char map）方法管理物理页框和页表，但还没有测试过回收`free_page/pagetable()`。目前 -O2 上板正常。下一步：进程终止时回收期页表和页框。
+  使用“位图”（Char map）方法管理物理页框和页表，但还没有测试过回收`free_page/pagetable()`。目前 -O2 上板正常。下一步：进程终止时回收其页表和页框。
+
+  优化了`SAVE_CONTEXT`与`RESTORE_CONTEXT`，详见`entry.S`中的注释，使之更严谨，以便为后面可能需要的嵌套异常（S 态下的 page fault）做准备。目前 -O2 上板正常。
 
 
 
