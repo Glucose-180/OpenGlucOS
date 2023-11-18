@@ -17,7 +17,6 @@
 #include <os/irq.h>
 #include <os/smp.h>
 
-//pcb_t pcb[UPROC_MAX];
 /*
  * Has been modified by Glucose180
  */
@@ -30,7 +29,7 @@ static const uintptr_t User_sp = 0xf00010000UL;
  * The default size for a user stack and kernel stack.
  * 4 KiB, 16 KiB.
  */
-static const uint32_t// Ustack_size = PAGE_SIZE,
+static const uint32_t //Ustack_size = USTACK_NPG * PAGE_SIZE,
 	Kstask_size = 16 * 1024;
 
 /*
@@ -40,6 +39,10 @@ pcb_t pid0_pcb = {
 	.pid = 0,
 	.kernel_sp = (ptr_t)pid0_stack,
 	.user_sp = (ptr_t)pid0_stack,
+	/*
+	 * In face, `user_sp` and `trapframe` are
+	 * meaningless for `pid0_pcb` and `pid1_pcb`.
+	 */
 	.trapframe = (void *)pid0_stack,
 	/* Add more info */
 	.status = TASK_RUNNING,
@@ -113,10 +116,11 @@ pid_t alloc_pid(void)
  */
 pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 {
-	ptr_t entry, user_stack, kernel_stack;
+	uintptr_t entry, user_stack[USTACK_NPG], kernel_stack;
 	pcb_t *pnew, *temp;
 	PTE* pgdir_kva;
 	pid_t pid;
+	unsigned int i;
 
 	if (taskname == NULL || get_proc_num() >= UPROC_MAX + NCPU)
 		return INVALID_PID;
@@ -135,9 +139,15 @@ pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 		 */
 		return INVALID_PID;
 
-	user_stack = alloc_page_helper(User_sp - PAGE_SIZE, (uintptr_t)pgdir_kva, pid);
+	//user_stack = alloc_page_helper(User_sp - PAGE_SIZE, (uintptr_t)pgdir_kva, pid);
+	/*
+	 * Allocate some pages for user stack.
+	 */
+	for (i = 0U; i < USTACK_NPG; ++i)
+		user_stack[i] = alloc_page_helper(User_sp - (USTACK_NPG - i) * PAGE_SIZE,
+			(uintptr_t)pgdir_kva, pid);
 
-	kernel_stack = (ptr_t)kmalloc_g(Kstask_size);
+	kernel_stack = (uintptr_t)kmalloc_g(Kstask_size);
 
 	if (user_stack == 0 || kernel_stack == 0)
 		return INVALID_PID;
@@ -414,18 +424,21 @@ pcb_t *do_unblock(pcb_t * const Queue)
 
 /************************************************************/
 void init_pcb_stack(
-	ptr_t kernel_stack, ptr_t user_stack, ptr_t entry_point, pcb_t *pcb)
+	uintptr_t kernel_stack, uintptr_t *user_stack, uintptr_t entry_point, pcb_t *pcb)
 {
 	 /* TODO: [p2-task3] initialization of registers on kernel stack
 	  * HINT: sp, ra, sepc, sstatus
 	  * NOTE: To run the task in user mode, you should set corresponding bits
 	  *     of sstatus(SPP, SPIE, etc.).
 	  */
+	unsigned int i;
+
 	pcb->kernel_stack = kernel_stack;
 	pcb->kernel_sp = kernel_stack + ROUND(Kstask_size, ADDR_ALIGN)
 		 - sizeof(regs_context_t);
 	pcb->kernel_sp = ROUNDDOWN(pcb->kernel_sp, SP_ALIGN);
-	pcb->user_stack = user_stack;
+	for (i = 0U; i < USTACK_NPG; ++i)
+		pcb->user_stack[i] = user_stack[i];
 	/*
 	 * pcb->user_sp saves the user virtual address (UVA)
 	 * rather than KVA.

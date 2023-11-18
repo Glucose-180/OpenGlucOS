@@ -14,7 +14,6 @@
 handler_t irq_table[IRQC_COUNT];
 handler_t exc_table[EXCC_COUNT];
 
-static void handle_dasics(regs_context_t *regs, uint64_t stval, uint64_t scause);
 static void handle_soft(regs_context_t *regs, uint64_t stval, uint64_t scause);
 
 void interrupt_helper(regs_context_t *regs, uint64_t stval, uint64_t scause)
@@ -43,13 +42,6 @@ void interrupt_helper(regs_context_t *regs, uint64_t stval, uint64_t scause)
 	}
 	else
 	{
-		if (scause >= EXCC_COUNT)
-		{
-			if (scause >= EXCC_DASICS)
-				handle_dasics(regs, stval, scause);
-			else
-				handle_other(regs, stval, scause);
-		}
 		exc_table[scause](regs, stval, scause);
 	}
 }
@@ -74,6 +66,8 @@ void init_exception()
 	for (i = 0; i < EXCC_COUNT; ++i)
 		exc_table[i] = handle_other;
 	exc_table[EXCC_SYSCALL] = handle_syscall;
+	exc_table[EXCC_LOAD_PAGE_FAULT] = handle_pagefault;
+	exc_table[EXCC_STORE_PAGE_FAULT] = handle_pagefault;
 	/* TODO: [p2-task4] initialize irq_table */
 	/* NOTE: handle_int, handle_other, etc.*/
 	for (i = 0; i < IRQC_COUNT; ++i)
@@ -136,8 +130,12 @@ void handle_other(regs_context_t *regs, uint64_t stval, uint64_t scause)
 	);
 }
 
-static void handle_dasics(regs_context_t *regs, uint64_t stval, uint64_t scause)
+void handle_pagefault(regs_context_t *regs, uint64_t stval, uint64_t scause)
 {
-	printk("**Segmentation fault: 0x%lx", stval);
+	/*
+	 * Just terminate the process as we haven't implemented
+	 * correct handler.
+	 */
+	printk("**Page fault: 0x%lx", stval);
 	do_exit();
 }

@@ -57,12 +57,6 @@ enum ExcCode
     EXCC_LOAD_PAGE_FAULT  = 13,
     EXCC_STORE_PAGE_FAULT = 15,
     EXCC_COUNT,
-
-    /* 
-     * Exception code of DASICS >= 24.
-     * See guide_book_p2.pdf for details.
-     */
-    EXCC_DASICS           = 24
 };
 
 typedef void (*handler_t)(regs_context_t*, uint64_t, uint64_t);
@@ -82,6 +76,7 @@ extern void setup_exception();
 extern void handle_irq_timer(regs_context_t *regs, uint64_t stval, uint64_t scause);
 extern void handle_other(regs_context_t *regs, uint64_t stval, uint64_t scause);
 extern void handle_syscall(regs_context_t *regs, uint64_t stval, uint64_t scause);
+void handle_pagefault(regs_context_t *regs, uint64_t stval, uint64_t scause);
 
 extern void enable_interrupt(void);
 extern void disable_interrupt(void);

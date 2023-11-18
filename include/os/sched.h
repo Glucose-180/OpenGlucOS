@@ -38,6 +38,12 @@
 #define INVALID_PID (-1)
 #define INVALID_TID (-1)
 
+/*
+ * How many pages are allocated for
+ * user stack of a user process.
+ */
+#define USTACK_NPG 4U
+
 #if NCPU != 2
 #define NCPU 1
 #endif
@@ -111,10 +117,12 @@ typedef struct pcb
 	pid_t pid;
 	/* --- order preserved ends --- */
 	/*
-	 * The start (lowest) address of kernel and user stack.
-	 * Both of them are KVA.
+	 * `kernel_stack` is the base address of kernel stack.
+	 * `user_stack[i]` is the base address of the i-th 
+	 * page frame for user stack.
+	 * They are all KVA.
 	 */
-	reg_t kernel_stack, user_stack;
+	uintptr_t kernel_stack, user_stack[USTACK_NPG];
 	/*
 	 * Processes waiting for this proc.
 	 */
@@ -196,7 +204,7 @@ void wake_up(pcb_t * const T);
 pcb_t *do_unblock(pcb_t * const Queue);
 
 void init_pcb_stack(
-	ptr_t kernel_sp, ptr_t user_sp, ptr_t entry_point, pcb_t *pcb);
+	uintptr_t kernel_stack, uintptr_t *user_stack, uintptr_t entry_point, pcb_t *pcb);
 void set_preempt(void);
 
 /************************************************************/

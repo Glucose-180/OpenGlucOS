@@ -8,7 +8,7 @@ Project 4。
 
 #### 最新更改
 
-[2023-11-17] 使用“位图”管理页框和页表，但释放函数尚未测试。
+[2023-11-18] 给用户栈分配多个页面；新增临时的`handle_pagefault()`。
 
 #### 可做的优化
 
@@ -56,5 +56,7 @@ Project 4。
 
   优化了`SAVE_CONTEXT`与`RESTORE_CONTEXT`，详见`entry.S`中的注释，使之更严谨，以便为后面可能需要的嵌套异常（S 态下的 page fault）做准备。目前 -O2 上板正常。
 
+#### [2023-11-18]
 
+  将 PCB 的`user_stack`改为数组以支持分配多个（通过宏`USTACK_NPG`指定）页面给用户栈，其每个元素是每个物理页框的内核虚地址。新增临时的`handle_pagefault()`，遇到 Page fault 时就终止进程。并且通过了 GlucOStest 的测试。
 

@@ -14,7 +14,7 @@ void test_access_kernel(void);
 void test_syscall(void);
 void test_unaligned(void);
 void test_zerodivision(void);
-void test_printf(void);
+void test_stack(void);
 void test_strncpy(void);
 void test_argv(int argc, char *argv[]);
 void test_getpid(void);
@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
 		"\t0 - Try to access kernel memory\n"
 		"\t1 - Check GPRs after a Syscall\n"
 		"\t2 - Try to access an unaligned address\n"
-		"\t3 - printf different kinds of integers\n"
+		"\t3 - Use big stack\n"
 	);
 	printf(
 		"\t4 - Lib function strncmp()\n"
@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
 			test_unaligned();
 			break;
 		case 3:
-			test_printf();
+			test_stack();
 			break;
 		case 4:
 			test_strncpy();
@@ -102,7 +102,7 @@ void test_syscall(void)
 		"li		s2, 2\n\t"
 		"li		s8, 8\n\t"
 		"li		t0, 10\n\t"
-		"li		t1, 15\n\t"
+		"li		t5, 15\n\t"
 		"li		a2, 22\n\t"
 		"addi	sp, sp, -16\n\t"
 		"sd		s2, 0(sp)\n\t"
@@ -122,8 +122,8 @@ void test_syscall(void)
 		"or		%0, %0, s8\n\t"
 		"xori	t0, t0, 10\n\t"
 		"or		%0, %0, t0\n\t"
-		"xori	t1, t1, 15\n\t"
-		"or		%0, %0, t1\n\t"
+		"xori	t5, t5, 15\n\t"
+		"or		%0, %0, t5\n\t"
 		"xori	a2, a2, 22\n\t"
 		"or		%0, %0, a2\n\t"
 		"ld		s2, 0(sp)\n\t"
@@ -132,7 +132,7 @@ void test_syscall(void)
 		"addi	sp, sp, 16"
 		: "=r"(res)
 		: "r"(sysno)
-		: "s2", "s8", "t0", "t1", "a2"
+		: "s2", "s8", "t0", "t5", "a2"
 	);
 	if (res != 0)
 		printf("Test failed: %lx\n", res);
@@ -157,34 +157,33 @@ void test_unaligned(void)
 	printf("Test failed! No exception happened.\n");
 }
 
-/*
-void test_zerodivision(void)
+void test_stack(void)
 {
-	int dividend = 5, quo;
+	char buf[4096];
+	uint64_t sp;
 
-	quo = dividend / 0;
-	if (quo == -1)
-		printf("Test passed! The quotient is -1.\n");
-	else
-		printf("Test failed! No exception happened "
-			"and the quotient is %d.\n", quo);
-}
-*/
+	strcpy(buf, "Test buffer bigger than 1 page passed!\n");
+	buf[4095] = '\0';
 
-void test_printf(void)
-{
-	int iv = -5033;
-	unsigned int uiv = 2147483648;
-	long lv = -4294967296;
-	unsigned long ulv = 4294967296;
+	__asm__ volatile(
+		"mv		%0, sp\n\t"
+		: "=r"(sp)
+		:
+	);
 
-	printf(
-		"(int)-5033                 : %d\n"
-		"(unsigned)2147483648       : %u\n"
-		"(long)-4294967296          : %ld\n"
-		"(unsigned long)4294967296  : %lu\n",
-		iv, uiv, lv, ulv
-		);
+	printf("%s$sp is 0x%lx.\n", buf, sp);
+
+	/* Try to increase the stack by 3 pages */
+	__asm__ volatile(
+		"li		t0, 12288\n\t"
+		"sub	sp, sp, t0\n\t"
+		"sd		t0, 0(sp)\n\t"
+		"add	sp, sp, t0\n\t"
+		:
+		:
+		: "memory", "t0"
+	);
+	printf("Test failed! No exception happened.\n");
 }
 
 void test_strncpy()
