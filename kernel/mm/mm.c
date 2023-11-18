@@ -26,6 +26,8 @@ static volatile uint8_t pgtb_charmap[NPT];
 static volatile unsigned int pg_ffree, pgtb_ffree;
 #endif
 
+#define _PAGE_XWR (_PAGE_EXEC | _PAGE_WRITE | _PAGE_READ)
+
 void init_mm(void)
 {
 	void malloc_init(void);
@@ -135,6 +137,61 @@ void free_pagetable(uintptr_t pgtb_kva)
 }
 
 /*
+ * free_pages_of_proc: When a process is terminated,
+ * use this function to free pages and page tables occupied
+ * by it. `pgdir` is the KVA of its L2 page table.
+ * Return the number of page frames freed.
+ */
+unsigned int free_pages_of_proc(PTE* pgdir)
+{
+	unsigned int i, j, k, f_ymr = 0U;
+	PTE * pgdir_l1, * pgdir_l0;
+
+	/* Scan L2 page table */
+	for (i = 0U; i < (1U << (PPN_BITS - 1U)); ++i)
+	{	/* pgdir[256] and higher point to kernel page tables! */
+		if (get_attribute(pgdir[i], _PAGE_PRESENT) != 0U)
+		{	/*
+			 * NOTE: as swapping has not been implemented, just don't
+			 * consider the situation that a page has been allocated but
+			 * is not in main memory.
+			 */
+			if (get_attribute(pgdir[i], _PAGE_XWR) != 0U)
+				panic_g("L2 pgdir[%u] has a PTE 0x%lx that X, W, R are not all zero, "
+				"pgdir is 0x%lx", i, (uint64_t)pgdir[i], (uint64_t)pgdir);
+			pgdir_l1 = (PTE*)pa2kva(get_pa(pgdir[i]));
+			/* Scan L1 page table */
+			for (j = 0U; j < (1U << PPN_BITS); ++j)
+			{
+				if (get_attribute(pgdir_l1[j], _PAGE_PRESENT) != 0U)
+				{
+					if (get_attribute(pgdir_l1[j], _PAGE_XWR) != 0U)
+						panic_g("pgdir_l1[%u] has a PTE 0x%lx that X, W, R are not all zero, "
+						"pgdir_l1 is 0x%lx", j, (uint64_t)pgdir_l1[j], (uint64_t)pgdir_l1);
+					pgdir_l0 = (PTE*)pa2kva(get_pa(pgdir_l1[j]));
+					/* Scan L0 page table */
+					for (k = 0U; k < (1U << PPN_BITS); ++k)
+					{
+						if (get_attribute(pgdir_l0[k], _PAGE_PRESENT) != 0U)
+						{
+							if (get_attribute(pgdir_l0[k], _PAGE_XWR) == 0U)
+								panic_g("pgdir_l0[%u] has a PTE 0x%lx that X, W, R are all zero, "
+								"pgdir_l0 is 0x%lx", k, (uint64_t)pgdir_l0[k], (uint64_t)pgdir_l0);
+							free_page(pa2kva(get_pa(pgdir_l0[k])));
+							++f_ymr;
+						}
+					}
+					free_pagetable((uintptr_t)pgdir_l0);
+				}
+			}
+			free_pagetable((uintptr_t)pgdir_l1);
+		}
+	}
+	free_pagetable((uintptr_t)pgdir);
+	return f_ymr;
+}
+
+/*
  * share_pgtable: mapping kernel virtual address into user page table.
  * Note that dest_pgdir and src_pgdir are KVA.
  */
@@ -235,8 +292,6 @@ uintptr_t va2kva(uintptr_t va, PTE* pgdir_kva)
 {
 	uint64_t vpn2, vpn1, vpn0, offset;
 	PTE *pgdir_l1 = NULL, *pgdir_l0 = NULL;
-
-#define _PAGE_XWR (_PAGE_EXEC | _PAGE_WRITE | _PAGE_READ)
 
 	va &= VA_MASK;
 	vpn2 = va >> (NORMAL_PAGE_SHIFT + PPN_BITS + PPN_BITS);

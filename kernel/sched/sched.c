@@ -133,13 +133,11 @@ pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 
 	entry = load_task_img(taskname, pgdir_kva, pid);
 	if (entry == 0U)
-		/*
-		 * TODO: We need to free the page table
-		 * allocated just now.
-		 */
+	{
+		free_pages_of_proc((PTE*)pgdir_kva);
 		return INVALID_PID;
+	}
 
-	//user_stack = alloc_page_helper(User_sp - PAGE_SIZE, (uintptr_t)pgdir_kva, pid);
 	/*
 	 * Allocate some pages for user stack.
 	 */
@@ -153,8 +151,7 @@ pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 		return INVALID_PID;
 	if ((temp = lpcb_add_node_to_tail(ready_queue, &pnew, &ready_queue)) == NULL)
 	{
-		//ufree_g((void *)user_stack);
-		//TODO: Free user stack and kernel stack
+		free_pages_of_proc((PTE*)pgdir_kva);
 		return INVALID_PID;
 	}
 	ready_queue = temp;
@@ -176,7 +173,7 @@ pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 	if (pcb_table_add(pnew) < 0)
 		panic_g("create_proc: Failed to add to pcb_table");
 #if DEBUG_EN != 0
-	writelog("Process \"%s\" whose PID is %d is created.", pnew->name, pnew->pid);
+	writelog("Process \"%s\" (PID: %d) is created", pnew->name, pnew->pid);
 #endif
 	return pnew->pid;
 }
@@ -649,12 +646,14 @@ pid_t do_exec(const char *name, int argc, char *argv[])
  * set TASK_EXITED first and its PCB will be deleted while
  * calling do_scheduler() the next time.
  */
+#if DEBUG_EN == 0
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+#endif
 pid_t do_kill(pid_t pid)
 {
 	pcb_t *p, **phead, *pdel;
+	unsigned int pgfreed_ymr;
 
-	//if (pid == 0 || pid == 1)
-		/* PID 0, 1 cannot be killed */
 	if (pid < NCPU)
 		return INVALID_PID;
 	if (cur_cpu()->pid == pid)
@@ -698,8 +697,7 @@ pid_t do_kill(pid_t pid)
 
 	/* Free stacks of it */
 	kfree_g((void *)p->kernel_stack);
-	//ufree_g((void *)p->user_stack);
-	// TODO: free user stack
+	pgfreed_ymr = free_pages_of_proc(p->pgdir_kva);
 
 	*phead = lpcb_del_node(*phead, p, &pdel);
 	if (pdel == NULL)
@@ -708,7 +706,8 @@ pid_t do_kill(pid_t pid)
 	if (pcb_table_del(pdel) < 0)
 		panic_g("do_kill: Failed to remove pcb %d from pcb_table", pid);
 #if DEBUG_EN != 0
-	writelog("Process whose pid is %d is terminated.", pid);
+	writelog("Process %d is terminated and %u page frames are freed",
+		pid, pgfreed_ymr);
 #endif
 	return pid;
 }

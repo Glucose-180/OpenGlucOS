@@ -73,6 +73,7 @@ extern ptr_t allocLargePage(int numPage);
 
 uintptr_t alloc_pagetable(pid_t pid);
 void free_pagetable(uintptr_t pgtb_kva);
+unsigned int free_pages_of_proc(PTE* pgdir);
 extern void share_pgtable(PTE* dest_pgdir, PTE* src_pgdir);
 extern uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir_kva, pid_t pid);
 
