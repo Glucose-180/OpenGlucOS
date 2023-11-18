@@ -321,6 +321,7 @@ ENTRY(switch_to)
 	or	t0, t2, t0
 	csrw	satp, t0
 	sfence.vma
+	fence.i
 	ret
 
 ENDPROC(switch_to)

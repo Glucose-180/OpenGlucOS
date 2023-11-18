@@ -79,6 +79,8 @@ uint64_t load_task_img(const char *taskname, PTE* pgdir_kva, pid_t pid)
 	for (; i < msize; i += PAGE_SIZE)
 		pg_kva = (int8_t*)alloc_page_helper(vaddr + i, (uintptr_t)pgdir_kva, pid);
 
+	__sync_synchronize();
+
 	kfree_g(ut_buf);
     return entry;
 }

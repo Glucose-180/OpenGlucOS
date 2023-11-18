@@ -697,7 +697,7 @@ pid_t do_kill(pid_t pid)
 
 	/* Free stacks of it */
 	kfree_g((void *)p->kernel_stack);
-	pgfreed_ymr = 0;//free_pages_of_proc(p->pgdir_kva);
+	pgfreed_ymr = free_pages_of_proc(p->pgdir_kva);
 
 	*phead = lpcb_del_node(*phead, p, &pdel);
 	if (pdel == NULL)
