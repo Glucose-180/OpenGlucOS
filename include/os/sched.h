@@ -124,10 +124,12 @@ typedef struct pcb
 	 */
 	uintptr_t kernel_stack, user_stack[USTACK_NPG];
 	/*
-	 * The entry of this process. It is also
-	 * the start of valid user virtual address.
+	 * `seg_start` is the start of valid user virtual address.
+	 * `seg_end` is the end address of valid segment, and it
+	 * can be added by `do_sbrk()` syscall. Access to address
+	 * EQUAL or GREATER than it will cause segmentation fault.
 	 */
-	uintptr_t entry;
+	uintptr_t seg_start, seg_end;
 	/*
 	 * Processes waiting for this proc.
 	 */
@@ -166,6 +168,8 @@ typedef struct pcb
 	 */
 	unsigned int cpu_mask;
 } pcb_t;
+
+extern const uintptr_t User_sp;
 
 /* ready queue to run */
 //extern list_head ready_queue;

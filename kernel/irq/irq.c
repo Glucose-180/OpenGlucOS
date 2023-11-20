@@ -9,6 +9,7 @@
 #include <os/glucose.h>
 #include <riscv.h>
 #include <csr.h>
+#include <os/mm.h>
 #include <os/smp.h>
 
 handler_t irq_table[IRQC_COUNT];
@@ -132,10 +133,72 @@ void handle_other(regs_context_t *regs, uint64_t stval, uint64_t scause)
 
 void handle_pagefault(regs_context_t *regs, uint64_t stval, uint64_t scause)
 {
-	/*
-	 * Just terminate the process as we haven't implemented
-	 * correct handler.
-	 */
-	printk("**Page fault: 0x%lx", stval);
-	do_exit();
+	uint64_t lpte;
+	PTE* ppte;
+	pcb_t * ccpu = cur_cpu();
+
+	if (ccpu->pid < NCPU)
+		panic_g("handle_pagefault: kernel page fault: 0x%lx, $scause is 0x%lx",
+			stval, scause);
+
+	lpte = va2pte(stval, ccpu->pgdir_kva);
+	ppte = (PTE*)(lpte & ~7UL);
+	lpte &= 7UL;
+
+	//if (lpte != 0UL)
+		/*
+		 * If `stval` is in user address space, large page found should
+		 * cause panic; otherwise it is in kernel address space,
+		 * kernel page fault should also cause panic.
+		 * NOTE: comments above are wrong. If user process accesses a wrong
+		 * UVA, `lpte != 0UL` can happen, which just means that the looking
+		 * up of page table stops at L2 or L1 page table. 
+		 */
+	if ((r_sstatus() & SR_SPP) != 0UL && stval >= KVA_MIN)
+		/* Kernel page fault at S-mode should not happen up to now */
+		panic_g("handle_pagefault: L%lu page fault of proc %d: 0x%lx",
+			lpte, ccpu->pid, stval);
+
+	if (stval < User_sp && stval >= User_sp - USTACK_NPG * NORMAL_PAGE_SIZE)
+	{
+		unsigned pgidx =
+			(stval - (User_sp - USTACK_NPG * NORMAL_PAGE_SIZE)) >> NORMAL_PAGE_SHIFT;
+		if (*ppte == 0UL)
+		{	/* Page hasn't been allocated */
+			/* Alloc page for stack */
+			if (ccpu->user_stack[pgidx] != 0UL)
+				panic_g("handle_pagefault: proc %d user_stack[%u] is 0x%lx "
+					"but PTE at 0x%lx is 0UL",
+					ccpu->pid, pgidx, ccpu->user_stack[pgidx], (uintptr_t)ppte);
+			ccpu->user_stack[pgidx] =
+				alloc_page_helper(stval, (uintptr_t)(ccpu->pgdir_kva), ccpu->pid);
+		}
+		else
+		{	/* Page is swapped to disk (V is 0) or A or D is 0 */
+			/* Swap the page from disk or set A, D */;
+		}
+	}
+	else if (stval >= ccpu->seg_start && stval < ccpu->seg_end)
+	{
+		if (*ppte == 0UL)
+		{	/* Page hasn't been allocated */
+			/* Alloc page for segment */;
+		}
+		else
+		{	/* Page is swapped to disk (V is 0) or A or D is 0 */
+			/* Swap the page from disk or set A, D */;
+		}
+	}
+	else
+	{
+		printk("**Segment fault: 0x%lx", stval);
+		/*
+		 * NOTE: suppose that a user process passes an invalid UVA
+		 * to a syscall, and the UVA causes page fault. In this situation
+		 * the current trap is taken from S-mode (SPP of $sstatus is 1).
+		 * Can you ensure that no error will happen if you just call
+		 * `do_exit()` and then call `do_scheduler()` to switch to another process?
+		 */
+		do_exit();
+	}
 }

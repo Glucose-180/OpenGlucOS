@@ -9,13 +9,14 @@
 const uint32_t App_addr = TASK_MEM_BASE,	/* App1 address */
 	App_size = TASK_SIZE;	/* App2 addr - App1 addr */
 
-uint64_t load_task_img(const char *taskname, PTE* pgdir_kva, pid_t pid)
+/*
+ * load_task_img: Load a program from image and initialize its page table
+ * ar page dir `pgdir_kva`. `pstart` and `pend` is used for passing
+ * the boundary of its valid virtual address.
+ */
+uint64_t load_task_img(const char *taskname, PTE* pgdir_kva, pid_t pid,
+	 uintptr_t* pstart, uintptr_t* pend)
 {
-	/**
-	* TODO:
-	* 1. [p1-task3] load task from image via task id, and return its entrypoint
-	* 2. [p1-task4] load task via task name, thus the arg should be 'char *taskname'
-	*/
 	unsigned int i;
 	uint64_t vaddr, entry;
 	uint32_t fsize, msize, uoffset;
@@ -79,6 +80,8 @@ uint64_t load_task_img(const char *taskname, PTE* pgdir_kva, pid_t pid)
 	for (; i < msize; i += PAGE_SIZE)
 		pg_kva = (int8_t*)alloc_page_helper(vaddr + i, (uintptr_t)pgdir_kva, pid);
 
+	*pstart = vaddr;
+	*pend = vaddr + msize;
 	__sync_synchronize();
 
 	kfree_g(ut_buf);

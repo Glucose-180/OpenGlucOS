@@ -23,7 +23,7 @@
 const ptr_t pid0_stack = 0xffffffc051000000,
 	pid1_stack = 0xffffffc050f00000;
 
-static const uintptr_t User_sp = 0xf00010000UL;
+const uintptr_t User_sp = 0xf00010000UL;
 
 /*
  * The default size for a user stack and kernel stack.
@@ -116,7 +116,7 @@ pid_t alloc_pid(void)
  */
 pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 {
-	uintptr_t entry, user_stack[USTACK_NPG], kernel_stack;
+	uintptr_t entry, user_stack[USTACK_NPG], kernel_stack, seg_start, seg_end;
 	pcb_t *pnew, *temp;
 	PTE* pgdir_kva;
 	pid_t pid;
@@ -131,7 +131,7 @@ pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 	pgdir_kva = (PTE*)alloc_pagetable(pid);
 	share_pgtable(pgdir_kva, (PTE*)PGDIR_VA);
 
-	entry = load_task_img(taskname, pgdir_kva, pid);
+	entry = load_task_img(taskname, pgdir_kva, pid, &seg_start, &seg_end);
 	if (entry == 0U)
 	{
 		free_pages_of_proc((PTE*)pgdir_kva);
@@ -141,9 +141,16 @@ pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 	/*
 	 * Allocate some pages for user stack.
 	 */
-	for (i = 0U; i < USTACK_NPG; ++i)
+	/*for (i = 0U; i < USTACK_NPG; ++i)
 		user_stack[i] = alloc_page_helper(User_sp - (USTACK_NPG - i) * PAGE_SIZE,
-			(uintptr_t)pgdir_kva, pid);
+			(uintptr_t)pgdir_kva, pid);*/
+	/*
+	 * Just allocate one page for command line arguments.
+	 */
+	for (i = 0U; i < USTACK_NPG; ++i)
+		user_stack[i] = 0UL;
+	user_stack[USTACK_NPG - 1U] = alloc_page_helper(User_sp - NORMAL_PAGE_SIZE,
+		(uintptr_t)pgdir_kva, pid);
 
 	kernel_stack = (uintptr_t)kmalloc_g(Kstask_size);
 
@@ -161,7 +168,8 @@ pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 	 */
 	pnew->pid = INVALID_PID;
 	pnew->pgdir_kva = pgdir_kva;
-	pnew->entry = entry;
+	pnew->seg_start = seg_start;
+	pnew->seg_end = seg_end;
 	strncpy(pnew->name, taskname, TASK_NAMELEN);
 	pnew->name[TASK_NAMELEN] = '\0';
 	pnew->status = TASK_READY;
