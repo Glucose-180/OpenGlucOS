@@ -69,6 +69,9 @@ static inline void set_satp(
 
 #define VA_MASK ((1lu << 39) - 1UL)
 
+/* Lowest address of KVA */
+#define KVA_MIN (1UL << 38)
+
 #define PPN_BITS 9lu
 #define NUM_PTE_ENTRY (1U << PPN_BITS)
 

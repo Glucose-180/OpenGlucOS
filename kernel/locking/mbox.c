@@ -1,6 +1,7 @@
 #include <os/lock.h>
 #include <os/glucose.h>
 #include <os/smp.h>
+#include <pgtable.h>
 
 static mailbox_t mailboxes[MBOX_NUM];
 
@@ -185,6 +186,9 @@ int do_mbox_recv(int midx, uint8_t* msg, unsigned int msg_length)
 
 	if (midx < 0 || midx >= MBOX_NUM ||
 		msg_length <= 0U || msg_length > MAX_MBOX_LENGTH)
+		return INT32_MIN;
+	if ((uintptr_t)msg >= KVA_MIN)
+		/* It's a KVA! */
 		return INT32_MIN;
 	ptmbox = mailboxes + midx;
 	spin_lock_acquire(&(ptmbox->slock));

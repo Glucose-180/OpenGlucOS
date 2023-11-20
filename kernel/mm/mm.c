@@ -283,21 +283,28 @@ uintptr_t alloc_pages(uintptr_t va, unsigned npages, PTE* pgdir_kva)
  */
 
 /*
- * uva2kva: look up the page table at `pgdir_kva`
- * and translate the virtual address `va` to
- * kernel virtual address.
- * Return the KVA on success and 0UL on error.
+ * va2pte: look up the page table at `pgdir_kva`
+ * and find the PTE of virtual address `va`.
+ * Return the KVA of the PTE ADDed by the level
+ * of it. The lowest 2 bits:
+ * 0b10: PTE of L2 page table;
+ * 0b01: PTE of L1 page table;
+ * 0b00: PTE of L0 page table.
+ * NOTE: the V of PTE may not be 1, which means that
+ * the page of `va` is not in main memory! If a PTE with V 0
+ * is found while looking up, the looking process is stopped
+ * and the KVA of it is returned.
  */
-uintptr_t va2kva(uintptr_t va, PTE* pgdir_kva)
+uintptr_t va2pte(uintptr_t va, PTE* pgdir_kva)
 {
-	uint64_t vpn2, vpn1, vpn0, offset;
+	uint64_t vpn2, vpn1, vpn0;
 	PTE *pgdir_l1 = NULL, *pgdir_l0 = NULL;
 
 	va &= VA_MASK;
 	vpn2 = va >> (NORMAL_PAGE_SHIFT + PPN_BITS + PPN_BITS);
 	vpn1 = (vpn2 << PPN_BITS) ^ (va >> (NORMAL_PAGE_SHIFT + PPN_BITS));
 	vpn0 = (va >> NORMAL_PAGE_SHIFT) & ~(~0UL << NORMAL_PAGE_SHIFT);
-	offset = va & (NORMAL_PAGE_SIZE - 1U);
+
 	if (get_attribute(pgdir_kva[vpn2], _PAGE_PRESENT) != 0L)
 	{
 		if (get_attribute(pgdir_kva[vpn2], _PAGE_XWR) == 0L)
@@ -305,11 +312,11 @@ uintptr_t va2kva(uintptr_t va, PTE* pgdir_kva)
 			pgdir_l1 = (PTE *)pa2kva(get_pa(pgdir_kva[vpn2]));
 		else
 			/* It is leave page table */
-			return pa2kva((pgdir_kva[vpn2]) + (vpn1 << (NORMAL_PAGE_SHIFT + PPN_BITS)) +
-				(vpn0 << NORMAL_PAGE_SHIFT) + offset);
+			return (uintptr_t)&pgdir_kva[vpn2] + 2UL;
 	}
 	else
-		return 0UL;	/* Failed */
+		return (uintptr_t)&pgdir_kva[vpn2] + 2UL;	/* Not present */
+	
 	if (get_attribute(pgdir_l1[vpn1], _PAGE_PRESENT) != 0L)
 	{
 		if (get_attribute(pgdir_l1[vpn1], _PAGE_XWR) == 0L)
@@ -317,20 +324,71 @@ uintptr_t va2kva(uintptr_t va, PTE* pgdir_kva)
 			pgdir_l0 = (PTE *)pa2kva(get_pa(pgdir_l1[vpn1]));
 		else
 			/* It is leave page table */
-			return pa2kva(get_pa(pgdir_l1[vpn1]) +
-				(vpn0 << NORMAL_PAGE_SHIFT) + offset);
+			return (uintptr_t)&pgdir_l1[vpn1] + 1UL;
 	}
 	else
-		return 0UL;
+		return (uintptr_t)&pgdir_l1[vpn1] + 1UL;
+
 	if (get_attribute(pgdir_l0[vpn0], _PAGE_PRESENT) != 0L)
 	{
 		if (get_attribute(pgdir_l0[vpn0], _PAGE_XWR) == 0L)
+		{
 			/* It's error as X, W, R are all 0! */
+			panic_g("va2pte: an L0 page whose X, W, R are all 0 is found while"
+				" looking up virtual address 0x%lx in page dir 0x%lx", va, pgdir_kva);
 			return 0UL;
+		}
 		else
-			return pa2kva(get_pa(pgdir_l0[vpn0]) + offset);
+			return (uintptr_t)&pgdir_l0[vpn0];
 	}
 	else
+		return (uintptr_t)&pgdir_l0[vpn0];
+}
+
+/*
+ * va2kva: look up the page table at `pgdir_kva`
+ * and translate the virtual address `va` to
+ * kernel virtual address.
+ * Return the KVA on success and 0UL on error.
+ */
+uintptr_t va2kva(uintptr_t va, PTE* pgdir_kva)
+{
+	uint64_t vpn2, vpn1, vpn0, offset;
+	PTE *ppte;
+	uint64_t lpte;	/* Level */
+
+	va &= VA_MASK;
+	vpn2 = va >> (NORMAL_PAGE_SHIFT + PPN_BITS + PPN_BITS);
+	vpn1 = (vpn2 << PPN_BITS) ^ (va >> (NORMAL_PAGE_SHIFT + PPN_BITS));
+	vpn0 = (va >> NORMAL_PAGE_SHIFT) & ~(~0UL << NORMAL_PAGE_SHIFT);
+	offset = va & (NORMAL_PAGE_SIZE - 1U);
+
+	lpte = va2pte(va, pgdir_kva);
+	ppte = (PTE*)(lpte & ~7UL);
+	lpte &= 7UL;
+
+	if (get_attribute(*ppte, _PAGE_PRESENT) != 0L)
+	{
+		switch (lpte)
+		{
+		case 2UL:
+			return pa2kva(get_pa(*ppte) + (vpn1 << (NORMAL_PAGE_SHIFT + PPN_BITS))
+				+ (vpn0 << NORMAL_PAGE_SHIFT) + offset);
+			break;
+		case 1UL:
+			return pa2kva(get_pa(*ppte) + (vpn0 << NORMAL_PAGE_SHIFT) + offset);
+			break;
+		case 0UL:
+			return pa2kva(get_pa(*ppte) + offset);
+			break;
+		default:
+			panic_g("pa2kva: va2pte() returned invalid KVA: 0x%lx",
+				(uintptr_t)ppte + lpte);
+			return 0UL;
+			break;
+		}
+	}
+	else	/* V of the PTE is 0 */
 		return 0UL;
 }
 

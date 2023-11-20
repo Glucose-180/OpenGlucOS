@@ -161,6 +161,7 @@ pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 	 */
 	pnew->pid = INVALID_PID;
 	pnew->pgdir_kva = pgdir_kva;
+	pnew->entry = entry;
 	strncpy(pnew->name, taskname, TASK_NAMELEN);
 	pnew->name[TASK_NAMELEN] = '\0';
 	pnew->status = TASK_READY;

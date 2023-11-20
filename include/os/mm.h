@@ -77,6 +77,7 @@ unsigned int free_pages_of_proc(PTE* pgdir);
 extern void share_pgtable(PTE* dest_pgdir, PTE* src_pgdir);
 extern uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir_kva, pid_t pid);
 
+uintptr_t va2pte(uintptr_t va, PTE* pgdir_kva);
 uintptr_t va2kva(uintptr_t va, PTE* pgdir_kva);
 
 // TODO [P4-task4]: shm_page_get/dt */

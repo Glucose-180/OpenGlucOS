@@ -124,11 +124,14 @@ typedef struct pcb
 	 */
 	uintptr_t kernel_stack, user_stack[USTACK_NPG];
 	/*
+	 * The entry of this process. It is also
+	 * the start of valid user virtual address.
+	 */
+	uintptr_t entry;
+	/*
 	 * Processes waiting for this proc.
 	 */
 	struct pcb *wait_queue;
-	/* previous, next pointer */
-	//list_node_t list;
 	/* next pointer */
 	struct pcb *next;
 	/* SLEEPING | READY | RUNNING */
