@@ -9,33 +9,36 @@
  * so that we can watch their values.
  */
 #if DEBUG_EN != 0
-const uintptr_t Pg_base = ROUND(FREEMEM_KERNEL, PAGE_SIZE),
-	Pgtb_base = PGDIR_VA;
-volatile uint8_t pg_charmap[NPF];
+const uintptr_t	Pgtb_base = PGDIR_VA;
 volatile uint8_t pgtb_charmap[NPT];
 /* index of first free page frame/table */
 volatile unsigned int pg_ffree, pgtb_ffree;
 #else
-static const uintptr_t Pg_base = ROUND(FREEMEM_KERNEL, PAGE_SIZE),
-	Pgtb_base = PGDIR_VA;
-/*
- * pg_charmap[]: pg_charmap[i] being CMAP_FREE means that i-th page is free.
- * Otherwise, pg_charmap[i] means the PID of the process occupying it.
- */
-static volatile uint8_t pg_charmap[NPF];
+static const uintptr_t Pgtb_base = PGDIR_VA;
 static volatile uint8_t pgtb_charmap[NPT];
 /* index of first free page frame/table */
 static volatile unsigned int pg_ffree, pgtb_ffree;
 #endif
+
+const uintptr_t Pg_base = ROUND(FREEMEM_KERNEL, PAGE_SIZE);
+/*
+ * pg_charmap[]: pg_charmap[i] being CMAP_FREE means that i-th page is free.
+ * Otherwise, pg_charmap[i] means the PID of the process occupying it.
+ */
+volatile uint8_t pg_charmap[NPF];
+/* Record the UVA of a page frame */
+volatile uintptr_t pg_uva[NPF];
 
 #define _PAGE_XWR (_PAGE_EXEC | _PAGE_WRITE | _PAGE_READ)
 
 void init_mm(void)
 {
 	void malloc_init(void);
+	void init_swap(void);
 	unsigned int i;
 
 	malloc_init();
+	init_swap();
 
 	pg_ffree = 0U;
 	if (CMAP_FREE == 0xffu && (NPF & 0x7U) == 0U)
@@ -60,8 +63,10 @@ void init_mm(void)
 /*
  * alloc_page: Allocate ONE page frame for process `pid`.
  * Return the KVA of it or 0UL on error.
+ * `uva` is used to recorded the UVA for the page frame
+ * so that the coresponding PTE is easy to find.
  */
-uintptr_t alloc_page(unsigned int npages, pid_t pid)
+uintptr_t alloc_page(unsigned int npages, pid_t pid, uintptr_t uva)
 {
 	uintptr_t rt;
 	if (npages != 1U)
@@ -71,9 +76,10 @@ uintptr_t alloc_page(unsigned int npages, pid_t pid)
 	if (pg_ffree >= NPF)
 		/* No free page */
 		return 0UL;
-	rt = Pg_base + pg_ffree * PAGE_SIZE;
+	rt = Pg_base + pg_ffree * NORMAL_PAGE_SIZE;
 	pg_charmap[pg_ffree] = (uint8_t)pid;
-	/* Update pg_ffree */
+	pg_uva[pg_ffree] = (uva >> NORMAL_PAGE_SHIFT) << NORMAL_PAGE_SHIFT;
+	/* Update `pg_ffree` */
 	for (; pg_ffree < NPF; ++pg_ffree)
 		if (pg_charmap[pg_ffree] == CMAP_FREE)
 			break;
@@ -112,7 +118,7 @@ uintptr_t alloc_pagetable(pid_t pid)
 		/* No free page table */
 		//return 0UL;
 		panic_g("alloc_pagetable: no free page table for proc %d", pid);
-	rt = Pgtb_base + pgtb_ffree * PAGE_SIZE;
+	rt = Pgtb_base + pgtb_ffree * NORMAL_PAGE_SIZE;
 	clear_pgdir(rt);
 	pgtb_charmap[pgtb_ffree] = (uint8_t)pid;
 	/* Update `pgtb_ffree` */
@@ -145,6 +151,7 @@ void free_pagetable(uintptr_t pgtb_kva)
  * by it. `pgdir` is the KVA of its L2 page table.
  * Return the number of page frames freed.
  */
+// TODO: also free pages on disk if exist.
 unsigned int free_pages_of_proc(PTE* pgdir)
 {
 	unsigned int i, j, k, f_ymr = 0U;
@@ -260,7 +267,7 @@ uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir_kva, pid_t pid)
 			_PAGE_EXEC | _PAGE_ACCESSED | _PAGE_DIRTY)
 	if (pgdir_l0[vpn0] == 0UL)
 	{
-		pg_kva = alloc_page(1U, pid);
+		pg_kva = alloc_page(1U, pid, va);
 		/*
 		 * NOTE: up to now if `alloc_page` returns 0,
 		 * the physical page frame number of the PTE will be 0.

@@ -17,7 +17,7 @@ static inline unsigned int nbytes2sectors(unsigned int nbytes)
 }
 
 /*
- * Calc the sector number of the byte at lbytes
+ * Calc the sector index of the byte at `lbytes`
  */
 static inline unsigned int lbytes2sectors(unsigned int lbytes)
 {

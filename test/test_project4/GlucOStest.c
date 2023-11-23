@@ -210,7 +210,7 @@ void test_sbrk()
 	{
 		p[Size] = 'g';
 		p[Size * 1024U - 1U] = 'e';
-		if (p[Size] == 'g' && p[Size - 1U] == 'e')
+		if (p[Size] == 'g' && p[Size * 1024U - 1U] == 'e')
 			printf("Test 1 GiB passed!\n");
 		else
 			printf("Test 1 GiB failed!\n");

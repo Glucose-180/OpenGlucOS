@@ -61,6 +61,10 @@
 
 #define BOOTLOADER_PADDR 0x50200000
 #define BOOTLOADER_VADDR 0xffffffc050200000
+
+/* Offset in bootloader of task info */
+#define TINFO_OFFSET 264
+
 enum FDT_TYPE {
     TIMEBASE,
     SLCR_BADE_ADDR,

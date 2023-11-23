@@ -97,21 +97,16 @@ Project 4。
    0x5000000c:	ld	t0,-1320(t0)
    0x50000010:	csrw	mtvec,t0
    0x50000014:	csrw	mie,zero
-   0x50000018:	li	t0,8
-   0x5000001a:	bge	tp,t0,0x500001f0
-   0x5000001e:	li	t0,8
-   0x50000020:	csrs	mie,t0
-   0x50000024:	li	t0,-16
-   0x50000026:	lui	t1,0x50200
-   0x5000002a:	and	sp,t1,t0
-   0x5000002e:	mv	a0,sp
-   0x50000030:	jal	ra,0x500099d0
-   0x50000034:	mv	gp,a0
-   0x50000036:	slli	t0,tp,0xd
-   0x5000003a:	sub	sp,a0,t0
-   0x5000003e:	auipc	t0,0x58
+  ...
 ```
 
   `mtvec`被置为了 `0x50000a30`。
 
   用 GlucOStest 以及修改的 rw-g 测试了新功能，但在 QEMU 上不能将 U-mode 的异常代理到 S-mode。
+
+  在 make 时用`CFOTHER`可自定义编译选项，加`CFOTHER=-DUSEG_MAX=...`可定义用户程序的 Segment 的允许最大值，将其设为`0x80000000UL`可允许用户使用`sbrk()`分配 1 GiB 以上的空间，但默认是 4 MiB。
+
+  新增数组`pg_uva[]`，用于保存每个物理页框所对的用户虚地址。这样，根据 PID 和虚地址，就能很容易地用`uv2pte()`找到对应的页表项。
+
+  新增文件`mm-swap.c`以及部分相关函数，准备进行与磁盘交换。接下来需要做`swap_from_disk()`，以及在进程结束释放页框的函数`free_pages_of_proc()`中释放其在磁盘中的页。目前 -O2 上板正常。
+

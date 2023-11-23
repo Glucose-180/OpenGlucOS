@@ -69,7 +69,7 @@ static void init_taskinfo(void)
 	// TODO: [p1-task4] Init 'tasks' array via reading app-info sector
 	// NOTE: You need to get some related arguments from bootblock first
 	uint32_t //imagesize = *(uint32_t *)(BOOTLOADER_ADDR + 256),	/* unit: sector */
-		taskinfo_offset = *(uint32_t *)(BOOTLOADER_VADDR + 264);
+		taskinfo_offset = *(uint32_t *)(BOOTLOADER_VADDR + TINFO_OFFSET);
 	tasknum = *(uint32_t *)(BOOTLOADER_VADDR + 268);
 	uint32_t taskinfo_size = tasknum * sizeof(task_info_t),
 		taskinfo_start_sector, taskinfo_end_sector,

@@ -37,19 +37,28 @@
 //#define FREEMEM_KERNEL (INIT_KERNEL_STACK+PAGE_SIZE)
 #define FREEMEM_KERNEL 0xffffffc052000000
 
+#ifndef USEG_MAX
 /*
  * Max size for user segment (bytes).
  * It is used in `do_sbrk()`.
  */
-#ifndef USEG_MAX
 #define USEG_MAX (4UL * 1024UL * 1024UL)
 #endif
 
+#ifndef NPF
 /*
  * Number of page frames: these page frames will occupy
  * 0x52000000 to 0x5e800000-1 (physical address)
  */
 #define NPF (50U * 1024U)
+#endif
+
+#ifndef NPSWAP
+/*
+ * Number of pages in swap partition of disk
+ */
+#define NPSWAP 128U
+#endif
 
 /*
  * Number of page tables: these page tables will occupy
@@ -63,8 +72,12 @@
 #define ROUND(a, n)     (((((uint64_t)(a))+(n)-1)) & ~((n)-1))
 #define ROUNDDOWN(a, n) (((uint64_t)(a)) & ~((n)-1))
 
+extern const uintptr_t Pg_base;
+extern volatile uint8_t pg_charmap[NPF];
+extern volatile uintptr_t pg_uva[NPF];
+
 void init_mm(void);
-extern uintptr_t alloc_page(unsigned int npages, pid_t pid);
+extern uintptr_t alloc_page(unsigned int npages, pid_t pid, uintptr_t uva);
 // TODO [P4-task1] */
 void free_page(uintptr_t pg_kva);
 
@@ -89,6 +102,8 @@ uintptr_t va2pte(uintptr_t va, PTE* pgdir_kva);
 uintptr_t va2kva(uintptr_t va, PTE* pgdir_kva);
 
 uintptr_t do_sbrk(uint64_t size);
+
+unsigned int swap_to_disk(void);
 
 // TODO [P4-task4]: shm_page_get/dt */
 uintptr_t shm_page_get(int key);
