@@ -2,6 +2,18 @@
 #include <csr.h>
 #include <asm/regs.h>
 
+.macro GET_CURRENT_RUNNING_TO_T0
+	csrr	t0, CSR_MHARTID
+	bne	t0, zero, 1f
+	la	t0, current_running
+	ld	t0, 0(t0)	/* Now $t0 equals current_running[0], or c.r. */
+	j	2f
+1:
+	la	t0, current_running
+	ld	t0, 8(t0)	/* Now $t0 equals current_running[1], or c.r. */
+2:
+.endm
+
 /*
  * SAVE_CONTEXT: When the trap is taken from U-mode:
  * 1. $sp is saved in `user_sp` of PCB;
@@ -356,7 +368,24 @@ ENTRY(ret_from_exception)
 	addi	t3, t3, 4
 	sd	t3, OFFSET_REG_SEPC(t0)
 NOT_SYSCALL:
+	/*
+	 * If a trap is taken from S-mode for a user process,
+	 * do not unlock kernel as we are returning to S-mode.
+	 */
+	GET_CURRENT_RUNNING_TO_T0
+	ld	t0, PCB_PID(t0)
+	addi	t1, zero, 2
+	blt	t0, t1, Unlock_kernel
+
+	//csrr	t2, CSR_SSTATUS
+	ld	t2, OFFSET_REG_SSTATUS(sp)
+	andi	t2, t2, SR_SPP
+	beq	t2, zero, Unlock_kernel
+	
+	j	Bypass_unlock
+Unlock_kernel:
 	call	unlock_kernel
+Bypass_unlock:
 	RESTORE_CONTEXT
 	sret
 
@@ -375,7 +404,31 @@ ENTRY(exception_handler_entry)
 	/* TODO: [p2-task3] save context via the provided macro */
 	SAVE_CONTEXT
 
+	csrr	t0, CSR_MHARTID
+	bne	t0, zero, 1f
+	la	t0, current_running
+	ld	t0, 0(t0)	/* Now $t0 equals current_running[0], or c.r. */
+	j	2f
+1:
+	la	t0, current_running
+	ld	t0, 8(t0)	/* Now $t0 equals current_running[1], or c.r. */
+2:
+	ld	t0, PCB_PID(t0)
+	addi	t1, zero, 2
+	blt	t0, t1, Lock_kernel
+
+	csrr	t2, CSR_SSTATUS
+	andi	t2, t2, SR_SPP
+	beq	t2, zero, Lock_kernel
+	
+	j	Bypass_lock
+	/*
+	 * If a trap is taken from S-mode for a user process,
+	 * do not lock kernel as it is already locked.
+	 */
+Lock_kernel:
 	call	lock_kernel
+Bypass_lock:
 
 	/* TODO: [p2-task3] load ret_from_exception into $ra so that we can return to
 	 * ret_from_exception when interrupt_help complete.

@@ -14,6 +14,7 @@ void test_argv(int argc, char *argv[]);
 void test_getpid(void);
 void test_exit(void);
 void test_illegalinst(void);
+void test_access_wrong_addr_in_kernel(void);
 
 int main(int argc, char *argv[])
 {
@@ -34,7 +35,8 @@ int main(int argc, char *argv[])
 		"\t7 - Call sys_exit()\n"
 	);
 	printf(
-		"\t8 - illegal instruction\n"
+		"\t8 - Illegal instruction\n"
+		"\t9 - Access wrong address in kernel\n"
 	);
 	while (1)
 	{
@@ -69,6 +71,9 @@ int main(int argc, char *argv[])
 			break;
 		case 8:
 			test_illegalinst();
+			break;
+		case 9:
+			test_access_wrong_addr_in_kernel();
 			break;
 		default:
 			flag_retry = 1;
@@ -248,4 +253,9 @@ void test_illegalinst(void)
 		"csrs		sie, zero\n\t"
 		"fadd.s		f2, f1, f0\n\t"
 	);
+}
+
+void test_access_wrong_addr_in_kernel(void)
+{
+	sys_write((char *)0xf00010000UL);
 }
