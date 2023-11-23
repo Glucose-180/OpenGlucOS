@@ -2,12 +2,6 @@
 #include <unistd.h>
 #include <string.h>
 
-/*
- * Using this file is dangerous.
- * Only for test.
- */
-#include <kernel.h>
-
 #define NOI (-1)	/* No input */
 
 void test_access_kernel(void);
@@ -15,10 +9,11 @@ void test_syscall(void);
 void test_unaligned(void);
 void test_zerodivision(void);
 void test_stack(void);
-void test_strncpy(void);
+void test_sbrk(void);
 void test_argv(int argc, char *argv[]);
 void test_getpid(void);
 void test_exit(void);
+void test_illegalinst(void);
 
 int main(int argc, char *argv[])
 {
@@ -33,10 +28,13 @@ int main(int argc, char *argv[])
 		"\t3 - Use big stack\n"
 	);
 	printf(
-		"\t4 - Lib function strncmp()\n"
+		"\t4 - Call sys_sbrk() and access\n"
 		"\t5 - Command line args\n"
 		"\t6 - Call sys_getpid()\n"
 		"\t7 - Call sys_exit()\n"
+	);
+	printf(
+		"\t8 - illegal instruction\n"
 	);
 	while (1)
 	{
@@ -58,7 +56,7 @@ int main(int argc, char *argv[])
 			test_stack();
 			break;
 		case 4:
-			test_strncpy();
+			test_sbrk();
 			break;
 		case 5:
 			test_argv(argc, argv);
@@ -68,6 +66,9 @@ int main(int argc, char *argv[])
 			break;
 		case 7:
 			test_exit();
+			break;
+		case 8:
+			test_illegalinst();
 			break;
 		default:
 			flag_retry = 1;
@@ -81,11 +82,8 @@ int main(int argc, char *argv[])
 
 void test_access_kernel(void)
 {
-	/*
-	 * Call jump table in kernel memory.
-	 * See whether exception will happen.
-	 */
-	bios_putchar('x');
+	long *p = (void *)0xffffffc052000000;
+	printf("Load from 0x%lx: 0x%lx.\n", (long)p, *p);
 	printf("Test failed! No exception happened.\n");
 }
 
@@ -142,19 +140,24 @@ void test_syscall(void)
 
 void test_unaligned(void)
 {
-	int ar[2];
-	int *p = (int *)((char *)ar + 1);
+	int ar[4];
+	long *p = (long *)((char *)ar + 1);
+	long d;
 
 	printf("Trying to access 0x%lx...\n", (long)p);
 	__asm__ volatile
 	(
-		"sw		zero, 0(%0)\n\t"
-		"lw		t0, 0(%0)"
-		:
-		: "r"(p)
-		: "t0"
+		"li		t5, 5033\n\t"
+		"sd		t5, 0(%1)\n\t"
+		"ld		%0, 0(%1)"
+		: "=r" (d)
+		: "r" (p)
+		: "t5"
 	);
-	printf("Test failed! No exception happened.\n");
+	if (d == 5033)
+		printf("Test passed!\n");
+	else
+		printf("Test failed: %ld\n", d);
 }
 
 void test_stack(void)
@@ -186,18 +189,32 @@ void test_stack(void)
 	printf("Test failed! No exception happened.\n");
 }
 
-void test_strncpy()
+void test_sbrk()
 {
-	char s1[] = "Genshin\0start";
-	char s2[] = "Genshin\0Start";
-	int crt;
-	unsigned int n = 10U;
+	const unsigned long Size = 1024UL * 1024UL;	/* 1MiB */
+	volatile char *p = sys_sbrk(Size);
 
-	crt = strncmp(s1, s2, n);
-	printf("Comparing \"%s\" and \"%s\" in at most %u chars returns %d.\n",
-		s1, s2, n, crt);
-	if (crt != 0)
-		printf("Failed!\n");
+	printf("sys_sbrk(1 MiB) returns 0x%lx\n", (long)p);
+	if (p != (void *)0L)
+	{
+		p[0] = 'g';
+		p[Size - 1U] = 'e';
+		if (p[0] == 'g' && p[Size - 1U] == 'e')
+			printf("Test 1 MiB passed!\n");
+		else
+			printf("Test 1 MiB failed!\n");
+	}
+	p = sys_sbrk(Size * 1024UL);
+	printf("sys_sbrk(1 GiB) returns 0x%lx\n", (long)p);
+	if (p != (void *)0L)
+	{
+		p[Size] = 'g';
+		p[Size * 1024U - 1U] = 'e';
+		if (p[Size] == 'g' && p[Size - 1U] == 'e')
+			printf("Test 1 GiB passed!\n");
+		else
+			printf("Test 1 GiB failed!\n");
+	}
 }
 
 void test_argv(int argc, char *argv[])
@@ -223,4 +240,12 @@ void test_exit(void)
 {
 	sys_exit();
 	printf("Failed!\n");
+}
+
+void test_illegalinst(void)
+{
+	__asm__ volatile (
+		"csrs		sie, zero\n\t"
+		"fadd.s		f2, f1, f0\n\t"
+	);
 }

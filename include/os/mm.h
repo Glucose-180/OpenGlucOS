@@ -38,10 +38,18 @@
 #define FREEMEM_KERNEL 0xffffffc052000000
 
 /*
+ * Max size for user segment (bytes).
+ * It is used in `do_sbrk()`.
+ */
+#ifndef USEG_MAX
+#define USEG_MAX (4UL * 1024UL * 1024UL)
+#endif
+
+/*
  * Number of page frames: these page frames will occupy
  * 0x52000000 to 0x5e800000-1 (physical address)
  */
-#define NPF 50U * 1024U
+#define NPF (50U * 1024U)
 
 /*
  * Number of page tables: these page tables will occupy
@@ -79,6 +87,8 @@ extern uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir_kva, pid_t pid)
 
 uintptr_t va2pte(uintptr_t va, PTE* pgdir_kva);
 uintptr_t va2kva(uintptr_t va, PTE* pgdir_kva);
+
+uintptr_t do_sbrk(uint64_t size);
 
 // TODO [P4-task4]: shm_page_get/dt */
 uintptr_t shm_page_get(int key);

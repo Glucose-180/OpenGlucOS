@@ -194,6 +194,9 @@ static void init_syscall(void)
 		syscall[SYS_mbox_send] = (long (*)())do_mbox_send;
 		syscall[SYS_mbox_recv] = (long (*)())do_mbox_recv;
 	}
+	/* Memory management */ {
+		syscall[SYS_sbrk] = (long (*)())do_sbrk;
+	}
 }
 
 /*

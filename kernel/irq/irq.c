@@ -67,6 +67,7 @@ void init_exception()
 	for (i = 0; i < EXCC_COUNT; ++i)
 		exc_table[i] = handle_other;
 	exc_table[EXCC_SYSCALL] = handle_syscall;
+	exc_table[EXCC_INST_PAGE_FAULT] = handle_pagefault;
 	exc_table[EXCC_LOAD_PAGE_FAULT] = handle_pagefault;
 	exc_table[EXCC_STORE_PAGE_FAULT] = handle_pagefault;
 	/* TODO: [p2-task4] initialize irq_table */
@@ -102,7 +103,7 @@ static void handle_soft(regs_context_t *regs, uint64_t stval, uint64_t scause)
 
 void handle_other(regs_context_t *regs, uint64_t stval, uint64_t scause)
 {
-	char* reg_name[] = {
+	static char* reg_name[] = {
 		"zero "," ra  "," sp  "," gp  "," tp  ",
 		" t0  "," t1  "," t2  ","s0/fp"," s1  ",
 		" a0  "," a1  "," a2  "," a3  "," a4  ",
@@ -111,24 +112,28 @@ void handle_other(regs_context_t *regs, uint64_t stval, uint64_t scause)
 		" s9  "," s10 "," s11 "," t3  "," t4  ",
 		" t5  "," t6  "
 	};
-	for (int i = 0; i < 32; i += 3) {
-		for (int j = 0; j < 3 && i + j < 32; ++j) {
-			printk("%s : %016lx ",reg_name[i+j], regs->regs[i+j]);
+	if ((regs->sstatus & SR_SPP) != 0UL)
+	{
+		for (int i = 0; i < 32; i += 3) {
+			for (int j = 0; j < 3 && i + j < 32; ++j) {
+				printk("%s : %016lx ",reg_name[i+j], regs->regs[i+j]);
+			}
+			printk("\n\r");
 		}
-		printk("\n\r");
+		panic_g(
+			"handle_other: unknown trap happens from S-mode:\n"
+			"$sstatus: 0x%lx, $stval: 0x%lx, $scause: 0x%lx,\n"
+			"$sepc: 0x%lx, sbadaddr: 0x%lx (should equals $stval)\n",
+			regs->sstatus, stval, scause,
+			regs->sepc, regs->sbadaddr
+		);
 	}
-	/*printk("sstatus: 0x%lx sbadaddr: 0x%lx scause: %lu\n\r",
-		   regs->sstatus, regs->sbadaddr, regs->scause);
-	printk("sepc: 0x%lx\n\r", regs->sepc);
-	printk("tval: 0x%lx cause: 0x%lx\n", stval, scause);*/
-	//assert(0);
-	panic_g(
-		"handle_other: unknown trap happens:\n"
-		"$sstatus: 0x%lx, $stval: 0x%lx, $scause: 0x%lx,\n"
-		"$sepc: 0x%lx, sbadaddr: 0x%lx (should equals $stval)\n",
-		regs->sstatus, stval, scause,
-		regs->sepc, regs->sbadaddr
-	);
+	else
+	{	/* From U-mode */
+		printk("**Exception 0x%lx happens at 0x%lx: 0x%lx\n",
+			scause, regs->sepc, stval);
+		do_exit();
+	}
 }
 
 void handle_pagefault(regs_context_t *regs, uint64_t stval, uint64_t scause)
@@ -182,7 +187,8 @@ void handle_pagefault(regs_context_t *regs, uint64_t stval, uint64_t scause)
 	{
 		if (*ppte == 0UL)
 		{	/* Page hasn't been allocated */
-			/* Alloc page for segment */;
+			/* Alloc page for segment */
+			alloc_page_helper(stval, (uintptr_t)(ccpu->pgdir_kva), ccpu->pid);
 		}
 		else
 		{	/* Page is swapped to disk (V is 0) or A or D is 0 */

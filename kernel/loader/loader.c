@@ -81,7 +81,7 @@ uint64_t load_task_img(const char *taskname, PTE* pgdir_kva, pid_t pid,
 		pg_kva = (int8_t*)alloc_page_helper(vaddr + i, (uintptr_t)pgdir_kva, pid);
 
 	*pstart = vaddr;
-	*pend = vaddr + msize;
+	*pend = ROUND(vaddr + msize, 0x8);
 	__sync_synchronize();
 
 	kfree_g(ut_buf);

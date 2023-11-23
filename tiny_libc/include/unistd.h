@@ -74,6 +74,7 @@ int sys_mbox_close(int midx);
 int sys_mbox_send(int midx, const void *msg, unsigned msg_length);
 int sys_mbox_recv(int midx, void *msg, unsigned msg_length);
 
+void *sys_sbrk(uint64_t size);
 /* TODO: [P4-task5] shmpageget/dt */
 /* shmpageget/dt */
 void* sys_shmpageget(int key);

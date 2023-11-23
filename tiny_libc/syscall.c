@@ -311,6 +311,11 @@ void sys_kprint_avail_table(void)
 		Ignore, Ignore, Ignore);
 }
 
+void *sys_sbrk(uint64_t size)
+{
+	return (void *)invoke_syscall(SYS_sbrk, (long)size, Ignore, Ignore, Ignore, Ignore);
+}
+
 void* sys_shmpageget(int key)
 {
     /* TODO: [p4-task4] call invoke_syscall to implement sys_shmpageget */

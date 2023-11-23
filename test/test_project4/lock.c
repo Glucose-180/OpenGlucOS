@@ -34,6 +34,7 @@ int main(int argc, char *argv[])
             sys_move_cursor(0, print_location);
             printf("> [TASK] Has acquired lock and running.(%d)\n", i);
             // sys_yield();
+            sys_sleep(1);
         }
 
         sys_move_cursor(0, print_location);
@@ -45,6 +46,7 @@ int main(int argc, char *argv[])
         sys_mutex_release(mutex_id);
 
         // sys_yield();
+        sys_sleep(2);
     }
 
     return 0;

@@ -49,8 +49,9 @@
 #define SYS_sema_down 58
 #define SYS_sema_destroy 59
 
-#define SYS_shm_get 60
-#define SYS_shm_dt 61
+#define SYS_sbrk 60
+#define SYS_shm_get 61
+#define SYS_shm_dt 62
 
 #define SYS_kprint_avail_table 90
 /*
