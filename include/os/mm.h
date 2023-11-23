@@ -103,7 +103,9 @@ uintptr_t va2kva(uintptr_t va, PTE* pgdir_kva);
 
 uintptr_t do_sbrk(uint64_t size);
 
+void free_swap_page(unsigned int spg_idx);
 unsigned int swap_to_disk(void);
+uintptr_t swap_from_disk(PTE *ppte, uintptr_t uva);
 
 // TODO [P4-task4]: shm_page_get/dt */
 uintptr_t shm_page_get(int key);

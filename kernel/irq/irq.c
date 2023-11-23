@@ -136,9 +136,12 @@ void handle_other(regs_context_t *regs, uint64_t stval, uint64_t scause)
 	}
 }
 
+#if DEBUG_EN == 0
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+#endif
 void handle_pagefault(regs_context_t *regs, uint64_t stval, uint64_t scause)
 {
-	uint64_t lpte;
+	uint64_t lpte, pgs_kva = 0UL;
 	PTE* ppte;
 	pcb_t * ccpu = cur_cpu();
 
@@ -180,7 +183,11 @@ void handle_pagefault(regs_context_t *regs, uint64_t stval, uint64_t scause)
 		}
 		else
 		{	/* Page is swapped to disk (V is 0) or A or D is 0 */
-			/* Swap the page from disk or set A, D */;
+			/* Swap the page from disk or set A, D */
+			if (get_attribute(*ppte, _PAGE_PRESENT) != 0L)
+				set_attribute(ppte, _PAGE_ACCESSED | _PAGE_DIRTY);
+			else
+				pgs_kva = swap_from_disk(ppte, stval);
 		}
 	}
 	else if (stval >= ccpu->seg_start && stval < ccpu->seg_end)
@@ -192,7 +199,12 @@ void handle_pagefault(regs_context_t *regs, uint64_t stval, uint64_t scause)
 		}
 		else
 		{	/* Page is swapped to disk (V is 0) or A or D is 0 */
-			/* Swap the page from disk or set A, D */;
+			/* Swap the page from disk or set A, D */
+			if (get_attribute(*ppte, _PAGE_PRESENT) != 0L)
+				set_attribute(ppte, _PAGE_ACCESSED | _PAGE_DIRTY);
+			else
+				pgs_kva = swap_from_disk(ppte, stval);
+			/* Maybe flushing I-Cache is unnecessary? */
 		}
 	}
 	else
@@ -207,4 +219,8 @@ void handle_pagefault(regs_context_t *regs, uint64_t stval, uint64_t scause)
 		 */
 		do_exit();
 	}
+#if DEBUG_EN != 0
+	if (pgs_kva != 0UL)
+		writelog("Proc %d caused page swap to a page at PA 0x%lx", kva2pa(pgs_kva));
+#endif
 }

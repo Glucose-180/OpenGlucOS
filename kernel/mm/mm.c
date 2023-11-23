@@ -62,7 +62,7 @@ void init_mm(void)
 
 /*
  * alloc_page: Allocate ONE page frame for process `pid`.
- * Return the KVA of it or 0UL on error.
+ * Return the KVA of it or PANIC!
  * `uva` is used to recorded the UVA for the page frame
  * so that the coresponding PTE is easy to find.
  */
@@ -74,15 +74,23 @@ uintptr_t alloc_page(unsigned int npages, pid_t pid, uintptr_t uva)
 	if ((uint8_t)pid == CMAP_FREE)
 		panic_g("alloc_page: pid is invalid: 0x%x", (int)CMAP_FREE);
 	if (pg_ffree >= NPF)
-		/* No free page */
-		return 0UL;
+	{	/* No free page */
+		pg_ffree = swap_to_disk();
+		/* A flag of swapped */
+		npages = 0U;
+	}
 	rt = Pg_base + pg_ffree * NORMAL_PAGE_SIZE;
 	pg_charmap[pg_ffree] = (uint8_t)pid;
 	pg_uva[pg_ffree] = (uva >> NORMAL_PAGE_SHIFT) << NORMAL_PAGE_SHIFT;
 	/* Update `pg_ffree` */
-	for (; pg_ffree < NPF; ++pg_ffree)
-		if (pg_charmap[pg_ffree] == CMAP_FREE)
-			break;
+	if (npages != 0U)
+	{	/* Use this flag to avoid unnecessary scanning */
+		for (; pg_ffree < NPF; ++pg_ffree)
+			if (pg_charmap[pg_ffree] == CMAP_FREE)
+				break;
+	}
+	else
+		pg_ffree = NPF;
 	return rt;
 }
 
@@ -151,7 +159,6 @@ void free_pagetable(uintptr_t pgtb_kva)
  * by it. `pgdir` is the KVA of its L2 page table.
  * Return the number of page frames freed.
  */
-// TODO: also free pages on disk if exist.
 unsigned int free_pages_of_proc(PTE* pgdir)
 {
 	unsigned int i, j, k, f_ymr = 0U;
@@ -160,34 +167,35 @@ unsigned int free_pages_of_proc(PTE* pgdir)
 	/* Scan L2 page table */
 	for (i = 0U; i < (1U << (PPN_BITS - 1U)); ++i)
 	{	/* pgdir[256] and higher point to kernel page tables! */
-		if (get_attribute(pgdir[i], _PAGE_PRESENT) != 0U)
-		{	/*
-			 * NOTE: as swapping has not been implemented, just don't
-			 * consider the situation that a page has been allocated but
-			 * is not in main memory.
-			 */
-			if (get_attribute(pgdir[i], _PAGE_XWR) != 0U)
+		if (get_attribute(pgdir[i], _PAGE_PRESENT) != 0L)
+		{
+			if (get_attribute(pgdir[i], _PAGE_XWR) != 0L)
 				panic_g("L2 pgdir[%u] has a PTE 0x%lx that X, W, R are not all zero, "
 				"pgdir is 0x%lx", i, (uint64_t)pgdir[i], (uint64_t)pgdir);
 			pgdir_l1 = (PTE*)pa2kva(get_pa(pgdir[i]));
 			/* Scan L1 page table */
 			for (j = 0U; j < (1U << PPN_BITS); ++j)
 			{
-				if (get_attribute(pgdir_l1[j], _PAGE_PRESENT) != 0U)
+				if (get_attribute(pgdir_l1[j], _PAGE_PRESENT) != 0L)
 				{
-					if (get_attribute(pgdir_l1[j], _PAGE_XWR) != 0U)
+					if (get_attribute(pgdir_l1[j], _PAGE_XWR) != 0L)
 						panic_g("pgdir_l1[%u] has a PTE 0x%lx that X, W, R are not all zero, "
 						"pgdir_l1 is 0x%lx", j, (uint64_t)pgdir_l1[j], (uint64_t)pgdir_l1);
 					pgdir_l0 = (PTE*)pa2kva(get_pa(pgdir_l1[j]));
 					/* Scan L0 page table */
 					for (k = 0U; k < (1U << PPN_BITS); ++k)
 					{
-						if (get_attribute(pgdir_l0[k], _PAGE_PRESENT) != 0U)
+						if (get_attribute(pgdir_l0[k], _PAGE_PRESENT) != 0L)
 						{
-							if (get_attribute(pgdir_l0[k], _PAGE_XWR) == 0U)
+							if (get_attribute(pgdir_l0[k], _PAGE_XWR) == 0L)
 								panic_g("pgdir_l0[%u] has a PTE 0x%lx that X, W, R are all zero, "
 								"pgdir_l0 is 0x%lx", k, (uint64_t)pgdir_l0[k], (uint64_t)pgdir_l0);
 							free_page(pa2kva(get_pa(pgdir_l0[k])));
+							++f_ymr;
+						}
+						else if (pgdir_l0[k] != 0U)
+						{	/* PTE is not 0 but V is 0, so the page is on disk */
+							free_swap_page(get_pfn(pgdir_l0[k]));
 							++f_ymr;
 						}
 					}
@@ -225,7 +233,6 @@ void share_pgtable(PTE* dest_pgdir, PTE* src_pgdir)
  */
 uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir_kva, pid_t pid)
 {
-	// TODO [P4-task1] alloc_page_helper:
 	uint64_t vpn2, vpn1, vpn0;
 	PTE* pgdir = (PTE*)pgdir_kva, *pgdir_l1 = NULL, *pgdir_l0 = NULL;
 	uintptr_t pg_kva;
