@@ -43,7 +43,7 @@
  * user stack of a user process.
  * NOTE: also defined in `sched.h`.
  */
-#define USTACK_NPG 4U
+#define USTACK_NPG 16U
 #endif
 
 #ifndef USEG_MAX
@@ -51,7 +51,7 @@
  * Max size for user segment (bytes).
  * It is used in `do_sbrk()`.
  */
-#define USEG_MAX (4UL * 1024UL * 1024UL)
+#define USEG_MAX (8UL * 1024UL * 1024UL)
 #endif
 
 #ifndef NPF

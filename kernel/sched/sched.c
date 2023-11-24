@@ -116,11 +116,10 @@ pid_t alloc_pid(void)
  */
 pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 {
-	uintptr_t entry, user_stack[USTACK_NPG], kernel_stack, seg_start, seg_end;
+	uintptr_t entry, kernel_stack, seg_start, seg_end;
 	pcb_t *pnew, *temp;
 	PTE* pgdir_kva;
 	pid_t pid;
-	unsigned int i;
 
 	if (taskname == NULL || get_proc_num() >= UPROC_MAX + NCPU)
 		return INVALID_PID;
@@ -139,22 +138,13 @@ pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 	}
 
 	/*
-	 * Allocate some pages for user stack.
-	 */
-	/*for (i = 0U; i < USTACK_NPG; ++i)
-		user_stack[i] = alloc_page_helper(User_sp - (USTACK_NPG - i) * PAGE_SIZE,
-			(uintptr_t)pgdir_kva, pid);*/
-	/*
 	 * Just allocate one page for command line arguments.
 	 */
-	for (i = 0U; i < USTACK_NPG; ++i)
-		user_stack[i] = 0UL;
-	user_stack[USTACK_NPG - 1U] = alloc_page_helper(User_sp - NORMAL_PAGE_SIZE,
-		(uintptr_t)pgdir_kva, pid);
+	alloc_page_helper(User_sp - NORMAL_PAGE_SIZE, (uintptr_t)pgdir_kva, pid);
 
 	kernel_stack = (uintptr_t)kmalloc_g(Kstask_size);
 
-	if (user_stack == 0 || kernel_stack == 0)
+	if (kernel_stack == 0)
 		return INVALID_PID;
 	if ((temp = lpcb_add_node_to_tail(ready_queue, &pnew, &ready_queue)) == NULL)
 	{
@@ -178,7 +168,7 @@ pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 	pnew->cylim_h = pnew->cylim_l = -1;
 	pnew->cpu_mask = cpu_mask;
 	pnew->pid = pid;
-	init_pcb_stack(kernel_stack, user_stack, entry, pnew);
+	init_pcb_stack(kernel_stack, entry, pnew);
 	if (pcb_table_add(pnew) < 0)
 		panic_g("create_proc: Failed to add to pcb_table");
 #if DEBUG_EN != 0
@@ -430,21 +420,17 @@ pcb_t *do_unblock(pcb_t * const Queue)
 
 /************************************************************/
 void init_pcb_stack(
-	uintptr_t kernel_stack, uintptr_t *user_stack, uintptr_t entry_point, pcb_t *pcb)
+	uintptr_t kernel_stack, uintptr_t entry_point, pcb_t *pcb)
 {
 	 /* TODO: [p2-task3] initialization of registers on kernel stack
 	  * HINT: sp, ra, sepc, sstatus
 	  * NOTE: To run the task in user mode, you should set corresponding bits
 	  *     of sstatus(SPP, SPIE, etc.).
 	  */
-	unsigned int i;
-
 	pcb->kernel_stack = kernel_stack;
 	pcb->kernel_sp = kernel_stack + ROUND(Kstask_size, ADDR_ALIGN)
 		 - sizeof(regs_context_t);
 	pcb->kernel_sp = ROUNDDOWN(pcb->kernel_sp, SP_ALIGN);
-	for (i = 0U; i < USTACK_NPG; ++i)
-		pcb->user_stack[i] = user_stack[i];
 	/*
 	 * pcb->user_sp saves the user virtual address (UVA)
 	 * rather than KVA.
@@ -469,15 +455,17 @@ void init_pcb_stack(
 	 */
 	pcb->trapframe = (void *)(pcb->kernel_sp);
 	pcb->trapframe->sepc = entry_point;
-	if (((pcb->trapframe->sstatus = (r_sstatus() & ~SR_SIE)) & SR_SPP) != 0UL)
+	//if (((pcb->trapframe->sstatus = (r_sstatus() & ~SR_SIE) | SR_SPIE) & SR_SPP) != 0UL)
 		/*
 		 * SIE of $sstatus must be zero to ensure that after RESTORE_CONTEXT
 		 * before sret, interrupt is off. Otherwise, GlucOS will crash
 		 * if timer interrupt comes at this time (when timer interval is small).
-		 * And SPP must be zero to ensure that after sret,
+		 * SPIE must be 1 to enable interrupt after sret.
+		 * And SPP must be 0 to ensure that after sret,
 		 * the privilige is User Mode for user process.
 		 */
-		panic_g("init_pcb_stack: SPP is not zero");
+	pcb->trapframe->sstatus = (r_sstatus() & ~SR_SIE & ~SR_SPP) | SR_SPIE;
+	//panic_g("init_pcb_stack: SPP is not zero");
 	pcb->trapframe->regs[OFFSET_REG_TP / sizeof(reg_t)] = (reg_t)pcb;
 	pcb->trapframe->regs[OFFSET_REG_SP / sizeof(reg_t)] = (reg_t)(pcb->user_sp);
 	/*

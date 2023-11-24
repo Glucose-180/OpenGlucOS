@@ -235,6 +235,7 @@ void share_pgtable(PTE* dest_pgdir, PTE* src_pgdir)
  * allocate a physical page for `va`, mapping it into `pgdir_kva`,
  * return the kernel virtual address for the page.
  * `pid` is the PID of the process for which the page is used.
+ * This function either succeeds, or causes panic.
  */
 uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir_kva, pid_t pid)
 {
@@ -299,16 +300,6 @@ uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir_kva, pid_t pid)
 	}
 	return pg_kva;
 }
-
-/*
- * alloc_pages: allocate `npages` pages for virtual address `va`
- * and map va to va + npages * 4KiB - 1 into pgdir_kva.
- * Return the KVA of the first page and 0 on error.
-uintptr_t alloc_pages(uintptr_t va, unsigned npages, PTE* pgdir_kva)
-{
-
-}
- */
 
 /*
  * va2pte: look up the page table at `pgdir_kva`

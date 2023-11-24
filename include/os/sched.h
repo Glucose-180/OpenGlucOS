@@ -48,7 +48,15 @@
  * user stack of a user process.
  * NOTE: also defined in `mm.h`.
  */
-#define USTACK_NPG 4U
+#define USTACK_NPG 16U
+#endif
+
+#ifndef MULTITHREADING
+/*
+ * Support multithreading or not.
+ * It appears in many header files!
+ */
+#define MULTITHREADING 1
 #endif
 
 /*
@@ -108,9 +116,10 @@ typedef struct pcb
 	/* --- order preserved starts --- */
 	/*
 	 * kernel_sp is KVA while user_sp is UVA.
+	 * "TP" means this elem is private for every thread.
 	 */
-	reg_t kernel_sp, user_sp;
-	regs_context_t *trapframe;
+	reg_t kernel_sp, user_sp;	/* TP */
+	regs_context_t *trapframe;	/* TP */
 	/*
 	 * pgdir_kva is the kernel virtual address of page
 	 * directory of this process.
@@ -118,14 +127,15 @@ typedef struct pcb
 	PTE* pgdir_kva;
 	/* process id */
 	pid_t pid;
+#if MULTITHREADING != 0
+	pthread_t tid;	/* TP */
+#endif
 	/* --- order preserved ends --- */
 	/*
 	 * `kernel_stack` is the base address of kernel stack.
-	 * `user_stack[i]` is the base address of the i-th 
-	 * page frame for user stack.
-	 * They are all KVA.
+	 * It is KVA.
 	 */
-	uintptr_t kernel_stack, user_stack[USTACK_NPG];
+	uintptr_t kernel_stack;	/* TP */
 	/*
 	 * `seg_start` is the start of valid user virtual address.
 	 * `seg_end` is the end address of valid segment, and it
@@ -136,22 +146,22 @@ typedef struct pcb
 	/*
 	 * Processes waiting for this proc.
 	 */
-	struct pcb *wait_queue;
+	struct pcb *wait_queue;	/* TP */
 	/* next pointer */
-	struct pcb *next;
+	struct pcb *next;	/* TP */
 	/* SLEEPING | READY | RUNNING */
-	task_status_t status;
+	task_status_t status;	/* TP */
 	/* cursor position */
-	int cursor_x, cursor_y;
+	int cursor_x, cursor_y;	/* TP */
 	/*
 	 * limit of cursor_y, used for auto scroll.
 	 * < 0 means  invalid.
 	 */
-	int cylim_l, cylim_h;
+	int cylim_l, cylim_h;	/* TP */
 	/* time(seconds) to wake up sleeping PCB */
-	uint64_t wakeup_time;
+	uint64_t wakeup_time;	/* TP */
 	/* Saved regs */
-	switchto_context_t context;
+	switchto_context_t context;	/* TP */
 	/* Name of this process */
 	char name[TASK_NAMELEN + 1];
 	/*
@@ -159,17 +169,17 @@ typedef struct pcb
 	 * to which this PCB is belonging. This is used to
 	 * find the queue.
 	 */
-	struct pcb ** phead;
+	struct pcb ** phead;	/* TP */
 	/*
 	 * req_len is used to store the length of mailbox
 	 * request when blocked in queue of mailbox.
 	 */
-	unsigned int req_len;
+	unsigned int req_len;	/* TP */
 	/*
 	 * cpu_mask is used to set CPU affinity. If a CPU has ID i,
 	 * this process can run on it if and only if (1<<i)&cpu_mask is not zero.
 	 */
-	unsigned int cpu_mask;
+	unsigned int cpu_mask;	/* TP */
 } pcb_t;
 
 extern const uintptr_t User_sp;
@@ -214,7 +224,7 @@ void wake_up(pcb_t * const T);
 pcb_t *do_unblock(pcb_t * const Queue);
 
 void init_pcb_stack(
-	uintptr_t kernel_stack, uintptr_t *user_stack, uintptr_t entry_point, pcb_t *pcb);
+	uintptr_t kernel_stack, uintptr_t entry_point, pcb_t *pcb);
 void set_preempt(void);
 
 /************************************************************/

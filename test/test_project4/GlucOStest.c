@@ -7,7 +7,6 @@
 void test_access_kernel(void);
 void test_syscall(void);
 void test_unaligned(void);
-void test_zerodivision(void);
 void test_stack(void);
 void test_sbrk(void);
 void test_argv(int argc, char *argv[]);
@@ -38,6 +37,7 @@ int main(int argc, char *argv[])
 		"\t8 - Illegal instruction\n"
 		"\t9 - Access wrong address in kernel\n"
 	);
+	sys_set_cylim(11, 16);
 	while (1)
 	{
 		while ((c = sys_bios_getchar()) == NOI)
@@ -167,11 +167,11 @@ void test_unaligned(void)
 
 void test_stack(void)
 {
-	char buf[4096];
+	char buf[4096 * 15];
 	uint64_t sp;
 
-	strcpy(buf, "Test buffer bigger than 1 page passed!\n");
-	buf[4095] = '\0';
+	strcpy(buf, "Test buffer bigger than 15 page passed!\n");
+	buf[4096 * 15 - 1] = '\0';
 
 	__asm__ volatile(
 		"mv		%0, sp\n\t"

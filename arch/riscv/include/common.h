@@ -67,6 +67,19 @@
 /* Offset in bootloader of task num */
 #define TNUM_OFFSET 268
 
+#ifndef MULTITHREADING
+/*
+ * Support multithreading or not.
+ * It appears in many header files!
+ */
+#define MULTITHREADING 1
+#endif
+
+#ifndef DEBUG_EN
+/* Debugging mode */
+#define DEBUG_EN 0
+#endif
+
 enum FDT_TYPE {
     TIMEBASE,
     SLCR_BADE_ADDR,

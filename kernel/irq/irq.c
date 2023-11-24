@@ -169,17 +169,10 @@ void handle_pagefault(regs_context_t *regs, uint64_t stval, uint64_t scause)
 
 	if (stval < User_sp && stval >= User_sp - USTACK_NPG * NORMAL_PAGE_SIZE)
 	{
-		unsigned pgidx =
-			(stval - (User_sp - USTACK_NPG * NORMAL_PAGE_SIZE)) >> NORMAL_PAGE_SHIFT;
 		if (*ppte == 0UL)
 		{	/* Page hasn't been allocated */
 			/* Alloc page for stack */
-			if (ccpu->user_stack[pgidx] != 0UL)
-				panic_g("handle_pagefault: proc %d user_stack[%u] is 0x%lx "
-					"but PTE at 0x%lx is 0UL",
-					ccpu->pid, pgidx, ccpu->user_stack[pgidx], (uintptr_t)ppte);
-			ccpu->user_stack[pgidx] =
-				alloc_page_helper(stval, (uintptr_t)(ccpu->pgdir_kva), ccpu->pid);
+			alloc_page_helper(stval, (uintptr_t)(ccpu->pgdir_kva), ccpu->pid);
 		}
 		else
 		{	/* Page is swapped to disk (V is 0) or A or D is 0 */

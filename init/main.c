@@ -226,7 +226,7 @@ int main(reg_t a0, reg_t a1)
 #define TERMINAL_BEGIN "17"
 #endif
 #ifndef TERMINAL_END
-#define TERMINAL_END "24"
+#define TERMINAL_END "23"
 #endif
 
 	char *argv[] = {"glush", TERMINAL_BEGIN, TERMINAL_END,

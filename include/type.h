@@ -57,6 +57,7 @@ typedef uint64_t ptr_t;
 typedef uint64_t uintptr_t;
 typedef int64_t intptr_t;
 typedef uint64_t size_t;
+typedef pid_t pthread_t;
 
 /* Minimum of signed integral types.  */
 # define INT8_MIN               (-128)
