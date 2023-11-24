@@ -134,3 +134,11 @@ Project 4。
 
   swap 功能的测试方法：`make all DEBUG=0 CFOTHER="-DNPF=100"`，限制物理页框数为 100，然后在 glush 中`exec swap-test 200`即可测试交换功能是否正常。
 
+  修改了`Makefile`，开 swap 空间时需要单独`make swap`；修改了`swap-test.c`，使其支持巨量页面（数百 MiB）的测试。
+
+  进行大量测试时出错了，发现访问内存超过数 MiB 就会出奇怪错误。
+
+  修复严重 Bug：`va2pte()`函数中计算的`vpn0`是错误的。目前 -O2 上板正常，正在进行高强度测试：有 200 MiB 左右的内存和 1 GiB 的交换区，用户进程 swap-test 尝试访问约 781 MiB 的地址空间（隔一个页写一个字符，写完再顺序读出检查是否正确）……
+
+
+

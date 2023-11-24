@@ -227,7 +227,11 @@ $(ELF_CREATEIMAGE): $(SRC_CREATEIMAGE)
 	
 image: $(ELF_CREATEIMAGE) $(ELF_BOOT) $(ELF_MAIN) $(ELF_USER)
 	cd $(DIR_BUILD) && ./$(<F) --extended $(filter-out $(<F), $(^F))
+
+.PHONY: image
+
+swap:
 	dd if=/dev/zero of=build/image oflag=append conv=notrunc bs=4KiB count=$(NPSWAP)
 # Add one more page as the last page may not be complete
 	dd if=/dev/zero of=build/image oflag=append conv=notrunc bs=4KiB count=1
-.PHONY: image
+.PHONY: swap

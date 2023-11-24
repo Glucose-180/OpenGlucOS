@@ -331,7 +331,7 @@ uintptr_t va2pte(uintptr_t va, PTE* pgdir_kva)
 	va &= VA_MASK;
 	vpn2 = va >> (NORMAL_PAGE_SHIFT + PPN_BITS + PPN_BITS);
 	vpn1 = (vpn2 << PPN_BITS) ^ (va >> (NORMAL_PAGE_SHIFT + PPN_BITS));
-	vpn0 = (va >> NORMAL_PAGE_SHIFT) & ~(~0UL << NORMAL_PAGE_SHIFT);
+	vpn0 = (va >> NORMAL_PAGE_SHIFT) & ~(~0UL << PPN_BITS);
 
 	if (get_attribute(pgdir_kva[vpn2], _PAGE_PRESENT) != 0L)
 	{
