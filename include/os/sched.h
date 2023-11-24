@@ -38,14 +38,17 @@
 #define INVALID_PID (-1)
 #define INVALID_TID (-1)
 
+#if NCPU != 2
+#define NCPU 1
+#endif
+
+#ifndef USTACK_NPG
 /*
  * How many pages are allocated for
  * user stack of a user process.
+ * NOTE: also defined in `mm.h`.
  */
 #define USTACK_NPG 4U
-
-#if NCPU != 2
-#define NCPU 1
 #endif
 
 /*

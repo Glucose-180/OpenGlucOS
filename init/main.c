@@ -269,13 +269,20 @@ int main(reg_t a0, reg_t a1)
 	// Init system call table (0_0)
 	init_syscall();
 	printk("> [INIT] System call initialized successfully.\n");
-#if DEBUG_EN != 0
+
 	writelog("GlucOS, boot! I am CPU %lu.", get_current_cpu_id());
+	writelog("Multithreading: %d, Timer_interval_ms: %d,\n"
+		"NCPU: %d, NPF: %u, NPSWAP: %u, DEBUG_EN: %d,"
+		"USEG_MAX: %u MiB, USTACK_NPG: %u\n",
+		MULTITHREADING, TIMER_INTERVAL_MS, NCPU, NPF, NPSWAP, DEBUG_EN,
+		(unsigned)(USEG_MAX >> 20), USTACK_NPG);
+#if DEBUG_EN != 0
 	printk("\n> [INFO] Debug mode is enabled.\n");
-	printk("> [INFO] Multithreading: %d, Timer_interval_ms: %d, NCPU: %d.\n",
-		MULTITHREADING, TIMER_INTERVAL_MS, NCPU);
-	writelog("Multithreading: %d, Timer_interval_ms: %d.",
-		MULTITHREADING, TIMER_INTERVAL_MS);
+	printk("> [INFO] Multithreading: %d, Timer_interval_ms: %d,\n"
+		"NCPU: %d, NPF: %u, NPSWAP: %u,"
+		"USEG_MAX: %u MiB, USTACK_NPG: %u\n",
+		MULTITHREADING, TIMER_INTERVAL_MS, NCPU, NPF, NPSWAP,
+		(unsigned)(USEG_MAX >> 20), USTACK_NPG);
 #endif
 
 #if NCPU == 2
@@ -370,9 +377,7 @@ int main_s(reg_t a0, reg_t a1)
 	p0 = pcb_search(0);
 	screen_move_cursor(0, p0->cursor_y + 1);
 
-#if DEBUG_EN != 0
 	writelog("I am CPU %lu and has started!", get_current_cpu_id());
-#endif
 	printk("> [INIT] I am CPU %lu and has started!\n", get_current_cpu_id());
 
 	set_preempt();

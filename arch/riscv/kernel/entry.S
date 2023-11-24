@@ -44,15 +44,7 @@
 	bne	t0, zero, Exc_from_S_mode
 
 Exc_from_U_mode:
-	csrr	t0, CSR_MHARTID
-	bne	t0, zero, 1f
-	la	t0, current_running
-	ld	t0, 0(t0)	/* Now $t0 equals current_running[0], or c.r. */
-	j	2f
-1:
-	la	t0, current_running
-	ld	t0, 8(t0)	/* Now $t0 equals current_running[1], or c.r. */
-2:
+	GET_CURRENT_RUNNING_TO_T0
 	sd	sp, PCB_USER_SP(t0)	/* c.r.->user_sp := $sp */
 	ld	sp, PCB_KERNEL_SP(t0)	/* $sp := c.r.->kernel_sp */
 	addi	sp, sp, -OFFSET_SIZE		/* $sp := $sp - sizeof(regs_context_t) */
@@ -64,15 +56,7 @@ Exc_from_S_mode:
 	 * Don't load `kernel_sp` from PCB, and don't save $sp
 	 * in `user_sp` and `trapframe` of PCB!
 	 */
-	csrr	t0, CSR_MHARTID
-	bne	t0, zero, 1f
-	la	t0, current_running
-	ld	t0, 0(t0)	/* Now $t0 equals current_running[0], or c.r. */
-	j	2f
-1:
-	la	t0, current_running
-	ld	t0, 8(t0)	/* Now $t0 equals current_running[1], or c.r. */
-2:
+	GET_CURRENT_RUNNING_TO_T0
 	addi	sp, sp, -OFFSET_SIZE		/* $sp := $sp - sizeof(regs_context_t) */
 
 Save_gprs:
@@ -165,15 +149,7 @@ Save_gpr_t0:
 .macro RESTORE_CONTEXT
 	/* TODO: Restore all general purpose registers and sepc, sstatus */
 	/* HINT: Pay attention to sp again! */
-	csrr	t0, CSR_MHARTID
-	bne	t0, zero, 1f
-	la	t0, current_running
-	ld	t0, 0(t0)	/* Now $t0 equals current_running[0], or c.r. */
-	j	2f
-1:
-	la	t0, current_running
-	ld	t0, 8(t0)	/* Now $t0 equals current_running[1], or c.r. */
-2:
+	GET_CURRENT_RUNNING_TO_T0
 
 	//ld	sp, PCB_TRAPFRAME(t0)	/* $sp := c.r.->trapframe */
 
@@ -308,15 +284,8 @@ ENTRY(switch_to)
  * NOTE: please ensure that the current_running points to
  * the new process's PCB before calling switch_to.
  */
-	csrr	t0, CSR_MHARTID
-	bne	t0, zero, 1f
-	la	t0, current_running
-	ld	tp, 0(t0)	/* Now $tp equals current_running[0], or c.r. */
-	j	2f
-1:
-	la	t0, current_running
-	ld	tp, 8(t0)	/* Now $tp equals current_running[1], or c.r. */
-2:
+	GET_CURRENT_RUNNING_TO_T0
+	mv	tp, t0
 	/* Update $satp and refresh TLB */
 	csrr	t0, satp
 	li	t1, (1 << 60) - 1
@@ -348,15 +317,7 @@ ENTRY(ret_from_exception)
 	 */
 	//call	enable_interrupt
 
-	csrr	t0, CSR_MHARTID
-	bne	t0, zero, 1f
-	la	t0, current_running
-	ld	t0, 0(t0)	/* Now $t0 equals current_running[0], or c.r. */
-	j	2f
-1:
-	la	t0, current_running
-	ld	t0, 8(t0)	/* Now $t0 equals current_running[1], or c.r. */
-2:
+	GET_CURRENT_RUNNING_TO_T0
 	ld	t0, PCB_TRAPFRAME(t0)	/* $t0 := c.r.->trapframe */
 	ld	t2, OFFSET_REG_SCAUSE(t0)	/* $t2 := c.r.->trapframe->scause */
 	li	t1, 8
@@ -404,15 +365,7 @@ ENTRY(exception_handler_entry)
 	/* TODO: [p2-task3] save context via the provided macro */
 	SAVE_CONTEXT
 
-	csrr	t0, CSR_MHARTID
-	bne	t0, zero, 1f
-	la	t0, current_running
-	ld	t0, 0(t0)	/* Now $t0 equals current_running[0], or c.r. */
-	j	2f
-1:
-	la	t0, current_running
-	ld	t0, 8(t0)	/* Now $t0 equals current_running[1], or c.r. */
-2:
+	GET_CURRENT_RUNNING_TO_T0
 	ld	t0, PCB_PID(t0)
 	addi	t1, zero, 2
 	blt	t0, t1, Lock_kernel
@@ -440,15 +393,7 @@ Bypass_lock:
 	/* TODO: [p2-task3] call interrupt_helper
 	 * NOTE: don't forget to pass parameters for it.
 	 */
-	csrr	t0, CSR_MHARTID
-	bne	t0, zero, 1f
-	la	t0, current_running
-	ld	t0, 0(t0)	/* Now $t0 equals current_running[0], or c.r. */
-	j	2f
-1:
-	la	t0, current_running
-	ld	t0, 8(t0)	/* Now $t0 equals current_running[1], or c.r. */
-2:
+	GET_CURRENT_RUNNING_TO_T0
 	ld	a0, PCB_KERNEL_SP(t0)	/* $a0 := c.r.->kernel_sp */
 	/*
 	 * Shouldn't be c.r.->trapframe! Because when trap is taken from

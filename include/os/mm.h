@@ -37,6 +37,15 @@
 //#define FREEMEM_KERNEL (INIT_KERNEL_STACK+PAGE_SIZE)
 #define FREEMEM_KERNEL 0xffffffc052000000
 
+#ifndef USTACK_NPG
+/*
+ * How many pages are allocated for
+ * user stack of a user process.
+ * NOTE: also defined in `sched.h`.
+ */
+#define USTACK_NPG 4U
+#endif
+
 #ifndef USEG_MAX
 /*
  * Max size for user segment (bytes).

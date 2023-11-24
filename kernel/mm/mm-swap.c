@@ -126,7 +126,7 @@ unsigned int swap_to_disk()
 				break;
 		}
 		/* Move the clock pointer by 1 step */
-		if (++clock_pt >= NPSWAP)
+		if (++clock_pt >= NPF)
 			clock_pt = 0U;
 	}
 	spidx = alloc_swap_page(pid);
@@ -156,8 +156,12 @@ unsigned int swap_to_disk()
 	if (*ppte == 0UL)
 		panic_g("swap_to_disk: PTE at 0x%lx of %d becomes 0",
 			(uintptr_t)ppte, pid);
+#if DEBUG_EN != 0
+	writelog("Page %u of proc %d is swapped to disk at %u",
+		clock_pt, pid, spidx);
+#endif
 	spidx = clock_pt;	/* Hold the value temporarily */
-	if (++clock_pt >= NPSWAP)
+	if (++clock_pt >= NPF)
 		clock_pt = 0U;
 	return spidx;
 }
@@ -167,7 +171,7 @@ unsigned int swap_to_disk()
  * load the page from disk, free the page on disk and set
  * A, V bits and PFN field of `*ppte`. The new page frame
  * will be set as occupied by the current process, and the
- * UVA is specified by `uva`.
+ * UVA is specified by `uva`. `uva` is also used to flush TLB.
  * Return the KVA of new page frame or 0 if the PTE is error.
  */
 uintptr_t swap_from_disk(PTE *ppte, uintptr_t uva)
@@ -182,9 +186,14 @@ uintptr_t swap_from_disk(PTE *ppte, uintptr_t uva)
 	if (pg_kva == 0UL)
 		panic_g("swap_from_disk: alloc_page() returns 0");
 	bios_sd_read((unsigned int)kva2pa(pg_kva),
-		NORMAL_PAGE_SIZE / SECTOR_SIZE, spidx);
+		NORMAL_PAGE_SIZE / SECTOR_SIZE, get_sec_idx(spidx));
 	free_swap_page(spidx);
 	set_attribute(ppte, _PAGE_PRESENT | _PAGE_ACCESSED);
 	set_pfn(ppte, kva2pa(pg_kva) >> NORMAL_PAGE_SHIFT);
+	//local_flush_tlb_page(uva);
+#if DEBUG_EN != 0
+	writelog("Proc %d caused page %u swapped from disk to PA 0x%lx",
+		cur_cpu()->pid, spidx, kva2pa(pg_kva));
+#endif
 	return pg_kva;
 }
