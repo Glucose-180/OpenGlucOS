@@ -49,12 +49,10 @@ void sys_move_cursor(int x, int y)
 	invoke_syscall(SYS_move_cursor, x, y, Ignore, Ignore, Ignore);
 }
 
-void sys_write(char *buff)
+unsigned int sys_screen_write(char *buff, unsigned int len)
 {
-	/* TODO: [p2-task1] call call_jmptab to implement sys_write */
-	//call_jmptab(WRITE, (long)buff, Ignore, Ignore, Ignore, Ignore);
-	/* TODO: [p2-task3] call invoke_syscall to implement sys_write */
-	invoke_syscall(SYS_write, (long)buff, Ignore, Ignore, Ignore, Ignore);
+	return invoke_syscall(SYS_screen_write, (long)buff, (long)len,
+		Ignore, Ignore, Ignore);
 }
 
 int sys_bios_getchar(void)
@@ -319,6 +317,7 @@ void *sys_sbrk(uint64_t size)
 void* sys_shmpageget(int key)
 {
     /* TODO: [p4-task4] call invoke_syscall to implement sys_shmpageget */
+	return (void*)0L;
 }
 
 void sys_shmpagedt(void *addr)

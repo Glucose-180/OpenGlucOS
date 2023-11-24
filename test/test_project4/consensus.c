@@ -28,7 +28,7 @@ int is_first(consensus_vars_t *vars)
 
 pid_t decide(pid_t prev, pid_t mypid, atomic_long* consensus)
 {
-    static decide = 0;
+    //static decide = 0;
     pid_t ret;
     if (*consensus == prev) {
         *consensus = mypid;
@@ -44,7 +44,7 @@ pid_t decide(pid_t prev, pid_t mypid, atomic_long* consensus)
 
 int main(int argc, char* argv[])
 {
-    char *prog_name = argv[0];
+    //char *prog_name = argv[0];
     int print_location = 1;
     if (argc > 1) {
         print_location = atol(argv[1]);
@@ -132,7 +132,7 @@ int main(int argc, char* argv[])
         }
         sys_sleep(2);
         sys_barrier_wait(vars->barrier);
-        if (atomic_load(&vars->round) == NUM_CONSENSUS + 1) {
+        if (atomic_load((void *)&vars->round) == NUM_CONSENSUS + 1) {
             break;
         }
     }

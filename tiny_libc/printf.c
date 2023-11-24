@@ -229,8 +229,8 @@ int vprintf(const char *fmt, va_list _va)
 
 	buff[ret] = '\0';
 
-	sys_write(buff);
-	sys_reflush();
+	sys_screen_write(buff, strlen(buff));
+	//sys_reflush();
 
 	return ret;
 }

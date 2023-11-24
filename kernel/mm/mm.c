@@ -2,6 +2,7 @@
 #include <os/sched.h>
 #include <os/smp.h>
 #include <os/glucose.h>
+#include <os/malloc-g.h>
 
 /*
  * Use "char map" (like bitmap) to manage page frames and page tables.
@@ -27,7 +28,8 @@ const uintptr_t Pg_base = ROUND(FREEMEM_KERNEL, PAGE_SIZE);
  */
 volatile uint8_t pg_charmap[NPF];
 /* Record the UVA of a page frame */
-volatile uintptr_t pg_uva[NPF];
+//volatile uintptr_t pg_uva[NPF];
+volatile uintptr_t *pg_uva;
 
 #define _PAGE_XWR (_PAGE_EXEC | _PAGE_WRITE | _PAGE_READ)
 
@@ -58,6 +60,9 @@ void init_mm(void)
 			pgtb_charmap[i] = CMAP_FREE;
 	/* The first two page tables are used by kernel */
 	pgtb_charmap[0] = pgtb_charmap[1] = 0U;
+	pg_uva = kmalloc_g(sizeof(uintptr_t) * NPF);
+	if (pg_uva == NULL)
+		panic_g("init_mm: Failed to alloc `pg_uva`");
 }
 
 /*

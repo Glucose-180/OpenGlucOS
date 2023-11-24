@@ -12,7 +12,7 @@ int main(int argc, char* argv[])
 	srand(clock());
 	long mem2 = 0;
 	uintptr_t mem1 = 0;
-	int curs = 0;
+	//int curs = 0;
 	int i;
 	sys_move_cursor(2, 2);
 	for (i = 1; i < argc; i++)

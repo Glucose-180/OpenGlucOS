@@ -254,8 +254,8 @@ int _vprint(const char *fmt, va_list _va,
 
 static void _output_wrapper(char *buff)
 {
-	screen_write(buff);
-	screen_reflush();
+	screen_write(buff, mini_strlen(buff));
+	//screen_reflush();
 }
 
 int vprintk(const char *fmt, va_list _va)

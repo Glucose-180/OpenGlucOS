@@ -27,6 +27,13 @@
 #ifndef INCLUDE_CONSOLE_H_
 #define INCLUDE_CONSOLE_H_
 
+#ifndef SCR_WRITE_MAX
+/*
+ * Limit of length for `screen_write()`.
+ */
+#define SCR_WRITE_MAX 256U
+#endif
+
 /* write a char */
 void screen_write_ch(char ch);
 
@@ -43,7 +50,8 @@ void screen_rclear(int ybegin, int yend);
 void screen_reflush(void);
 
 /* screen write string */
-void screen_write(char *buff);
+unsigned int screen_write(char *buff, unsigned int len);
+unsigned int do_screen_write(char *buff, unsigned int len);
 
 /* move cursor int (x,y) */
 void screen_move_cursor(int x, int y);

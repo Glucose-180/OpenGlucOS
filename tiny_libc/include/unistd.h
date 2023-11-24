@@ -17,7 +17,7 @@ typedef pid_t pthread_t;
 
 void sys_sleep(uint32_t time);
 void sys_yield(void);
-void sys_write(char *buff);
+unsigned int sys_screen_write(char *buff, unsigned int len);
 int sys_bios_getchar(void);
 void sys_move_cursor(int x, int y);
 void sys_reflush(void);

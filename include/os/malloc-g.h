@@ -11,7 +11,7 @@
 #include <os/glucose.h>
 
 /* Total memory size for kmalloc_g(). unit: B */
-#define KSL (4U * 1024U * 1024U)	/* 4 MiB */
+#define KSL (8U * 1024U * 1024U)	/* 8 MiB */
 
 /* Size less than EU will not be preserved */
 #ifndef EU

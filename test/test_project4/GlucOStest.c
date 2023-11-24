@@ -257,5 +257,8 @@ void test_illegalinst(void)
 
 void test_access_wrong_addr_in_kernel(void)
 {
-	sys_write((char *)0xf00010000UL);
+	printf("Calling sys_screen_write with KVA got %u...\n",
+		sys_screen_write((char *)0xffffffc052000000UL, 10U));
+	sys_screen_write((char *)0xf00010000UL, 10U);
+	printf("Test failed! No exception happened for invalid address.\n");
 }

@@ -83,7 +83,8 @@
 
 extern const uintptr_t Pg_base;
 extern volatile uint8_t pg_charmap[NPF];
-extern volatile uintptr_t pg_uva[NPF];
+//extern volatile uintptr_t pg_uva[NPF];
+extern volatile uintptr_t *pg_uva;
 
 void init_mm(void);
 extern uintptr_t alloc_page(unsigned int npages, pid_t pid, uintptr_t uva);

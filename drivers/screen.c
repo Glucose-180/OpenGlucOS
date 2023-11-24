@@ -159,15 +159,40 @@ void screen_move_cursor(int x, int y)
 	vt100_move_cursor(x + 1, y + 1);
 }
 
-void screen_write(char *buff)
+/*
+ * `screen_write`: write `len` chars from `buff`.
+ * Return: bytes written.
+ */
+unsigned int screen_write(char *buff, unsigned int len)
 {
-	int i = 0;
+/*	int i = 0;
 	int l = strlen(buff);
 
 	for (i = 0; i < l; i++)
 	{
 		screen_write_ch(buff[i]);
-	}
+	}*/
+	unsigned int rt;
+
+	if (len > SCR_WRITE_MAX)
+		len = SCR_WRITE_MAX;
+	rt = len;
+	while (len-- > 0U)
+		screen_write_ch(*(buff++));
+	screen_reflush();
+	return rt;
+}
+
+/*
+ * `do_screen_write`: this is for syscall from user.
+ * `buff` is checked to ensure that it is from user space.
+ */
+unsigned int do_screen_write(char *buff, unsigned int len)
+{
+	if ((uintptr_t)buff >= KVA_MIN)
+		return 0U;
+	else
+		return screen_write(buff, len);
 }
 
 /*

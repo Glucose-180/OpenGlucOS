@@ -164,7 +164,7 @@ static void init_syscall(void)
 		syscall[SYS_taskset] = (long (*)())do_taskset;
 	}
 	/* Screen, clock and IO */ {
-		syscall[SYS_write] = (long (*)())screen_write;
+		syscall[SYS_screen_write] = (long (*)())do_screen_write;
 		syscall[SYS_bios_getchar] = (long (*)())bios_getchar;
 		syscall[SYS_move_cursor] = (long (*)())screen_move_cursor;
 		syscall[SYS_reflush] = (long (*)())screen_reflush;
@@ -272,7 +272,7 @@ int main(reg_t a0, reg_t a1)
 
 	writelog("GlucOS, boot! I am CPU %lu.", get_current_cpu_id());
 	writelog("Multithreading: %d, Timer_interval_ms: %d,\n"
-		"NCPU: %d, NPF: %u, NPSWAP: %u, DEBUG_EN: %d,"
+		"NCPU: %d, NPF: %u, NPSWAP: %u, DEBUG_EN: %d,\n"
 		"USEG_MAX: %u MiB, USTACK_NPG: %u\n",
 		MULTITHREADING, TIMER_INTERVAL_MS, NCPU, NPF, NPSWAP, DEBUG_EN,
 		(unsigned)(USEG_MAX >> 20), USTACK_NPG);
