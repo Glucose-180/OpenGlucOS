@@ -331,7 +331,7 @@ NOT_SYSCALL:
 	 * do not unlock kernel as we are returning to S-mode.
 	 */
 	GET_CURRENT_RUNNING_TO_T0
-	ld	t0, PCB_PID(t0)
+	lw	t0, PCB_PID(t0)
 	addi	t1, zero, 2
 	blt	t0, t1, Unlock_kernel
 
@@ -363,7 +363,7 @@ ENTRY(exception_handler_entry)
 	SAVE_CONTEXT
 
 	GET_CURRENT_RUNNING_TO_T0
-	ld	t0, PCB_PID(t0)
+	lw	t0, PCB_PID(t0)
 	addi	t1, zero, 2
 	blt	t0, t1, Lock_kernel
 

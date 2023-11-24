@@ -19,8 +19,6 @@ static void handle_soft(regs_context_t *regs, uint64_t stval, uint64_t scause);
 
 void interrupt_helper(regs_context_t *regs, uint64_t stval, uint64_t scause)
 {
-	// TODO: [p2-task3] & [p2-task4] interrupt handler.
-	// call corresponding handler by the value of `scause`
 #if NCPU == 2
 	if (cur_cpu()->status == TASK_EXITING)
 	{
@@ -164,6 +162,10 @@ void handle_pagefault(regs_context_t *regs, uint64_t stval, uint64_t scause)
 		/* Kernel page fault at S-mode should not happen up to now */
 		panic_g("handle_pagefault: L%lu page fault of proc %d: 0x%lx",
 			lpte, ccpu->pid, stval);
+#if DEBUG_EN != 0
+	if ((r_sstatus() & SR_SPP) != 0UL && cur_cpu()->pid >= NCPU)
+		writelog("Page fault of proc %d is caused from S-mode", cur_cpu()->pid);
+#endif
 
 	if (stval < User_sp && stval >= User_sp - USTACK_NPG * NORMAL_PAGE_SIZE)
 	{

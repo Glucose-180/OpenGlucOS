@@ -193,8 +193,8 @@ uintptr_t swap_from_disk(PTE *ppte, uintptr_t uva)
 	set_pfn(ppte, kva2pa(pg_kva) >> NORMAL_PAGE_SHIFT);
 	//local_flush_tlb_page(uva);
 #if DEBUG_EN != 0
-	writelog("Proc %d caused page %u swapped from disk to PA 0x%lx",
-		cur_cpu()->pid, spidx, kva2pa(pg_kva));
+	writelog("Proc %d caused page %u swapped from disk to PA 0x%lx for UVA 0x%lx",
+		cur_cpu()->pid, spidx, kva2pa(pg_kva), uva);
 #endif
 	return pg_kva;
 }
