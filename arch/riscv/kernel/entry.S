@@ -316,18 +316,15 @@ ENTRY(ret_from_exception)
 	 * SIE of $sstatus manully?
 	 */
 	//call	enable_interrupt
-
-	GET_CURRENT_RUNNING_TO_T0
-	ld	t0, PCB_TRAPFRAME(t0)	/* $t0 := c.r.->trapframe */
-	ld	t2, OFFSET_REG_SCAUSE(t0)	/* $t2 := c.r.->trapframe->scause */
+	ld	t2, OFFSET_REG_SCAUSE(sp)	/* $t2 := c.r.->trapframe->scause */
 	li	t1, 8
 	bne	t2, t1, NOT_SYSCALL
 
 //IS_SYSCALL:
 	/* sepc += 4 */
-	ld	t3, OFFSET_REG_SEPC(t0)	/* $t3:= c.r.->trapframe->sepc */
+	ld	t3, OFFSET_REG_SEPC(sp)	/* $t3:= c.r.->trapframe->sepc */
 	addi	t3, t3, 4
-	sd	t3, OFFSET_REG_SEPC(t0)
+	sd	t3, OFFSET_REG_SEPC(sp)
 NOT_SYSCALL:
 	/*
 	 * If a trap is taken from S-mode for a user process,

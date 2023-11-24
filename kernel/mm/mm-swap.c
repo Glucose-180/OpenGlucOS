@@ -3,6 +3,7 @@
 #include <os/glucose.h>
 #include <os/sched.h>
 #include <os/smp.h>
+#include <os/task.h>
 
 #if DEBUG_EN != 0
 
@@ -36,13 +37,13 @@ void init_swap()
 	uint32_t taskinfo_offset = /* unit: sector */
 		*(uint32_t *)(BOOTLOADER_VADDR + TINFO_OFFSET),
 		i;
+	uint32_t tasknum = *(uint32_t *)(BOOTLOADER_VADDR + TNUM_OFFSET);
+	uint32_t taskinfo_size = tasknum * sizeof(task_info_t);
 	/*
-	 * Use the sector after the first sector that contains
-	 * task info as the first sector of swap partition,
-	 * because the first sector that contains task info
-	 * also has other data.
+	 * Use the sector after the last sector that contains
+	 * task info as the first sector of swap partition.
 	 */
-	swap_start = lbytes2sectors(taskinfo_offset) + 1U;
+	swap_start = lbytes2sectors(taskinfo_offset + taskinfo_size - 1U) + 1U;
 	clock_pt = spg_ffree = 0U;
 	if (CMAP_FREE == 0xffU && (NPSWAP & 0x7U) == 0U)
 		for (i = 0U; i < NPSWAP / 8U; ++i)
@@ -63,7 +64,7 @@ static unsigned int alloc_swap_page(pid_t pid)
 
 	if ((uint8_t)pid == CMAP_FREE)
 		panic_g("alloc_swap_page: pid is invalid: 0x%x", (int)CMAP_FREE);
-	if (spg_ffree > NPSWAP)
+	if (spg_ffree >= NPSWAP)
 		return UINT32_MAX;
 	rt = spg_ffree;
 	spg_charmap[spg_ffree] = (uint8_t)pid;
@@ -130,7 +131,7 @@ unsigned int swap_to_disk()
 			clock_pt = 0U;
 	}
 	spidx = alloc_swap_page(pid);
-	if (spidx > NPSWAP)
+	if (spidx >= NPSWAP)
 		/*
 		 * Just handle this situation by panic.
 		 * In future design, we can terminate a process to save the OS.

@@ -64,6 +64,8 @@
 
 /* Offset in bootloader of task info */
 #define TINFO_OFFSET 264
+/* Offset in bootloader of task num */
+#define TNUM_OFFSET 268
 
 enum FDT_TYPE {
     TIMEBASE,

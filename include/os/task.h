@@ -7,8 +7,9 @@
 #define UTASK_MAX      32
 #define TASK_SIZE        0x10000
 
-
+#ifndef SECTOR_SIZE
 #define SECTOR_SIZE 512
+#endif
 #define NBYTES2SEC(nbytes) (((nbytes) / SECTOR_SIZE) + ((nbytes) % SECTOR_SIZE != 0))
 
 #define TASK_NAMELEN 31	/* Max length of app's name */
