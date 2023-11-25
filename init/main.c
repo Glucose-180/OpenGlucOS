@@ -162,6 +162,11 @@ static void init_syscall(void)
 		syscall[SYS_yield] = (long (*)())do_scheduler;
 		syscall[SYS_ps] = (long (*)())do_process_show;
 		syscall[SYS_taskset] = (long (*)())do_taskset;
+#if MULTITHREADING != 0
+		syscall[SYS_thread_create] = (long (*)())do_thread_create;
+		syscall[SYS_thread_wait] = (long (*)())do_thread_wait;
+		syscall[SYS_thread_exit] = (long (*)())do_thread_exit;
+#endif
 	}
 	/* Screen, clock and IO */ {
 		syscall[SYS_screen_write] = (long (*)())do_screen_write;

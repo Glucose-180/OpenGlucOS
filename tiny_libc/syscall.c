@@ -122,27 +122,20 @@ void sys_sleep(uint32_t time)
 	invoke_syscall(SYS_sleep, (long)time, Ignore, Ignore, Ignore, Ignore);
 }
 
-long sys_thread_create(void *(*func)(), long arg)
+pthread_t sys_thread_create(void (*entry)(void *), void *arg, ptr_t sp, void (*exit)(void))
 {
-	return invoke_syscall(SYS_thread_create, (long)func, arg, Ignore, Ignore, Ignore);
+	return invoke_syscall(SYS_thread_create, (long)entry, (long)arg, (long)sp,
+		(long)exit, Ignore);
 }
 
-void sys_thread_yield(void)
+int sys_thread_wait(pthread_t tid)
 {
-	/*
-	 * If you use `ecall` to call thread_yield() directly,
-	 * maybe only saved register (callee saved) would be kept
-	 * after returning to this thread!
-	 */
-	invoke_syscall(SYS_thread_yield, Ignore, Ignore, Ignore, Ignore, Ignore);
+	return invoke_syscall(SYS_thread_wait, (long)tid, Ignore, Ignore, Ignore, Ignore);
 }
 
-int sys_thread_kill(int const T)
+void sys_thread_exit(void)
 {
-	/*
-	 * Only main thread can call this.
-	 */
-	return invoke_syscall(SYS_thread_kill, (long)T, Ignore, Ignore, Ignore, Ignore);
+	invoke_syscall(SYS_thread_exit, Ignore, Ignore, Ignore, Ignore, Ignore);
 }
 
 /************************************************************/

@@ -12,7 +12,7 @@
  * `alloc_tid`: allocate a free TID for the current process.
  * Return the TID or `INVALID_TID` if no free TID.
  */
-tid_t alloc_tid(void)
+static tid_t alloc_tid(void)
 {
 	pid_t i;
 
@@ -79,6 +79,7 @@ pthread_t do_thread_create(uintptr_t entry, uintptr_t arg, uintptr_t sp, uintptr
 /*
  * `do_thread_wait`: wait for a thread of current process
  * to exit.
+ * Return 0 on success, 1 on invalid `tid` or 2 if no such thread.
  */
 int do_thread_wait(pthread_t tid)
 {

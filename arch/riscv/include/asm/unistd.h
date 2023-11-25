@@ -10,11 +10,11 @@
 #define SYS_getpid 6
 #define SYS_yield 7
 #define SYS_taskset 8
-/*
+
 #define SYS_thread_create 10
-#define SYS_thread_yield 11
-#define SYS_thread_kill 12
-*/
+#define SYS_thread_wait 11
+#define SYS_thread_exit 12
+
 #define SYS_screen_write 20
 #define SYS_bios_getchar 21
 #define SYS_move_cursor 22

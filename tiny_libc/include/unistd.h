@@ -5,7 +5,6 @@
 typedef int32_t pid_t;
 #define INVALID_PID (-1)
 #define INVALID_TID (-1)
-
 #ifndef OS_NAME
 #define OS_NAME "GlucOS"
 #endif
@@ -30,9 +29,9 @@ int sys_mutex_init(int key);
 int sys_mutex_acquire(int mutex_idx);
 int sys_mutex_release(int mutex_idx);
 
-long sys_thread_create(void *(*func)(), long arg);
-void sys_thread_yield(void);
-int sys_thread_kill(int const T);
+pthread_t sys_thread_create(void (*entry)(void *), void *arg, ptr_t sp, void (*exit)(void));
+int sys_thread_wait(pthread_t tid);
+void sys_thread_exit(void);
 
 
 /************************************************************/
