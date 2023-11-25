@@ -152,11 +152,6 @@ pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 		return INVALID_PID;
 	}
 	ready_queue = temp;
-	/*
-	 * Set PID of new born process to INVALID_PID
-	 * so that the undefined PID will not affect alloc_pid().
-	 */
-	pnew->pid = INVALID_PID;
 	pnew->pgdir_kva = pgdir_kva;
 	pnew->seg_start = seg_start;
 	pnew->seg_end = seg_end;
@@ -528,12 +523,15 @@ int do_process_show(void)
 		[TASK_RUNNING]	"Running",
 		[TASK_READY]	"Ready   ",
 		[TASK_EXITED]	"Exited  ",
-#if NCPU == 2
-		[TASK_EXITING]	"Exiting "
-#endif
+		[TASK_EXITING]	"Exiting ",
+		[TASK_ZOMBIE]	"Zombie  "
 	};
 
+#if MULTITHREADING != 0
+	printk(" PID(TID)    STATUS    CPUmask    CMD\n");
+#else
 	printk("    PID     STATUS    CPUmask    CMD\n");
+#endif
 
 	for (i = 0; i < UPROC_MAX + NCPU; ++i)
 	{
@@ -549,12 +547,21 @@ int do_process_show(void)
 				cpuid = 0;
 			else
 				cpuid = 1;
+#if MULTITHREADING != 0
+			if (p->status != TASK_RUNNING)
+				printk("  %02d(%02d)     %s    0x%x    %s\n",
+					p->pid, p->tid, Status[p->status], p->cpu_mask & 0xffU, p->name);
+			else
+				printk("  %02d(%02d)     %s%d    0x%x    %s\n",
+					p->pid, p->tid, Status[p->status], cpuid, p->cpu_mask & 0xffU, p->name);
+#else
 			if (p->status != TASK_RUNNING)
 				printk("    %02d      %s    0x%x    %s\n",
 					p->pid, Status[p->status], p->cpu_mask & 0xffU, p->name);
 			else
 				printk("    %02d      %s%d    0x%x    %s\n",
 					p->pid, Status[p->status], cpuid, p->cpu_mask & 0xffU, p->name);
+#endif
 		}
 	}
 	if (uproc_ymr + NCPU != get_proc_num())
@@ -656,11 +663,56 @@ pid_t do_exec(const char *name, int argc, char *argv[])
 #endif
 pid_t do_kill(pid_t pid)
 {
-	pcb_t *p, **phead, *pdel;
 	unsigned int pgfreed_ymr;
 
 	if (pid < NCPU)
 		return INVALID_PID;
+#if MULTITHREADING != 0
+	/* For multithreading */
+	pcb_t *farr[TID_MAX + 1];
+	PTE *pgdir = NULL;
+	unsigned int i, nth = pcb_search_all(pid, farr);
+	if (nth == 0U)
+		/* Not found */
+		return INVALID_PID;
+	for (i = 0U; i < nth; ++i)
+	{
+		if (pgdir == NULL)
+			pgdir = farr[i]->pgdir_kva;
+		else if (farr[i]->pgdir_kva != pgdir)
+			panic_g("Thread %d of proc %d has different pgdir_kva",
+				farr[i]->tid, pid);
+		if (farr[i]->status != TASK_RUNNING &&
+			farr[i]->status != TASK_EXITING)
+			thread_kill(farr[i]);
+		else
+		{
+			farr[i]->status = TASK_EXITING;
+#if DEBUG_EN != 0
+			writelog("Thread %d of proc %d is to be killed (EXITING)",
+			farr[i]->tid, farr[i]->pid);
+#endif
+		}
+	}
+	if (cur_cpu()->pid == pid)
+	{
+		cur_cpu()->status = TASK_EXITED;
+		do_scheduler();
+		panic_g("do_kill: thread %d of proc %d is still running after killed",
+			cur_cpu()->tid, pid);
+	}
+	if ((nth = pcb_search_all(pid, farr)) == 0U)
+	{
+		ress_release_killed(pid);
+		pgfreed_ymr = free_pages_of_proc(pgdir);
+#if DEBUG_EN != 0
+		writelog("Process %d is terminated and %u page frames are freed",
+			pid, pgfreed_ymr);
+#endif
+	}
+	return pid;
+#else
+	pcb_t *p, **phead, *pdel;
 	if (cur_cpu()->pid == pid)
 	{
 		cur_cpu()->status = TASK_EXITED;
@@ -715,6 +767,7 @@ pid_t do_kill(pid_t pid)
 		pid, pgfreed_ymr);
 #endif
 	return pid;
+#endif
 }
 
 void do_exit(void)
@@ -746,12 +799,12 @@ pid_t do_waitpid(pid_t pid)
 		 * which causes "deadlock".
 		 */
 		return INVALID_PID;
-	do_block(&(p->wait_queue), NULL);	/* Temp set slock is NULL */
+	do_block(&(p->wait_queue), NULL);
 
 	return pid;
 }
 
-/* do_getpid: get cur_cpu()->pid */
+/* do_getpid: get `cur_cpu()->pid` */
 pid_t do_getpid(void)
 {
 	return cur_cpu()->pid;

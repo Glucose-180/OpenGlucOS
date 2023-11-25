@@ -95,14 +95,18 @@ typedef enum {
 	TASK_RUNNING,
 	TASK_READY,
 	TASK_EXITED,
-#if NCPU == 2
-	TASK_EXITING
 	/*
 	 * If a process on a CPU kills a process running
-	 * on another CPU, TASK_EXITING will be set and it will
-	 * do_exit() once it enters kernel.
+	 * on another CPU, `TASK_EXITING` will be set and it will
+	 * `do_exit()` once it enters kernel.
 	 */
-#endif
+	TASK_EXITING,
+	/*
+	 * If a child thread exits, its status will be set to
+	 * `TASK_ZOMBIE`. When the parent thread finds it, it will
+	 * be killed., or released.
+	 */
+	TASK_ZOMBIE
 } task_status_t;
 
 typedef pid_t tid_t;
