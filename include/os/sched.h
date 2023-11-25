@@ -36,7 +36,6 @@
 #define UPROC_MAX 16
 #define TASK_NAMELEN 31
 #define INVALID_PID (-1)
-#define INVALID_TID (-1)
 
 #if NCPU != 2
 #define NCPU 1
@@ -183,6 +182,8 @@ typedef struct pcb
 } pcb_t;
 
 extern const uintptr_t User_sp;
+extern const uint32_t //Ustack_size,
+	Kstack_size;
 
 /* ready queue to run */
 //extern list_head ready_queue;
@@ -248,5 +249,10 @@ int pcb_table_del(pcb_t *p);
 int get_proc_num(void);
 pcb_t *pcb_search(pid_t pid);
 pcb_t *pcb_search_name(const char *name);
+
+
+#if MULTITHREADING != 0
+#include <os/sched-thread.h>
+#endif
 
 #endif

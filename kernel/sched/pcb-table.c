@@ -3,6 +3,7 @@
 #include <os/lock.h>
 #include <os/glucose.h>
 #include <os/string.h>
+#include <os/smp.h>
 
 /*
  * Use a external array to store pointers to all PCB.
@@ -24,7 +25,7 @@ static int free_pt = 0;
 static void pcb_table_rearrange(void);
 
 /*
- * Add an entry to pcb_table and increase proc_ymr.
+ * Add an entry to pcb_table and increase `proc_ymr`.
  * The index will be returned and -1 on error (not found).
  */
 int pcb_table_add(pcb_t *p)
@@ -78,6 +79,25 @@ pcb_t *pcb_search(pid_t pid)
 			return pcb_table[i];
 	return NULL;
 }
+
+#if MULTITHREADING != 0
+/*
+ * Search a "PCB"(TCB) of the current process with
+ * TID `tid`. Returns pointer to it on success, or
+ * NULL if not found.
+ */
+tcb_t *pcb_search_tcb(tid_t tid)
+{
+	int i;
+	pid_t pid = cur_cpu()->pid;
+
+	for (i = 0; i < free_pt; ++i)
+		if (pcb_table[i] != NULL &&
+			pcb_table[i]->pid == pid && pcb_table[i]->tid == tid)
+			return pcb_table[i];
+	return NULL;
+}
+#endif
 
 /*
  * Search a PCB according to its name.

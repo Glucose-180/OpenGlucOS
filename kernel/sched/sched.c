@@ -29,8 +29,8 @@ const uintptr_t User_sp = 0xf00010000UL;
  * The default size for a user stack and kernel stack.
  * 4 KiB, 16 KiB.
  */
-static const uint32_t //Ustack_size = USTACK_NPG * PAGE_SIZE,
-	Kstask_size = 16 * 1024;
+const uint32_t //Ustack_size = USTACK_NPG * PAGE_SIZE,
+	Kstack_size = 16 * 1024;
 
 /*
  * It is used to represent main.c:main()
@@ -142,7 +142,7 @@ pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 	 */
 	alloc_page_helper(User_sp - NORMAL_PAGE_SIZE, (uintptr_t)pgdir_kva, pid);
 
-	kernel_stack = (uintptr_t)kmalloc_g(Kstask_size);
+	kernel_stack = (uintptr_t)kmalloc_g(Kstack_size);
 
 	if (kernel_stack == 0)
 		return INVALID_PID;
@@ -168,8 +168,16 @@ pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 	pnew->cylim_h = pnew->cylim_l = -1;
 	pnew->cpu_mask = cpu_mask;
 	pnew->pid = pid;
+#if MULTITHREADING != 0
+	/* 0 TID is the main thread */
+	pnew->tid = 0;
+#endif
 	init_pcb_stack(kernel_stack, entry, pnew);
 	if (pcb_table_add(pnew) < 0)
+		/*
+		 * The number of processes has been checked at the beginning,
+		 * so this opreation shouldn't fail.
+		 */
 		panic_g("create_proc: Failed to add to pcb_table");
 #if DEBUG_EN != 0
 	writelog("Process \"%s\" (PID: %d) is created", pnew->name, pnew->pid);
@@ -428,7 +436,7 @@ void init_pcb_stack(
 	  *     of sstatus(SPP, SPIE, etc.).
 	  */
 	pcb->kernel_stack = kernel_stack;
-	pcb->kernel_sp = kernel_stack + ROUND(Kstask_size, ADDR_ALIGN)
+	pcb->kernel_sp = kernel_stack + ROUND(Kstack_size, ADDR_ALIGN)
 		 - sizeof(regs_context_t);
 	pcb->kernel_sp = ROUNDDOWN(pcb->kernel_sp, SP_ALIGN);
 	/*
