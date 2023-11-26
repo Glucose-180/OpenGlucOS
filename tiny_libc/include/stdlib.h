@@ -13,4 +13,7 @@ long atol(const char *str);
 int atoi(const char *str);
 int itoa(int num, char* str, int len, int base);
 
+void free(void *ap);
+void* malloc(uint32_t nbytes);
+
 #endif

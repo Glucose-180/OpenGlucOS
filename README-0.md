@@ -163,3 +163,6 @@ Project 4。
   上板果然触发了这个 panic，似乎是 1 号 CPU 在初始化`init_exception_s()`时没有设置`sstatus`的 SUM 位导致的。目前 -O2 上板似乎没问题。
 
   进行 swap 和多线程（甚至带了绑核）联合测试，-O2 上板正常。
+
+  新增编译脚本用于设置 GlucOS 的配置。将 XV6 搬用的丹大师写的存储分配程序`malloc()`等搬到 GlucOS 中，使得`pthread_create()`在给新线程分配栈时不必直接调用`sys_sbrk()`。目前 -O2 上板正常，且进行了用 3 个物理页框（定义`NPF=3`）启 glush 和 fly 的测试，非常卡，每秒换页数十次，但能运行。
+

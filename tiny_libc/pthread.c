@@ -1,4 +1,5 @@
 #include <pthread.h>
+#include <stdlib.h>
 
 /* TODO:[P4-task4] pthread_create/wait */
 /*
@@ -10,8 +11,8 @@ int pthread_create(pthread_t *thread,
 				   void (*start_routine)(void*),
 				   void *arg)
 {
-	/* TODO: [p4-task4] implement pthread_create */
-	uintptr_t sp = (uintptr_t)sys_sbrk(TSTACK_SIZE);
+	uintptr_t sp = //(uintptr_t)sys_sbrk(TSTACK_SIZE);
+		(uintptr_t)malloc(TSTACK_SIZE);
 	pthread_t tid;
 	if (sp == 0UL)
 		return 1;
