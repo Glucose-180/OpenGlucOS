@@ -166,3 +166,7 @@ Project 4。
 
   新增编译脚本用于设置 GlucOS 的配置。将 XV6 搬用的丹大师写的存储分配程序`malloc()`等搬到 GlucOS 中，使得`pthread_create()`在给新线程分配栈时不必直接调用`sys_sbrk()`。目前 -O2 上板正常，且进行了用 3 个物理页框（定义`NPF=3`）启 glush 和 fly 的测试，非常卡，每秒换页数十次，但能运行。
 
+  将两年前的线性代数矩阵运算程序 CH3COOC2H5 包装了进去，`LA-MAT.c`作为库函数了。
+
+  glush 新增 history 功能，可输入`history`查看历史命令，以及用`!`加数字的方式执行历史命令。
+

@@ -6,6 +6,13 @@
 #include <string.h>
 #include <ctype.h>
 
+/* Command length */
+#define CS 126
+/* History length */
+#define HL 6
+
+unsigned int h_ymr = 0U;
+
 /* The area (range of y) of terminal */
 int terminal_begin = 18,
 	terminal_end = 27;
@@ -18,9 +25,11 @@ const char Terminal[] =
 const char NotFound[] =
 	"**glush: command not found: ";
 
+char cmd_history[HL][CS];
+
 int try_syscall(char **cmds);
 int try_builtin(char **cmds);
-
+void history_write(const char *cmd);
 char *getcmd(void);
 char **split(char *src, const char Sep);
 
@@ -29,6 +38,8 @@ char **split(char *src, const char Sep);
  */
 int main(int argc, char *argv[])
 {
+	unsigned int history_id;
+
 	if (argc > 1)
 		terminal_begin = atoi(argv[1]);
 	if (argc > 2)
@@ -57,6 +68,22 @@ int main(int argc, char *argv[])
 		// note: backspace maybe 8('\b') or 127(delete)
 		// TODO [P3-task1]: ps, exec, kill, clear
 		cmd = getcmd();
+		if (cmd[0] == '!')
+		{	/* Read history */
+			history_id = (unsigned int)atoi(cmd + 1);
+			if (history_id < h_ymr)
+			{
+				cmd = cmd_history[history_id];
+				printf("  %s\n", cmd);
+			}
+			else
+			{
+				printf("**glush: !%u: event not found\n", history_id);
+				continue;
+			}
+		}
+		else
+			history_write(cmd);
 		if (flag_autolog != 0)
 			printl("glush: %s", cmd);
 		words = split(cmd, ' ');
@@ -290,13 +317,20 @@ int try_builtin(char **cmds)
 		printf("%s", Terminal);
 		return 0;
 	}
+	else if (strcmp(cmds[0], "history") == 0)
+	{
+		unsigned int i;
+
+		for (i = 0U; i < h_ymr; ++i)
+			printf("  %u  %s\n", i, cmd_history[i]);
+		return 0;
+	}
 	else
 		return 1;
 }
 
 char *getcmd()
 {
-#define CS 126
 	static char cbuf[CS];
 
 	printf("%s@%s:~$ ", USER_NAME, OS_NAME);
@@ -304,7 +338,23 @@ char *getcmd()
 	getline(cbuf, CS);
 	trim(cbuf);
 	return cbuf;
-#undef CS
+}
+
+/*
+ * Add a command to history.
+ */
+void history_write(const char *cmd)
+{
+	unsigned int i;
+
+	if (h_ymr < HL)
+		strcpy(cmd_history[h_ymr++], cmd);
+	else
+	{
+		for (i = 1U; i < HL; ++i)
+			strcpy(cmd_history[i - 1U], cmd_history[i]);
+		strcpy(cmd_history[HL - 1U], cmd);
+	}
 }
 
 /*
