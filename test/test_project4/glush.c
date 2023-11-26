@@ -30,6 +30,7 @@ char cmd_history[HL][CS];
 int try_syscall(char **cmds);
 int try_builtin(char **cmds);
 void history_write(const char *cmd);
+char *history_read(unsigned int id);
 char *getcmd(void);
 char **split(char *src, const char Sep);
 
@@ -73,7 +74,7 @@ int main(int argc, char *argv[])
 			history_id = (unsigned int)atoi(cmd + 1);
 			if (history_id < h_ymr)
 			{
-				cmd = cmd_history[history_id];
+				cmd = history_read(history_id);
 				printf("  %s\n", cmd);
 			}
 			else
@@ -355,6 +356,20 @@ void history_write(const char *cmd)
 			strcpy(cmd_history[i - 1U], cmd_history[i]);
 		strcpy(cmd_history[HL - 1U], cmd);
 	}
+}
+
+/*
+ * Read a command in history specified by `id`.
+ * Return a pointer to it or `NULL` on error.
+ */
+char *history_read(unsigned int id)
+{
+	static char buf[CS];
+
+	if (id >= h_ymr)
+		return NULL;
+	strcpy(buf, cmd_history[id]);
+	return buf;
 }
 
 /*
