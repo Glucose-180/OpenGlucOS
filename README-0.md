@@ -158,3 +158,5 @@ Project 4。
 
   进行了 mailbox 的相关测试，但似乎不太稳定，mailbox 似乎可能会死锁，而且触发过莫名其妙的 S-mode page fault。已在`handle_pagefault()`中加入检查代码，如果同一个进程的某`stval`连续多次出现则 panic 并打印出相关信息。
 
+  上板果然触发了这个 panic，似乎是 1 号 CPU 在初始化`init_exception_s()`时没有设置`sstatus`的 SUM 位导致的。
+

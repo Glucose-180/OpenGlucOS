@@ -24,7 +24,7 @@ void init_exception_s(void)
 
 	setup_exception();
 	sstatus = r_sstatus();
-	sstatus |= SR_SPIE;
+	sstatus |= SR_SPIE | SR_SUM;
 	sstatus &= ~SR_SPP;
 	w_sstatus(sstatus);
 }
