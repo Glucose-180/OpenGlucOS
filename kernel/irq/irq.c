@@ -139,7 +139,23 @@ void handle_pagefault(regs_context_t *regs, uint64_t stval, uint64_t scause)
 {
 	uint64_t lpte;
 	PTE* ppte;
+	static unsigned int pf_ymr = 0U;
+	static uint64_t last_stval = 0UL;
+	static pid_t last_pid = INVALID_PID;
 	pcb_t * ccpu = cur_cpu();
+
+	/*
+	 * Record how many times has the same `stval` of the same process appeared.
+	 * If it is too much, panic is necessary!
+	 */
+	if (stval == last_stval && ccpu->pid == last_pid)
+		++pf_ymr;
+	else
+	{
+		pf_ymr = 1U;
+		last_stval = stval;
+		last_pid = ccpu->pid;
+	}
 
 	if (ccpu->pid < NCPU)
 		panic_g("handle_pagefault: kernel page fault: 0x%lx, $scause is 0x%lx",
@@ -164,8 +180,13 @@ void handle_pagefault(regs_context_t *regs, uint64_t stval, uint64_t scause)
 			lpte, ccpu->pid, stval);
 #if DEBUG_EN != 0
 	if ((r_sstatus() & SR_SPP) != 0UL && cur_cpu()->pid >= NCPU)
-		writelog("Page fault of proc %d is caused from S-mode", cur_cpu()->pid);
+		writelog("Page fault of proc %d is caused from S-mode: "
+			"$stval is 0x%lx, $scause is 0x%lx", cur_cpu()->pid, stval, scause);
 #endif
+	if (pf_ymr >= 3U)
+		panic_g("handle_pagefault: $stval 0x%lx has appeared %u times consecutively:\n"
+			"PID(TID) %d(%d), $scause 0x%lx, $sstatus 0x%lx, $sepc 0x%lx, PTE 0x%lx",
+			stval, pf_ymr, ccpu->pid, ccpu->tid, scause, regs->sstatus, regs->sepc, *ppte);
 
 	if (stval < User_sp && stval >= User_sp - USTACK_NPG * NORMAL_PAGE_SIZE)
 	{

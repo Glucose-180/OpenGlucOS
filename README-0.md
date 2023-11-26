@@ -154,3 +154,7 @@ Project 4。
 
   新增线程相关系统调用，但还未研究 mailbox 并测试。等待测试……
 
+#### [2023-11-26]
+
+  进行了 mailbox 的相关测试，但似乎不太稳定，mailbox 似乎可能会死锁，而且触发过莫名其妙的 S-mode page fault。已在`handle_pagefault()`中加入检查代码，如果同一个进程的某`stval`连续多次出现则 panic 并打印出相关信息。
+

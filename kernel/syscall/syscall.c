@@ -28,16 +28,16 @@ void handle_syscall(regs_context_t *regs, uint64_t interrupt, uint64_t cause)
 
 void invalid_syscall(long sysno, long arg0, long arg1, long arg2, long arg3, long arg4)
 {
-	if (cur_cpu()->pid != 0 && cur_cpu()->pid != 1)
+	if (cur_cpu()->pid >= NCPU)
 	{
 		printk("**Invalid syscall %ld\n", sysno);
 		do_exit();
 	}
 	else
 		panic_g(
-			"invalid_syscall: invalid syscall %ld of pid 0\n"
+			"invalid_syscall: invalid syscall %ld of pid %d\n"
 			"arg0: 0x%lx\targ1: 0x%lx\targ2: 0x%lx\n"
 			"arg3: 0x%lx\targ4: 0x%lx\n",
-			sysno, arg0, arg1, arg2, arg3, arg4
+			sysno, cur_cpu()->pid, arg0, arg1, arg2, arg3, arg4
 		);
 }

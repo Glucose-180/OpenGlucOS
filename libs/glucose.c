@@ -159,9 +159,9 @@ char **split(char *src, const char Sep)
 void glucos_brake(void)
 {
 	disable_interrupt();
-#if DEBUG_EN != 0
+//#if DEBUG_EN != 0
 	writelog("CPU %lu applied brake", get_current_cpu_id());
-#endif
+//#endif
 	while (1)
 		__asm__ volatile("wfi");
 }
@@ -177,18 +177,18 @@ void panic_g(const char *fmt, ...)
 	disable_interrupt();
 	printv("\n**CPU %lu Panic: ", get_current_cpu_id());
 
-#if DEBUG_EN != 0
+//#if DEBUG_EN != 0
 	uint64_t time;
 	time = get_timer();
 	printl("[t=%04lus] **CPU %lu Panic: ", time, get_current_cpu_id());
-#endif
+//#endif
 
 	va_start(va, fmt);
 	_vprint(fmt, va, bios_putstr);
-#if DEBUG_EN != 0
+//#if DEBUG_EN != 0
 	_vprint(fmt, va, bios_logging);
 	printl("**\n");
-#endif
+//#endif
 	va_end(va);
 
 	printv("**\n");

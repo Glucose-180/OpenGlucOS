@@ -130,9 +130,9 @@ typedef struct pcb
 	PTE* pgdir_kva;
 	/* process id */
 	pid_t pid;
-#if MULTITHREADING != 0
+//#if MULTITHREADING != 0
 	pthread_t tid;	/* TP */
-#endif
+//#endif
 	/* --- order preserved ends --- */
 	/*
 	 * `kernel_stack` is the base address of kernel stack.

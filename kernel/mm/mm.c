@@ -418,7 +418,7 @@ uintptr_t va2kva(uintptr_t va, PTE* pgdir_kva)
 uintptr_t do_sbrk(uint64_t size)
 {
 	uintptr_t rt;
-	pcb_t *ccpu =cur_cpu();
+	pcb_t *ccpu = cur_cpu();
 
 	size = ROUND(size, 0x8);
 	rt = ccpu->seg_end;
@@ -431,7 +431,15 @@ uintptr_t do_sbrk(uint64_t size)
 		return 0UL;
 	else
 	{
+#if MULTITHREADING != 0
+		unsigned int nth, i;
+		tcb_t *farr[TID_MAX + 1];
+		nth = pcb_search_all(ccpu->pid, farr);
+		for (i = 0U; i < nth; ++i)
+			farr[i]->seg_end += size;
+#else
 		ccpu->seg_end += size;
+#endif
 		return rt;
 	}
 }

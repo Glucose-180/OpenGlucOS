@@ -74,7 +74,7 @@ void init_mbox(void)
 
 int do_mbox_open(const char *name)
 {
-	const unsigned int Name_max = 10U;
+	const unsigned int Name_max = 20U;
 	unsigned int i, s = 0U, midx;
 
 	for (i = 0U; i < Name_max && name[i] != '\0'; ++i)

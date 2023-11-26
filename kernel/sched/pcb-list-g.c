@@ -66,7 +66,7 @@ pcb_t *lpcb_insert_node(pcb_t * const Head, pcb_t * const Pnew, pcb_t * const Pp
 }
 
 /*
- * lpcb_search_node: Search a node according to member "pid".
+ * lpcb_search_node: Search a node according to `pid`.
  * Return pointer to it, or NULL if not found.
  */
 pcb_t *lpcb_search_node(pcb_t * const Head, pid_t const Pid)
@@ -80,6 +80,26 @@ pcb_t *lpcb_search_node(pcb_t * const Head, pid_t const Pid)
 			return p;
 	return NULL;
 }
+
+#if MULTITHREADING != 0
+
+/*
+ * lpcb_search_node: Search a node according to `pid` AND `tid`.
+ * Return pointer to it, or NULL if not found.
+ * This function is used for multithreading.
+ */
+pcb_t *lpcb_search_node_tcb(pcb_t * const Head, pid_t const Pid, tid_t const Tid)
+{
+	pcb_t *p;
+
+	if (Head == NULL || (Head->pid == Pid && Head->tid == Tid))
+		return Head;
+	for (p = Head->next; p != Head; p = p->next)
+		if (p->pid == Pid && p->tid == Tid)
+			return p;
+	return NULL;
+}
+#endif
 
 /*
  * lpcb_del_node: Delete a node pointed by T,

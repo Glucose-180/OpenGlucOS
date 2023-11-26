@@ -54,6 +54,9 @@ pcb_t pid0_pcb = {
 	.cylim_l = -1,
 	/* to make pid0_pcb.phead point to ready_queue */
 	.phead = &ready_queue,
+//#if MULTITHREADING != 0
+	.tid = 0,
+//#endif
 	.cpu_mask = 1U << 0,
 	.pgdir_kva = (PTE*)PGDIR_VA
 };
@@ -75,6 +78,9 @@ pcb_t pid1_pcb = {
 	.cylim_l = -1,
 	/* to make pid0_pcb.phead point to ready_queue */
 	.phead = &ready_queue,
+//#if MULTITHREADING != 0
+	.tid = 0,
+//#endif
 	.cpu_mask = 1U << 1,
 	.pgdir_kva = (PTE*)PGDIR_VA
 };
@@ -149,6 +155,7 @@ pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 	if ((temp = lpcb_add_node_to_tail(ready_queue, &pnew, &ready_queue)) == NULL)
 	{
 		free_pages_of_proc((PTE*)pgdir_kva);
+		kfree_g((void *)kernel_stack);
 		return INVALID_PID;
 	}
 	ready_queue = temp;
@@ -183,6 +190,7 @@ pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 void do_scheduler(void)
 {
 	pcb_t *p, *q;
+	pcb_t *ccpu = cur_cpu();
 	uint64_t isscpu = is_scpu();
 	// TODO: [p2-task3] Check sleep queue to wake up PCBs
 
@@ -191,31 +199,45 @@ void do_scheduler(void)
 	/************************************************************/
 
 	check_sleeping();
-	if (cur_cpu() != NULL)
+	if (ccpu != NULL)
 	{
 		pcb_t *nextp;
-		for (p = cur_cpu()->next; p != cur_cpu(); p = nextp)
+		for (p = ccpu->next; p != ccpu; p = nextp)
 		{	/* Search the linked list and find a READY process */
 			nextp = p->next;	/* Store p->next in case of it is killed */
 			if (p->status == TASK_READY &&
 				(p->cpu_mask & (1U << get_current_cpu_id())) != 0U)
-			{	/* The second condition is to ignore main() of the other CPU */
-				if (cur_cpu()->status != TASK_EXITED)
-					cur_cpu()->status = TASK_READY;
-				q = cur_cpu();
+			{
+				//if (cur_cpu()->status != TASK_EXITED)
+				if (ccpu->status == TASK_RUNNING)
+					/*
+					 * NOTE: this is a dangerous operation! Many bugs have been
+					 * detected at here. For example, when a thread is set `TASK_ZOMBIE`
+					 * and then calls `do_scheduler()`, its status is set to `TASK_READY`
+					 * again. That causes it to be scheduled again!
+					 */
+					ccpu->status = TASK_READY;
+				q = ccpu;
 				current_running[isscpu] = p;
-				cur_cpu()->status = TASK_RUNNING;
-				switch_to(&(q->context), &(cur_cpu()->context));
+				ccpu = cur_cpu();	/* Update `ccpu` because `cur_cpu()` is changed */
+				ccpu->status = TASK_RUNNING;
+				switch_to(&(q->context), &(ccpu->context));
 				return;
 			}
 			else if (p->status == TASK_EXITED)
 			{
 				pid_t kpid = p->pid;
-				if (kpid == cur_cpu()->pid || kpid != do_kill(kpid))
+				if (kpid == ccpu->pid || kpid != do_kill(kpid))
 					panic_g("do_scheduler: Failed to kill proc %d", p->pid);
 			}
+#if MULTITHREADING != 0
+			else if (p->status == TASK_ZOMBIE)
+			{
+				thread_kill(p);
+			}
+#endif
 		}
-		if (cur_cpu()->pid != 0 && cur_cpu()->pid != 1)
+		if (cur_cpu()->pid >= NCPU)
 			/*
 			 * If cur_cpu()->pid is not 0, then
 			 * a ready process must be found, because GlucOS keep
@@ -406,17 +428,14 @@ pcb_t *do_unblock(pcb_t * const Queue)
 	nq = lpcb_del_node(Queue, Queue, &prec);
 	if (prec == NULL)
 		panic_g("do_unblock: Failed to remove the head of queue 0x%lx", (long)Queue);
-	if (prec->status != TASK_EXITED)	/* Sleeping */
-	{	/* NOTE: this situation is unlikely to happen on single core */
-		if (prec->status == TASK_SLEEPING)
-			prec->status = TASK_READY;
-		else
-			panic_g("do_unblock: proc %d has error status %d",
-				prec->pid, (int)prec->status);
-	}	/* Don't change status TASK_EXITED. */
+	if (prec->status == TASK_SLEEPING)
+		prec->status = TASK_READY;
+	else
+		panic_g("do_unblock: proc %d in queue 0x%lx has error status %d",
+			prec->pid, (uintptr_t)Queue, (int)prec->status);
 	temp = lpcb_insert_node(ready_queue, prec, cur_cpu(), &ready_queue);
 	if (temp == NULL)
-		panic_g("do_unblock: Failed to insert process (PID=%d) to ready_queue", prec->pid);
+		panic_g("do_unblock: Failed to insert process %d to ready_queue", prec->pid);
 	ready_queue = temp;
 	return nq;
 }
@@ -467,7 +486,7 @@ void init_pcb_stack(
 		 * And SPP must be 0 to ensure that after sret,
 		 * the privilige is User Mode for user process.
 		 */
-	pcb->trapframe->sstatus = (r_sstatus() & ~SR_SIE & ~SR_SPP) | SR_SPIE;
+	pcb->trapframe->sstatus = (r_sstatus() & ~SR_SIE & ~SR_SPP) | SR_SPIE;// | SR_SUM;
 	//panic_g("init_pcb_stack: SPP is not zero");
 	pcb->trapframe->regs[OFFSET_REG_TP / sizeof(reg_t)] = (reg_t)pcb;
 	pcb->trapframe->regs[OFFSET_REG_SP / sizeof(reg_t)] = (reg_t)(pcb->user_sp);
@@ -486,9 +505,6 @@ void init_pcb_stack(
 
 void set_preempt(void)
 {
-#ifndef TIMER_INTERVAL_MS
-#define TIMER_INTERVAL_MS 10U /* unit: ms */
-#endif
 	static char flag_first = 1;
 	static uint64_t timer_interval;
 	/* enable preempt */
@@ -840,10 +856,21 @@ pid_t do_taskset(int create, char *name, pid_t pid, unsigned int cpu_mask)
 		if (pid < NCPU)
 			/* Cannot set 0, 1 */
 			return INVALID_PID;
+#if MULTITHREADING != 0
+		tcb_t *farr[TID_MAX + 1];
+		unsigned int i, nth = pcb_search_all(pid, farr);
+		if (nth == 0U)
+			return INVALID_PID;
+		else
+			for (i = 0U; i < nth; ++i)
+				farr[i]->cpu_mask = cpu_mask;
+
+#else
 		p = pcb_search(pid);
 		if (p == NULL)
 			return INVALID_PID;
 		p->cpu_mask = cpu_mask;
+#endif
 		return pid;
 	}
 }

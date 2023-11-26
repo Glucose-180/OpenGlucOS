@@ -314,7 +314,7 @@ char *getcmd()
  */
 char **split(char *src, const char Sep)
 {
-#define CM 10U
+#define CM 20U
 	unsigned int i;
 	static char *rt[CM + 1];
 	char *p;
