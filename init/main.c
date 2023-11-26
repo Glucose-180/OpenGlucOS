@@ -275,10 +275,11 @@ int main(reg_t a0, reg_t a1)
 	init_syscall();
 	printk("> [INIT] System call initialized successfully.\n");
 
-	writelog("GlucOS, boot! I am CPU %lu.", get_current_cpu_id());
+	writelog("=============================\n"
+		"          GlucOS, boot! I am CPU %lu.", get_current_cpu_id());
 	writelog("Multithreading: %d, Timer_interval_ms: %d,\n"
-		"NCPU: %d, NPF: %u, NPSWAP: %u, DEBUG_EN: %d,\n"
-		"USEG_MAX: %u MiB, USTACK_NPG: %u\n",
+		"          NCPU: %d, NPF: %u, NPSWAP: %u, DEBUG_EN: %d,\n"
+		"          USEG_MAX: %u MiB, USTACK_NPG: %u",
 		MULTITHREADING, TIMER_INTERVAL_MS, NCPU, NPF, NPSWAP, DEBUG_EN,
 		(unsigned)(USEG_MAX >> 20), USTACK_NPG);
 #if DEBUG_EN != 0
@@ -296,7 +297,7 @@ int main(reg_t a0, reg_t a1)
 	local_flush_tlb_all();
 #else
 	if (a1 != 3UL)
-		panic_g("main: npages_used from boot.c is %lu", a1);
+		panic_g("main: `npages_used` from boot.c is %lu", a1);
 	revoke_temp_mapping();
 #endif
 	/*
@@ -318,39 +319,9 @@ int main(reg_t a0, reg_t a1)
 	screen_clear();
 
 	if ((pid = do_exec("glush", -1, argv)) == INVALID_PID)
-	{
 		panic_g("main: Failed to start glush");
-		/* Ignore these s**t mountain left over from history
-		char **cmds, flag_success = 0;
-
-		printk("Failed to start glush\n");
-		while (flag_success == 0)
-		{
-			cmds = split(getcmd(), '&');
-			while (*cmds != NULL)
-			{
-				trim(*cmds);
-				if (strcmp(*cmds, "exit") == 0)
-					goto loc_wfi;
-				else if (strcmp(*cmds, "glush") == 0)
-				{
-					if (do_exec("glush", -1, argv) == INVALID_PID)
-						printk("Failed to start %s\n", *cmds);
-					else
-						flag_success = 1;
-				}
-				else if (create_proc(*cmds) == INVALID_PID)
-					printk("Failed to start %s\n", *cmds);
-				else
-					flag_success = 1;
-				++cmds;
-			}
-		}
-		screen_clear();
-		*/
-	}
 	if (do_taskset(0, NULL, pid, ~0U) != pid)
-		panic_g("main: Failed to set cpu_mask of glush %d", pid);
+		panic_g("main: Failed to set `cpu_mask` of glush %d", pid);
 	unlock_kernel();
 
 	set_preempt();

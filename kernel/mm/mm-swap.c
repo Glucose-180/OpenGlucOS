@@ -102,6 +102,7 @@ unsigned int swap_to_disk()
 	pid_t pid;
 	pcb_t *p;
 	unsigned int spidx;
+	int i;
 
 	while (1)
 	{
@@ -114,7 +115,11 @@ unsigned int swap_to_disk()
 		 * Don't swap the page of a process running on another CPU!
 		 * Because the TLB of it can not be flushed in time.
 		 */
-		if (p->status != TASK_RUNNING || p->pid == cur_cpu()->pid)
+		for (i = 0; i < NCPU; ++i)
+			if (i != (int)get_current_cpu_id() && current_running[i]->pid == pid)
+				/* Flag of the process running on another CPU */
+				i = NCPU + 5033;
+		if (i <= NCPU)
 		{
 			lpte = va2pte(pg_uva[clock_pt], p->pgdir_kva);
 			ppte = (PTE*)(lpte & ~7UL);

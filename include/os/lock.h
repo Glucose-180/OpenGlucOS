@@ -33,8 +33,8 @@
 #define LOCK_NUM 16
 
 typedef enum {
-	UNLOCKED,
-	LOCKED,
+	UNLOCKED = 0,
+	LOCKED = 1,
 } lock_status_t;
 
 typedef struct spin_lock

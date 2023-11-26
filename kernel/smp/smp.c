@@ -31,7 +31,6 @@ void init_exception_s(void)
 
 void wakeup_other_hart()
 {
-	/* TODO: P3-TASK3 multicore*/
 	unsigned long mask = ~0L << 1;
 	send_ipi(&mask);
 }

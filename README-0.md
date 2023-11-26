@@ -8,11 +8,13 @@ Project 4。
 
 #### 最新更改
 
-
+  进行 swap 和多线程（甚至带了绑核）联合测试。
 
 #### 可做的优化
 
-  当磁盘 swap 空间不够时终止进程。可通过改变宏`NPSWAP`提高磁盘 swap 空间，目前仅为 128 个页。
+  让 glush 支持历史记录。
+
+  当磁盘 swap 空间不够时终止进程。
 
 #### [2023-11-13]
 
@@ -158,5 +160,6 @@ Project 4。
 
   进行了 mailbox 的相关测试，但似乎不太稳定，mailbox 似乎可能会死锁，而且触发过莫名其妙的 S-mode page fault。已在`handle_pagefault()`中加入检查代码，如果同一个进程的某`stval`连续多次出现则 panic 并打印出相关信息。
 
-  上板果然触发了这个 panic，似乎是 1 号 CPU 在初始化`init_exception_s()`时没有设置`sstatus`的 SUM 位导致的。
+  上板果然触发了这个 panic，似乎是 1 号 CPU 在初始化`init_exception_s()`时没有设置`sstatus`的 SUM 位导致的。目前 -O2 上板似乎没问题。
 
+  进行 swap 和多线程（甚至带了绑核）联合测试，-O2 上板正常。
