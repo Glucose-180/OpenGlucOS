@@ -3,8 +3,8 @@
 Multithreading=1
 Timer_interval_ms=10
 NCPU=2
-NPF=200			# Number of page frames
-#NPF=51200
+#NPF=100			# Number of page frames
+NPF=51200
 NPSWAP=512		# Number of swap pages
 DEBUG=1
 User_seg_max="0x800000"	# 8 MiB

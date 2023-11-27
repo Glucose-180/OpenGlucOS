@@ -123,9 +123,10 @@ pid_t alloc_pid(void)
 pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 {
 	uintptr_t entry, kernel_stack, seg_start, seg_end;
-	pcb_t *pnew, *temp;
+	pcb_t *pnew, *qtemp;
 	PTE* pgdir_kva;
 	pid_t pid;
+	pcb_t *pdel;
 
 	if (taskname == NULL || get_proc_num() >= UPROC_MAX + NCPU)
 		return INVALID_PID;
@@ -136,12 +137,30 @@ pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 	pgdir_kva = (PTE*)alloc_pagetable(pid);
 	share_pgtable(pgdir_kva, (PTE*)PGDIR_VA);
 
-	entry = load_task_img(taskname, pgdir_kva, pid, &seg_start, &seg_end);
-	if (entry == 0U)
+	if ((qtemp = lpcb_add_node_to_tail(ready_queue, &pnew, &ready_queue)) == NULL)
 	{
 		free_pages_of_proc((PTE*)pgdir_kva);
 		return INVALID_PID;
 	}
+	if (pcb_table_add(pnew) < 0)
+		/*
+		 * The number of processes has been checked at the beginning,
+		 * so this opreation shouldn't fail.
+		 */
+		panic_g("create_proc: Failed to add to pcb_table");
+	ready_queue = qtemp;
+	pnew->pid = pid;
+	pnew->pgdir_kva = pgdir_kva;
+
+	/*
+	 * Allocate PCB and add it to `ready_queue` and `pcb_table[]` before
+	 * allocate page frames for the new born process, in case of page swap
+	 * happens while allocating page frames, which may cause panic in
+	 * `swap_to_disk()` because the PCB may not be found.
+	 */
+	entry = load_task_img(taskname, pgdir_kva, pid, &seg_start, &seg_end);
+	if (entry == 0U)
+		goto del_pcb_and_pg_on_error;
 
 	/*
 	 * Just allocate one page for command line arguments.
@@ -151,15 +170,7 @@ pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 	kernel_stack = (uintptr_t)kmalloc_g(Kstack_size);
 
 	if (kernel_stack == 0)
-		return INVALID_PID;
-	if ((temp = lpcb_add_node_to_tail(ready_queue, &pnew, &ready_queue)) == NULL)
-	{
-		free_pages_of_proc((PTE*)pgdir_kva);
-		kfree_g((void *)kernel_stack);
-		return INVALID_PID;
-	}
-	ready_queue = temp;
-	pnew->pgdir_kva = pgdir_kva;
+		goto del_pcb_and_pg_on_error;
 	pnew->seg_start = seg_start;
 	pnew->seg_end = seg_end;
 	strncpy(pnew->name, taskname, TASK_NAMELEN);
@@ -169,22 +180,24 @@ pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 	pnew->cursor_x = pnew->cursor_y = 0;
 	pnew->cylim_h = pnew->cylim_l = -1;
 	pnew->cpu_mask = cpu_mask;
-	pnew->pid = pid;
 #if MULTITHREADING != 0
 	/* 0 TID is the main thread */
 	pnew->tid = 0;
 #endif
 	init_pcb_stack(kernel_stack, entry, pnew);
-	if (pcb_table_add(pnew) < 0)
-		/*
-		 * The number of processes has been checked at the beginning,
-		 * so this opreation shouldn't fail.
-		 */
-		panic_g("create_proc: Failed to add to pcb_table");
 #if DEBUG_EN != 0
 	writelog("Process \"%s\" (PID: %d) is created", pnew->name, pnew->pid);
 #endif
 	return pnew->pid;
+del_pcb_and_pg_on_error:
+	free_pages_of_proc((PTE*)pgdir_kva);
+	ready_queue = lpcb_del_node(ready_queue, pnew, &pdel);
+	if (pnew != pdel)
+		panic_g("create_proc: Failed to remove PCB %d from ready_queue", pid);
+	kfree_g((void *)pdel);
+	if (pcb_table_del(pdel) < 0)
+		panic_g("create_proc: Failed to remove PCB %d from pcb_table[]", pid);
+	return INVALID_PID;
 }
 
 void do_scheduler(void)

@@ -152,7 +152,7 @@ void thread_kill(tcb_t *p)
 		p->tid, p->pid, (uint64_t)*phead);
 	kfree_g((void *)pdel);
 	if (pcb_table_del(pdel) < 0)
-		panic_g("thread_kill: Failed to remove pcb %d, %d from pcb_table",
+		panic_g("thread_kill: Failed to remove pcb %d, %d from pcb_table[]",
 		p->tid, p->pid);
 #if DEBUG_EN != 0
 	writelog("Thread %d of process %d is terminated", p->tid, p->pid);

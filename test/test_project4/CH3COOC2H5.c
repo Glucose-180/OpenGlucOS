@@ -555,15 +555,21 @@ int cmd_perf(char* scmd)
 }
 
 
-int main()
+int main(int argc, char *argv[])
 {
 #define INMAX 1001  /* input max length */
 	char s[INMAX];
 	unsigned int cmd_count = 0;
 	unsigned int in_count = 0;
+	int cylim_l, cylim_h;
 	unsigned int get_line(char* str, unsigned int len_max);
 
-	sys_set_cylim(0, 15);
+	if (argc >= 3 && (cylim_l = atoi(argv[1])) >= 0 &&
+		(cylim_h = atoi(argv[2])) >= cylim_l)
+		sys_set_cylim(cylim_l, cylim_h);
+	else
+		/* Default location */
+		sys_set_cylim(0, 15);
 
 	while (++cmd_count)
 	{
