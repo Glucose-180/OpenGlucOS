@@ -23,7 +23,7 @@
 const ptr_t pid0_stack = 0xffffffc051000000,
 	pid1_stack = 0xffffffc050f00000;
 
-const uintptr_t User_sp = 0xf00010000UL;
+const uintptr_t User_sp = USER_STACK_ADDR;
 
 /*
  * The default size for a user stack and kernel stack.
@@ -139,7 +139,7 @@ pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 
 	if ((qtemp = lpcb_add_node_to_tail(ready_queue, &pnew, &ready_queue)) == NULL)
 	{
-		free_pages_of_proc((PTE*)pgdir_kva);
+		free_pages_of_proc((PTE*)pgdir_kva, pid);
 		return INVALID_PID;
 	}
 	if (pcb_table_add(pnew) < 0)
@@ -190,7 +190,7 @@ pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 #endif
 	return pnew->pid;
 del_pcb_and_pg_on_error:
-	free_pages_of_proc((PTE*)pgdir_kva);
+	free_pages_of_proc((PTE*)pgdir_kva, pid);
 	ready_queue = lpcb_del_node(ready_queue, pnew, &pdel);
 	if (pnew != pdel)
 		panic_g("create_proc: Failed to remove PCB %d from ready_queue", pid);
@@ -733,7 +733,7 @@ pid_t do_kill(pid_t pid)
 	if ((nth = pcb_search_all(pid, farr)) == 0U)
 	{
 		ress_release_killed(pid);
-		pgfreed_ymr = free_pages_of_proc(pgdir);
+		pgfreed_ymr = free_pages_of_proc(pgdir, pid);
 #if DEBUG_EN != 0
 		writelog("Process %d is terminated and %u page frames are freed",
 			pid, pgfreed_ymr);
@@ -783,7 +783,7 @@ pid_t do_kill(pid_t pid)
 
 	/* Free stacks of it */
 	kfree_g((void *)p->kernel_stack);
-	pgfreed_ymr = free_pages_of_proc(p->pgdir_kva);
+	pgfreed_ymr = free_pages_of_proc(p->pgdir_kva, pid);
 
 	*phead = lpcb_del_node(*phead, p, &pdel);
 	if (pdel == NULL)

@@ -129,7 +129,6 @@ uintptr_t alloc_pagetable(pid_t pid)
 		panic_g("alloc_pagetable: pid is invalid: %d", pid);
 	if (pgtb_ffree >= NPT)
 		/* No free page table */
-		//return 0UL;
 		panic_g("alloc_pagetable: no free page table for proc %d", pid);
 	rt = Pgtb_base + pgtb_ffree * NORMAL_PAGE_SIZE;
 	clear_pgdir(rt);
@@ -162,9 +161,10 @@ void free_pagetable(uintptr_t pgtb_kva)
  * free_pages_of_proc: When a process is terminated,
  * use this function to free pages and page tables occupied
  * by it. `pgdir` is the KVA of its L2 page table.
+ * `pid` is for calling `shm_page_dt()`.
  * Return the number of page frames freed.
  */
-unsigned int free_pages_of_proc(PTE* pgdir)
+unsigned int free_pages_of_proc(PTE* pgdir, pid_t pid)
 {
 	unsigned int i, j, k, f_ymr = 0U;
 	PTE * pgdir_l1, * pgdir_l0;
@@ -195,8 +195,21 @@ unsigned int free_pages_of_proc(PTE* pgdir)
 							if (get_attribute(pgdir_l0[k], _PAGE_XWR) == 0L)
 								panic_g("pgdir_l0[%u] has a PTE 0x%lx that X, W, R are all zero, "
 								"pgdir_l0 is 0x%lx", k, (uint64_t)pgdir_l0[k], (uint64_t)pgdir_l0);
-							free_page(pa2kva(get_pa(pgdir_l0[k])));
-							++f_ymr;
+							if (get_attribute(pgdir_l0[k], _PAGE_SHARED) != 0L)
+							{	/* Don't free it directly if it is shared */
+								int drt = shm_page_dt(vpn2va(i, j, k), pid, pgdir);
+								if (drt < 0)
+									panic_g("free_pages_of_proc: Failed to free shared "
+										"pages with UVA 0x%lx and PTE 0x%lx",
+										vpn2va(i, j, k), pgdir_l0[k]);
+								else if (drt > 0)
+									++f_ymr;
+							}
+							else
+							{
+								free_page(pa2kva(get_pa(pgdir_l0[k])));
+								++f_ymr;
+							}
 						}
 						else if (pgdir_l0[k] != 0U)
 						{	/* PTE is not 0 but V is 0, so the page is on disk */
@@ -276,8 +289,6 @@ uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir_kva, pid_t pid)
 				"pgdir_l1 is 0x%lx, vpn1 is %lu",
 				pgdir_l1[vpn1], (uintptr_t)pgdir_l1, vpn1);
 	}
-#define _PAGE_VURWXAD (_PAGE_PRESENT | _PAGE_USER | _PAGE_READ | _PAGE_WRITE |\
-			_PAGE_EXEC | _PAGE_ACCESSED | _PAGE_DIRTY)
 	if (pgdir_l0[vpn0] == 0UL)
 	{
 		pg_kva = alloc_page(1U, pid, va);
@@ -442,15 +453,4 @@ uintptr_t do_sbrk(uint64_t size)
 #endif
 		return rt;
 	}
-}
-
-uintptr_t shm_page_get(int key)
-{
-	// TODO [P4-task4] shm_page_get:
-	return 0;
-}
-
-void shm_page_dt(uintptr_t addr)
-{
-	// TODO [P4-task4] shm_page_dt:
 }

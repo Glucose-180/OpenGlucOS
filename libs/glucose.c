@@ -172,15 +172,18 @@ void glucos_brake(void)
 void panic_g(const char *fmt, ...)
 {
 	va_list va;
+	pid_t pid;
 	int _vprint(const char *fmt, va_list _va, void (*output)(char*));
 
 	disable_interrupt();
-	printv("\n**CPU %lu Panic: ", get_current_cpu_id());
+	pid = (cur_cpu() != NULL ? cur_cpu()->pid : INVALID_PID);
+	printv("\n**CPU#%lu(%d) Panic: ", get_current_cpu_id(), pid);
 
 //#if DEBUG_EN != 0
 	uint64_t time;
 	time = get_timer();
-	printl("[t=%04lus] **CPU %lu Panic: ", time, get_current_cpu_id());
+	printl("[t=%04lus] **CPU#%lu(%d) Panic: ",
+		time, get_current_cpu_id(), pid);
 //#endif
 
 	va_start(va, fmt);

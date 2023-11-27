@@ -174,6 +174,15 @@ Project 4。
 
   修复了前一个小 bug，改变了`create_proc()`创建进程的执行顺序，先把 PCB 加到`ready_queue`和`pcb_table[]`中再分配页框。但是在 glush 变大后 3 个页框起不来 fly 了，至少要 4 个。除此以外，使 CH3COOC2H5 支持命令行参数调整屏幕区域， -O2 上板正常。
 
+#### [2023-11-27]
 
+  共享内存，（准备）启动！
 
- 
+  新增了共享内存数据结构`shm_ctrl[]`以及开启共享内存的函数`shm_page_get()`。
+
+  共享内存能跑了，但是会出错，会产生很多进程，甚至报页框重复释放的 panic
+
+`[t=0028s] **CPU#0(0) Panic: free_page: page 0xffffffc052007000 is already free**`。
+
+  等待调试。
+

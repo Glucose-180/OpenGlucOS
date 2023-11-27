@@ -75,11 +75,36 @@
  */
 #define NPT 3840U
 
+/* Free flag in "charmap" */
 #define CMAP_FREE (uint8_t)0xff
+/* Shared page flag */
+#define CMAP_SHARED (uint8_t)0xfe
 
 /* Rounding; only works for n = power of two */
 #define ROUND(a, n)     (((((uint64_t)(a))+(n)-1)) & ~((n)-1))
 #define ROUNDDOWN(a, n) (((uint64_t)(a)) & ~((n)-1))
+
+/* How many processes can use a shared memory */
+#define NPSHM 24U
+/* How many shared pages */
+#define NSHM 3U
+
+/* Shared memory control */
+typedef struct {
+	unsigned int nproc;		/* How many processes are using this page */
+	unsigned int pgidx;		/* The index of the physical page frame */
+	pid_t opid[NPSHM];		/* The PIDs of processes using it */
+#if DEBUG_EN != 0
+	uintptr_t uva[NPSHM];	/* The UVAs of the page for processes using it */
+#endif
+	/*
+	 * NOTE: `uva` might be useless;
+	 * if `nproc` is 0, this shared memory page is invalid and other
+	 * data (`pgidx`, ...) should be ignored!
+	 */
+} shm_ctrl_t;
+
+extern volatile shm_ctrl_t shm_ctrl[NSHM];
 
 extern const uintptr_t Pg_base;
 extern volatile uint8_t pg_charmap[NPF];
@@ -99,12 +124,12 @@ void free_page(uintptr_t pg_kva);
 extern ptr_t allocLargePage(int numPage);
 #else
 // NOTE: A/C-core
-#define USER_STACK_ADDR 0xf00010000
+#define USER_STACK_ADDR 0xf00010000UL
 #endif
 
 uintptr_t alloc_pagetable(pid_t pid);
 void free_pagetable(uintptr_t pgtb_kva);
-unsigned int free_pages_of_proc(PTE* pgdir);
+unsigned int free_pages_of_proc(PTE* pgdir, pid_t pid);
 extern void share_pgtable(PTE* dest_pgdir, PTE* src_pgdir);
 extern uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir_kva, pid_t pid);
 
@@ -119,8 +144,7 @@ uintptr_t swap_from_disk(PTE *ppte, uintptr_t uva);
 
 // TODO [P4-task4]: shm_page_get/dt */
 uintptr_t shm_page_get(int key);
-void shm_page_dt(uintptr_t addr);
-
-
+int shm_page_dt(uintptr_t addr, pid_t mpid, PTE* pgdir);
+int do_shm_page_dt(uintptr_t addr);
 
 #endif /* MM_H */

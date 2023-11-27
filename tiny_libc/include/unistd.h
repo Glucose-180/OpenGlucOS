@@ -77,7 +77,7 @@ void *sys_sbrk(uint64_t size);
 /* TODO: [P4-task5] shmpageget/dt */
 /* shmpageget/dt */
 void* sys_shmpageget(int key);
-void sys_shmpagedt(void *addr);
+int sys_shmpagedt(void *addr);
 /************************************************************/
 
 int sys_semaphore_init(int key, int value);

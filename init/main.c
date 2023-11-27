@@ -123,18 +123,6 @@ static void init_pcb(void)
 	if (ready_queue == NULL)
 #endif
 		panic_g("init_pcb: Failed to init ready_queue");
-	/*
-	 * I'm not sure whether "*current_running = pid0_pcb;" will
-	 * change its member "next" or not. So I use "temp" to save it.
-	 *//*
-	temp = current_running[0]->next;
-	*current_running[0] = pid0_pcb;
-	current_running[0]->next = temp;
-#if NCPU == 2
-	temp = current_running[1]->next;
-	*current_running[1] = pid1_pcb;
-	current_running[1]->next = temp;
-#endif */
 	if (pcb_table_add(current_running[0]) < 0 ||
 #if NCPU == 2
 		pcb_table_add(current_running[1]) < 0)
@@ -201,6 +189,8 @@ static void init_syscall(void)
 	}
 	/* Memory management */ {
 		syscall[SYS_sbrk] = (long (*)())do_sbrk;
+		syscall[SYS_shm_get] = (long (*)())shm_page_get;
+		syscall[SYS_shm_dt] = (long (*)())do_shm_page_dt;
 	}
 }
 

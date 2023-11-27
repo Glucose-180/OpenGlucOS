@@ -59,7 +59,11 @@ static inline void set_satp(
 #define _PAGE_GLOBAL (1UL << 5)   /* Global */
 #define _PAGE_ACCESSED (1UL << 6) /* Set by hardware on any access */
 #define _PAGE_DIRTY (1UL << 7)    /* Set by hardware on any write */
-#define _PAGE_SOFT (1UL << 8)     /* Reserved for software */
+//#define _PAGE_SOFT (1UL << 8)     /* Reserved for software */
+#define _PAGE_SHARED (1UL << 8)		/* For shared page */
+
+#define _PAGE_VURWXAD (_PAGE_PRESENT | _PAGE_USER | _PAGE_READ | _PAGE_WRITE |\
+			_PAGE_EXEC | _PAGE_ACCESSED | _PAGE_DIRTY)
 
 #define _PAGE_PFN_SHIFT 10lu
 #define _PAGE_RESERVED_SHIFT 54U
@@ -129,6 +133,14 @@ static inline void clear_pgdir(uintptr_t pgdir_addr)
 	unsigned int ne = NUM_PTE_ENTRY;
 	while (ne-- > 0U)
 		((PTE *)pgdir_addr)[ne] = 0UL;
+}
+
+static inline uintptr_t vpn2va(
+	unsigned int vpn2, unsigned int vpn1, unsigned int vpn0)
+{
+	return (vpn2 << (NORMAL_PAGE_SHIFT + PPN_BITS + PPN_BITS)) 
+		+ (vpn1 << (NORMAL_PAGE_SHIFT + PPN_BITS))
+		+ (vpn0 << NORMAL_PAGE_SHIFT);
 }
 
 #endif  // PGTABLE_H

@@ -108,18 +108,19 @@ unsigned int swap_to_disk()
 	{
 		p = pcb_search(pid = pg_charmap[clock_pt]);
 		/* PANIC will also happen if a free page is found. */
-		if (p == NULL)
+		if (p == NULL && (uint8_t)pid != CMAP_SHARED)
 			panic_g("swap_to_disk: invalid PID %d for page frame %u",
 				pid, clock_pt);
 		/*
 		 * Don't swap the page of a process running on another CPU!
 		 * Because the TLB of it can not be flushed in time.
+		 * Don't swap if the page is shared, either!
 		 */
 		for (i = 0; i < NCPU; ++i)
 			if (i != (int)get_current_cpu_id() && current_running[i]->pid == pid)
 				/* Flag of the process running on another CPU */
 				i = NCPU + 5033;
-		if (i <= NCPU)
+		if (i <= NCPU && (uint8_t)pid != CMAP_SHARED)
 		{
 			lpte = va2pte(pg_uva[clock_pt], p->pgdir_kva);
 			ppte = (PTE*)(lpte & ~7UL);

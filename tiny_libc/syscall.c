@@ -310,11 +310,12 @@ void *sys_sbrk(uint64_t size)
 void* sys_shmpageget(int key)
 {
     /* TODO: [p4-task4] call invoke_syscall to implement sys_shmpageget */
-	return (void*)0L;
+	return (void*)invoke_syscall(SYS_shm_get, key, Ignore, Ignore, Ignore, Ignore);
 }
 
-void sys_shmpagedt(void *addr)
+int sys_shmpagedt(void *addr)
 {
     /* TODO: [p4-task4] call invoke_syscall to implement sys_shmpagedt */
+	return invoke_syscall(SYS_shm_dt, (long)addr, Ignore, Ignore, Ignore, Ignore);
 }
 /************************************************************/
