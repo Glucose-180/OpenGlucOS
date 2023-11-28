@@ -28,6 +28,11 @@ uintptr_t shm_page_get(int key)
 	if (ptsc->nproc >= NPSHM)
 		/* Quota of the page is full */
 		return 0UL;
+	else if (ptsc->nproc > 0U)
+		for (i = 0U; i < NPSHM; ++i)
+			if (ptsc->opid[i] == ccpu->pid)
+				/* This process is already using this shared page. */
+				return 0UL;
 	uva = ROUND(ccpu->seg_end, NORMAL_PAGE_SIZE);
 	if (uva - ccpu->seg_start > USEG_MAX)
 		/* The heap of the process is too large */
@@ -69,6 +74,9 @@ uintptr_t shm_page_get(int key)
 #endif
 	lpte = va2pte(uva, ccpu->pgdir_kva);
 	ppte = (PTE*)(lpte & ~7UL);
+	/*
+	 * Buggy! What if the L1 page table is not allocated?
+	 */
 	lpte &= 7UL;
 	if (lpte != 0UL)
 		panic_g("shm_page_get: va2pte() returned invalid KVA: 0x%lx",
@@ -112,6 +120,8 @@ int shm_page_dt(uintptr_t addr, pid_t mpid, PTE* pgdir)
 			(uintptr_t)ppte, *ppte);
 	shm_page_kva = pa2kva(get_pa(*ppte));
 	*ppte = 0UL;
+	if (mpid == INVALID_PID)
+		local_flush_tlb_page(addr);
 	pgidx = (shm_page_kva - Pg_base) >> NORMAL_PAGE_SHIFT;
 
 	for (i = 0U; i < NSHM; ++i)

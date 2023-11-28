@@ -69,7 +69,11 @@ static inline void set_satp(
 #define _PAGE_RESERVED_SHIFT 54U
 
 #define _PAGE_PPN_MASK ((~0UL << _PAGE_PFN_SHIFT) & ~(~0UL << _PAGE_RESERVED_SHIFT))
-#define _PAGE_ATTRIBUTE_MASK ~(~0UL << 8)
+/*
+ * Forgetting to update `..._MASK` after adding new attribute
+ * has caused a severe bug!
+ */
+#define _PAGE_ATTRIBUTE_MASK ~(~0UL << 10)
 
 #define VA_MASK ((1lu << 39) - 1UL)
 
