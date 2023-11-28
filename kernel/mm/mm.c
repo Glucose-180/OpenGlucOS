@@ -292,12 +292,6 @@ uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir_kva, pid_t pid)
 	if (pgdir_l0[vpn0] == 0UL)
 	{
 		pg_kva = alloc_page(1U, pid, va);
-		/*
-		 * NOTE: up to now if `alloc_page` returns 0,
-		 * the physical page frame number of the PTE will be 0.
-		 * This is not allowed! Either the return value is ensured not
-		 * to be 0 by swapping, or this situation is handled properly.
-		 */
 		set_pfn(&pgdir_l0[vpn0], kva2pa(pg_kva) >> NORMAL_PAGE_SHIFT);
 		set_attribute(&pgdir_l0[vpn0], _PAGE_VURWXAD);
 	}

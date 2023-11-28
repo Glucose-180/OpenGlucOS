@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
 			sys_screen_write(p + i * Pgsize, strlen(p + i * Pgsize));
 			if (strncmp(p + i * Pgsize, "Genshin", 8U) != 0)
 			{
-				printf("\nTest failed at %d: 0x%lx!\n", i, (long)(p + i * Pgsize));
+				printf("\n**Test failed at %d: 0x%lx!\n", i, (long)(p + i * Pgsize));
 				return 1;
 			}
 		}

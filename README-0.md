@@ -190,3 +190,13 @@ Project 4。
 
   调试进行中，修复了一些 Bug，当前存在问题鉴定为用户程序 consensus 在调用`is_first()`时，没有把`MAGIC`写到共享内存去，而是似乎把它写到了私有的一个页框了。正在找原因。
 
+  修复成功了，并不是写到别的页框了，而是错误地调用了`clear_pgdir()`导致的。
+
+  仍然存在 Bug，当一个程序使用共享页面且不是第一个时，如果其用户虚地址的 VPN1 在 L1 页表中没有已分配的 PTE，就会导致在`shm_page_get()`中调用`va2pte()`返回的`lpte`不为零从而 panic。程序`shm-test.c`可以起到这个测试效果。
+
+  修复方法：曲线救国，这种情况下先调用`alloc_page_helper()`再将分配的页框释放，使得对应的 PTE 有效。
+
+  连续 3 次执行`exec rw-g 0x12306`会误触发`handle_pagefault()`里的 panic，为此增加时间限制，在 3 秒内同一 PID 的`stval`连续出现 3 次才报 panic。
+
+  在 -O2 条件下，上板进行页交换、多线程、共享内存联合测试，单双核都成功！注：在`USEG_MAX`为 8 MiB 条件下，执行`exec shm-test 8 0x7ff000 &`可以恰好触发 Segment fault，因为这样`sys_sbrk()`能成功但是再申请共享内存就会因为堆过大而得到`NULL`。
+

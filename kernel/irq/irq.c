@@ -142,19 +142,27 @@ void handle_pagefault(regs_context_t *regs, uint64_t stval, uint64_t scause)
 	static unsigned int pf_ymr = 0U;
 	static uint64_t last_stval = 0UL;
 	static pid_t last_pid = INVALID_PID;
+	static unsigned int time, last_time = 0U;
 	pcb_t * ccpu = cur_cpu();
 
 	/*
-	 * Record how many times has the same `stval` of the same process appeared.
-	 * If it is too much, panic is necessary!
+	 * Record how many times has the same `stval` of the same process appeared
+	 * in a certain time period. If it is too much, panic is necessary!
 	 */
-	if (stval == last_stval && ccpu->pid == last_pid)
+	time = get_timer();
+	if (stval == last_stval && ccpu->pid == last_pid &&
+#if DEBUG_EN != 0
+		time - last_time <= 3U)
+#else
+		time - last_time <= 1U)
+#endif
 		++pf_ymr;
 	else
 	{
 		pf_ymr = 1U;
 		last_stval = stval;
 		last_pid = ccpu->pid;
+		last_time = time;
 	}
 
 	if (ccpu->pid < NCPU)

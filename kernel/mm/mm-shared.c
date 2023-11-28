@@ -19,7 +19,7 @@ uintptr_t shm_page_get(int key)
 	unsigned int pidid;
 	/* UVA of the shared page for this process */
 	uintptr_t uva;
-	uintptr_t pg_kva;
+	uintptr_t pg_kva, pg_kva2;
 	PTE* ppte;
 	uint64_t lpte;
 	pcb_t *ccpu = cur_cpu();
@@ -34,7 +34,7 @@ uintptr_t shm_page_get(int key)
 				/* This process is already using this shared page. */
 				return 0UL;
 	uva = ROUND(ccpu->seg_end, NORMAL_PAGE_SIZE);
-	if (uva - ccpu->seg_start > USEG_MAX)
+	if (uva + NORMAL_PAGE_SIZE - ccpu->seg_start > USEG_MAX)
 		/* The heap of the process is too large */
 		return 0UL;
 	ccpu->seg_end = uva;
@@ -49,6 +49,11 @@ uintptr_t shm_page_get(int key)
 	if (ptsc->nproc == 0U)
 	{	/* It is the first process using it */
 		pg_kva = alloc_page_helper(uva, (uintptr_t)ccpu->pgdir_kva, CMAP_SHARED);
+		/*
+		 * If it is the first process using this page,
+		 * clear it.
+		 */
+		clear_pgdir(pg_kva);
 		ptsc->pgidx = (pg_kva - Pg_base) >> NORMAL_PAGE_SHIFT;
 		pidid = 0U;
 		ptsc->opid[0U] = ccpu->pid;
@@ -72,18 +77,31 @@ uintptr_t shm_page_get(int key)
 #if DEBUG_EN != 0
 	ptsc->uva[pidid] = uva;
 #endif
+	/*
+	 * We do not need a new page frame. We just need a valid PTE in L0 page table.
+	 * If it is the first process using this shared memory, `pg_kva2` must equal
+	 * `pg_kva` as the `uva` has just been used to allocate a page.
+	 * Otherwise, they must be different because the `uva` is greater than the original
+	 * `seg_end` of this process, which means that it is not allocated.
+	 * In this case, we should free the page frame as we just need the PTE.
+	 */
+	pg_kva2 = alloc_page_helper(uva, (uintptr_t)ccpu->pgdir_kva, CMAP_SHARED);
+	if ((ptsc->nproc > 1U) != (pg_kva2 != pg_kva))
+		panic_g("shm_ctrl[%u].nproc is %u but pg_kva is 0x%lx, pg_kva2 is 0x%lx",
+			shmid, ptsc->nproc, pg_kva, pg_kva2);
+	if (ptsc->nproc > 1U)
+		/* Don't forget that we just need the PTE. */
+		free_page(pg_kva2);
 	lpte = va2pte(uva, ccpu->pgdir_kva);
 	ppte = (PTE*)(lpte & ~7UL);
-	/*
-	 * Buggy! What if the L1 page table is not allocated?
-	 */
 	lpte &= 7UL;
 	if (lpte != 0UL)
 		panic_g("shm_page_get: va2pte() returned invalid KVA: 0x%lx",
 			(uintptr_t)ppte + lpte);
+	*ppte = 0UL;
 	set_attribute(ppte, _PAGE_SHARED | _PAGE_VURWXAD);
 	set_pfn(ppte, kva2pa(pg_kva) >> NORMAL_PAGE_SHIFT);
-	clear_pgdir(pg_kva);
+	local_flush_tlb_page(uva);
 	return uva;
 }
 

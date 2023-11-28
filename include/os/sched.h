@@ -33,7 +33,13 @@
 //#include <os/lock.h>
 #include <pgtable.h>
 
+#ifndef UPROC_MAX
+/*
+ * How many user processes are supported.
+ */
 #define UPROC_MAX 16
+#endif
+
 #define TASK_NAMELEN 31
 #define INVALID_PID (-1)
 

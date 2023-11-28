@@ -137,6 +137,13 @@ int main(int argc, char* argv[])
         }
     }
     sys_barrier_wait(vars->barrier);
+
+    /*
+     * NOTE: If `sys_shmpagedt()` is not called, the last process exiting
+     * will cause 5 pages freed while others 4 for GlucOS. Because
+     * shared pages will be freed while the last process using it
+     * is terminated.
+     */
     sys_shmpagedt((void*)vars);
 
     sys_move_cursor(1, print_location);

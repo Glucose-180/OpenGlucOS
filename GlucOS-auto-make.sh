@@ -9,6 +9,7 @@ NPSWAP=512		# Number of swap pages
 DEBUG=1
 User_seg_max="0x800000"	# 8 MiB
 #User_seg_max="0x80000000"	# 2 GiB
+UPROC_MAX=32	# Number of user processes
 
 VIEW=""
 for opt in $@
@@ -31,7 +32,7 @@ do
 	fi
 done
 
-make all DEBUG=$DEBUG NCPU=$NCPU TINTERVAL=$Timer_interval_ms MTHREAD=$Multithreading NPSWAP=$NPSWAP CFOTHER="-DNPF=$NPF -DUSEG_MAX=$User_seg_max" $VIEW
+make all DEBUG=$DEBUG NCPU=$NCPU TINTERVAL=$Timer_interval_ms MTHREAD=$Multithreading NPSWAP=$NPSWAP CFOTHER="-DNPF=$NPF -DUSEG_MAX=$User_seg_max -DUPROC_MAX=$UPROC_MAX" $VIEW
 
 for opt in $*
 do
