@@ -27,8 +27,12 @@ const uintptr_t Pg_base = ROUND(FREEMEM_KERNEL, PAGE_SIZE);
  * Otherwise, pg_charmap[i] means the PID of the process occupying it.
  */
 volatile uint8_t pg_charmap[NPF];
-/* Record the UVA of a page frame */
-//volatile uintptr_t pg_uva[NPF];
+
+/*
+ * Record the UVA of a page frame if it is normal.
+ * If the page frame is shared, pg_uva[#] is the
+ * number of processes using it.
+ */
 volatile uintptr_t *pg_uva;
 
 #define _PAGE_XWR (_PAGE_EXEC | _PAGE_WRITE | _PAGE_READ)

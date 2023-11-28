@@ -119,16 +119,20 @@ static inline void set_pfn(PTE *entry, uint64_t pfn)
 		((pfn << _PAGE_PFN_SHIFT) & _PAGE_PPN_MASK);
 }
 
-/* Get/Set attribute(s) of the `entry` */
+/* Get/Set/clear attribute(s) of the `entry` */
 static inline long get_attribute(PTE entry, uint64_t mask)
 {
 	/* TODO: [P4-task1] */
 	return entry & mask & _PAGE_ATTRIBUTE_MASK;
 }
-static inline void set_attribute(PTE *entry, uint64_t bits)
+static inline void set_attribute(PTE *pentry, uint64_t attrib)
 {
 	/* TODO: [P4-task1] */
-	*entry |= (bits & _PAGE_ATTRIBUTE_MASK);
+	*pentry |= (attrib & _PAGE_ATTRIBUTE_MASK);
+}
+static inline void clear_attribute(PTE *pentry, uint64_t attrib)
+{
+	*pentry &= ~(attrib & _PAGE_ATTRIBUTE_MASK);
 }
 
 static inline void clear_pgdir(uintptr_t pgdir_addr)

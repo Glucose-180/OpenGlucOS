@@ -77,7 +77,13 @@
 
 /* Free flag in "charmap" */
 #define CMAP_FREE (uint8_t)0xff
-/* Shared page flag */
+
+/*
+ * Shared page flag: if "charmap" of a page frame
+ * is set `CMAP_SHARED`, it is used by more than one
+ * processes. `pg_uva[#]` of it is the number of processes
+ * using it and this page frame canNOT be swapped to disk.
+ */
 #define CMAP_SHARED (uint8_t)0xfe
 
 /* Rounding; only works for n = power of two */
@@ -108,7 +114,12 @@ extern volatile shm_ctrl_t shm_ctrl[NSHM];
 
 extern const uintptr_t Pg_base;
 extern volatile uint8_t pg_charmap[NPF];
-//extern volatile uintptr_t pg_uva[NPF];
+
+/*
+ * Record the UVA of a page frame if it is normal.
+ * If the page frame is shared, pg_uva[#] is the
+ * number of processes using it.
+ */
 extern volatile uintptr_t *pg_uva;
 
 void init_mm(void);

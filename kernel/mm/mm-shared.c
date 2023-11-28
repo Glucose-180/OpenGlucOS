@@ -55,6 +55,7 @@ uintptr_t shm_page_get(int key)
 		 */
 		clear_pgdir(pg_kva);
 		ptsc->pgidx = (pg_kva - Pg_base) >> NORMAL_PAGE_SHIFT;
+		pg_uva[ptsc->pgidx] = 1U;
 		pidid = 0U;
 		ptsc->opid[0U] = ccpu->pid;
 		for (i = 1U; i < NPSHM; ++i)
@@ -71,6 +72,7 @@ uintptr_t shm_page_get(int key)
 				shmid, ccpu->pid);
 		ptsc->opid[pidid] = ccpu->pid;
 		pg_kva = Pg_base + (ptsc->pgidx << NORMAL_PAGE_SHIFT);
+		pg_uva[ptsc->pgidx] += 1U;
 	}
 	ptsc->opid[pidid] = ccpu->pid;
 	ptsc->nproc++;
@@ -157,6 +159,10 @@ int shm_page_dt(uintptr_t addr, pid_t mpid, PTE* pgdir)
 		panic_g("shm_page_dt: Cannot find current process in "
 			"shm_ctrl[%d].opid[], .nproc %u", (int)(ptsc - shm_ctrl), ptsc->nproc);
 	ptsc->opid[i] = INVALID_PID;
+	if (pg_uva[ptsc->pgidx] != ptsc->nproc)
+		panic_g("shm_page_dt: pg_uva[%u] is %lu while shm_ctrl[%d].nproc is %u",
+			ptsc->pgidx, pg_uva[ptsc->pgidx], (int)(ptsc - shm_ctrl), ptsc->nproc);
+	pg_uva[ptsc->pgidx] -= 1U;
 	if (--(ptsc->nproc) == 0U)
 	{	/* This is the last process using it */
 		free_page(shm_page_kva);
