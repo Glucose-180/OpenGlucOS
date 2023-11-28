@@ -35,8 +35,6 @@ volatile uint8_t pg_charmap[NPF];
  */
 volatile uintptr_t *pg_uva;
 
-#define _PAGE_XWR (_PAGE_EXEC | _PAGE_WRITE | _PAGE_READ)
-
 void init_mm(void)
 {
 	void malloc_init(void);

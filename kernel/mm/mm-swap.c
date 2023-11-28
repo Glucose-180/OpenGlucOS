@@ -176,7 +176,7 @@ unsigned int swap_to_disk()
 /*
  * swap_from_disk: Read the page index on disk of `*ppte`,
  * load the page from disk, free the page on disk and set
- * A, V bits and PFN field of `*ppte`. The new page frame
+ * A, D, V bits and PFN field of `*ppte`. The new page frame
  * will be set as occupied by the current process, and the
  * UVA is specified by `uva`. `uva` is also used to flush TLB.
  * Return the KVA of new page frame or 0 if the PTE is error.
@@ -195,7 +195,7 @@ uintptr_t swap_from_disk(PTE *ppte, uintptr_t uva)
 	bios_sd_read((unsigned int)kva2pa(pg_kva),
 		NORMAL_PAGE_SIZE / SECTOR_SIZE, get_sec_idx(spidx));
 	free_swap_page(spidx);
-	set_attribute(ppte, _PAGE_PRESENT | _PAGE_ACCESSED);
+	set_attribute(ppte, _PAGE_PRESENT | _PAGE_ACCESSED | _PAGE_DIRTY);
 	set_pfn(ppte, kva2pa(pg_kva) >> NORMAL_PAGE_SHIFT);
 	//local_flush_tlb_page(uva);
 #if DEBUG_EN != 0

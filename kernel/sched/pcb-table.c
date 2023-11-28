@@ -99,7 +99,7 @@ tcb_t *pcb_search_tcb(tid_t tid)
 }
 
 /*
- * Search all "PCB"(TCB) of a process and write them in `ppcb`.
+ * Search all "PCB"(TCB) of a process and write them in `ppcb` (if not `NULL`).
  * Return the number of PCB found.
  * NOTE: ensure that `farr` has enough space!
  */
@@ -110,7 +110,12 @@ unsigned int pcb_search_all(pid_t pid, pcb_t **farr)
 
 	for (i = 0; i < free_pt; ++i)
 		if (pcb_table[i] != NULL && pcb_table[i]->pid == pid)
-			farr[found_ymr++] = pcb_table[i];
+		{
+			if (farr != NULL)
+				farr[found_ymr++] = pcb_table[i];
+			else
+				++found_ymr;
+		}
 	return found_ymr;
 }
 

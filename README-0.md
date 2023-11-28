@@ -200,5 +200,7 @@ Project 4。
 
   在 -O2 条件下，上板进行页交换、多线程、共享内存联合测试，单双核都成功！注：在`USEG_MAX`为 8 MiB 条件下，执行`exec shm-test 8 0x7ff000 &`可以恰好触发 Segment fault，因为这样`sys_sbrk()`能成功但是再申请共享内存就会因为堆过大而得到`NULL`。
 
-  准备进行 Copy-On-Write。规定，被标记为`CMAP_SHARED`（多进程共享）的物理页框对应于数组`pg_uva[]`的值为该页框的引用数（被多少个进程使用）。新增函数`clear_attribute()`用于清 PTE 的某个标志位。目前在 QEMU 上正常。
+  准备进行 fork: Copy-On-Write。规定，被标记为`CMAP_SHARED`（多进程共享）的物理页框对应于数组`pg_uva[]`的值为该页框的引用数（被多少个进程使用）。新增函数`clear_attribute()`用于清 PTE 的某个标志位。目前在 QEMU 上正常。
+
+  fork, 启动！正在进行`do_fork()`代码编写。
 

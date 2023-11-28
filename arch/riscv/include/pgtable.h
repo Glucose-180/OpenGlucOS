@@ -62,6 +62,8 @@ static inline void set_satp(
 //#define _PAGE_SOFT (1UL << 8)     /* Reserved for software */
 #define _PAGE_SHARED (1UL << 8)		/* For shared page */
 
+#define _PAGE_XWR (_PAGE_EXEC | _PAGE_WRITE | _PAGE_READ)
+
 #define _PAGE_VURWXAD (_PAGE_PRESENT | _PAGE_USER | _PAGE_READ | _PAGE_WRITE |\
 			_PAGE_EXEC | _PAGE_ACCESSED | _PAGE_DIRTY)
 
