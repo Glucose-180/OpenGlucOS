@@ -75,6 +75,6 @@ int main(int argc, char *argv[])
 			}
 				
 	}
-	printf("\nTest passed!\n");
+	printf("\nSwapping test passed!\n");
 	return 0;
 }

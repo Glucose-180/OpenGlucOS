@@ -12,6 +12,14 @@ typedef int32_t pid_t;
 #define USER_NAME "glucose180"
 #endif
 
+#ifndef MULTITHREADING
+/*
+ * Support multithreading or not.
+ * It appears in many header files!
+ */
+#define MULTITHREADING 1
+#endif
+
 typedef pid_t pthread_t;
 
 void sys_sleep(uint32_t time);

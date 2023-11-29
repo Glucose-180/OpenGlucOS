@@ -222,8 +222,8 @@ void handle_pagefault(regs_context_t *regs, uint64_t stval, uint64_t scause)
 					uintptr_t pg_kva;
 					unsigned int pgidx = get_pgidx(*ppte);
 #if DEBUG_EN != 0
-					writelog("Proc %d 0x%lx caused page %u copy-on-write",
-						ccpu->pid, stval, pgidx);
+					writelog("Proc %d(%d) 0x%lx caused page %u copy-on-write",
+						ccpu->pid, ccpu->tid, stval, pgidx);
 #endif
 					pg_kva = alloc_page(1U, ccpu->pid, stval);
 					memcpy((uint8_t*)pg_kva, (uint8_t*)pa2kva(get_pa(*ppte)),
@@ -232,10 +232,15 @@ void handle_pagefault(regs_context_t *regs, uint64_t stval, uint64_t scause)
 					set_attribute(ppte, _PAGE_WRITE);
 					if (pg_uva[pgidx] == 0UL || pg_uva[pgidx] > UPROC_MAX)
 						panic_g("handle_pagefault: page %u is read only but is 0x%lx "
-								"in pg_uva[], $stval 0x%lx, $sepc 0x%lx",
-								pgidx, stval, pg_uva[pgidx], regs->sepc);
+							"in pg_uva[], $stval 0x%lx, $sepc 0x%lx",
+							pgidx, stval, pg_uva[pgidx], regs->sepc);
 					if (--pg_uva[pgidx] == 0UL)
 						free_page(Pg_base + (pgidx << NORMAL_PAGE_SHIFT));
+					/*
+					* Flush I-Cache in case of a process modifies its
+					* .text section, or instructions.
+					*/
+					local_flush_icache_all();
 				}
 				/* GlucOS don't use D bit at all, so just set it. */
 				set_attribute(ppte, _PAGE_ACCESSED | _PAGE_DIRTY);
