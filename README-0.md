@@ -208,3 +208,4 @@ Project 4。
 
   原神，继续！初步完成了`do_fork()`、Copy-On-Write 以及页框释放相关代码的编写。尚未经过测试。目前 QEMU 上其它功能正常。下一步：调试 fork。
 
+  fork，启动！初步完成了 fork 和 Copy-On-Write 的测试，测试程序 fork-test-SS 会执行两次`sys_fork()`，一共会出现 4 个进程，并且会使用 barrier、`malloc()`等功能。目前 -O2 上板正常。

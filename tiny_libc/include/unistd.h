@@ -54,6 +54,7 @@ int  sys_kill(pid_t pid);
 pid_t sys_waitpid(pid_t pid);
 pid_t sys_getpid();
 pid_t sys_taskset(int create, char *name, pid_t pid, unsigned int cpu_mask);
+pid_t sys_fork(void);
 
 /* TODO: [P3 task2] barrier */ 
 int sys_barrier_init(int key, int goal);

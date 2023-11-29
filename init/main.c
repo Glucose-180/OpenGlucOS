@@ -150,6 +150,7 @@ static void init_syscall(void)
 		syscall[SYS_yield] = (long (*)())do_scheduler;
 		syscall[SYS_ps] = (long (*)())do_process_show;
 		syscall[SYS_taskset] = (long (*)())do_taskset;
+		syscall[SYS_fork] = (long (*)())do_fork;
 #if MULTITHREADING != 0
 		syscall[SYS_thread_create] = (long (*)())do_thread_create;
 		syscall[SYS_thread_wait] = (long (*)())do_thread_wait;

@@ -209,6 +209,13 @@ void handle_pagefault(regs_context_t *regs, uint64_t stval, uint64_t scause)
 			/* Swap the page from disk or set A, D */
 			if (get_attribute(*ppte, _PAGE_PRESENT) != 0L)
 			{
+#if DEBUG_EN != 0
+				if (get_attribute(*ppte, _PAGE_WRITE | _PAGE_ACCESSED | _PAGE_DIRTY)
+					== (_PAGE_WRITE | _PAGE_ACCESSED | _PAGE_DIRTY) &&
+					scause == EXC_STORE_PAGE_FAULT)
+					writelog("0x%lx caused store page fault for a W, A, D page %u",
+						stval, get_pgidx(*ppte));
+#endif
 				if (get_attribute(*ppte, _PAGE_WRITE) == 0L &&
 					scause == EXC_STORE_PAGE_FAULT)
 				{	/* Copy-on-write! */
@@ -219,6 +226,8 @@ void handle_pagefault(regs_context_t *regs, uint64_t stval, uint64_t scause)
 						ccpu->pid, stval, pgidx);
 #endif
 					pg_kva = alloc_page(1U, ccpu->pid, stval);
+					memcpy((uint8_t*)pg_kva, (uint8_t*)pa2kva(get_pa(*ppte)),
+						1U << NORMAL_PAGE_SHIFT);
 					set_pfn(ppte, kva2pa(pg_kva) >> NORMAL_PAGE_SHIFT);
 					set_attribute(ppte, _PAGE_WRITE);
 					if (pg_uva[pgidx] == 0UL || pg_uva[pgidx] > UPROC_MAX)
@@ -226,7 +235,7 @@ void handle_pagefault(regs_context_t *regs, uint64_t stval, uint64_t scause)
 								"in pg_uva[], $stval 0x%lx, $sepc 0x%lx",
 								pgidx, stval, pg_uva[pgidx], regs->sepc);
 					if (--pg_uva[pgidx] == 0UL)
-						free_page(pg_kva);
+						free_page(Pg_base + (pgidx << NORMAL_PAGE_SHIFT));
 				}
 				/* GlucOS don't use D bit at all, so just set it. */
 				set_attribute(ppte, _PAGE_ACCESSED | _PAGE_DIRTY);
@@ -236,13 +245,6 @@ void handle_pagefault(regs_context_t *regs, uint64_t stval, uint64_t scause)
 				 * but another thread running on another CPU has old TLB.
 				 */
 				local_flush_tlb_page(stval);
-#if DEBUG_EN != 0
-				if (get_attribute(*ppte, _PAGE_WRITE | _PAGE_ACCESSED | _PAGE_DIRTY)
-					== (_PAGE_WRITE | _PAGE_ACCESSED | _PAGE_DIRTY) &&
-					scause == EXC_STORE_PAGE_FAULT)
-					writelog("0x%lx caused store page fault for a W, A, D page %u",
-						stval, get_pgidx(*ppte));
-#endif
 			}
 			else
 			{

@@ -201,7 +201,12 @@ pid_t sys_getpid()
 }*/
 pid_t sys_taskset(int create, char *name, pid_t pid, unsigned int cpu_mask)
 {
-	return invoke_syscall(SYS_taskset,create, (long)name, (long)pid, (long)cpu_mask, Ignore);
+	return invoke_syscall(SYS_taskset, create, (long)name, (long)pid, (long)cpu_mask, Ignore);
+}
+
+pid_t sys_fork(void)
+{
+	return invoke_syscall(SYS_fork, Ignore, Ignore, Ignore, Ignore, Ignore);
 }
 
 int sys_barrier_init(int key, int goal)

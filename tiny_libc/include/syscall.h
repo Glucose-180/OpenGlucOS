@@ -10,6 +10,7 @@
 #define SYS_getpid 6
 #define SYS_yield 7
 #define SYS_taskset 8
+#define SYS_fork 9
 
 #define SYS_thread_create 10
 #define SYS_thread_wait 11
