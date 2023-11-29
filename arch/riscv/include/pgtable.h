@@ -153,4 +153,11 @@ static inline uintptr_t vpn2va(
 		+ (vpn0 << NORMAL_PAGE_SHIFT);
 }
 
+extern const uintptr_t Pg_base;
+
+static inline unsigned int get_pgidx(PTE entry)
+{
+	return (pa2kva(get_pa(entry)) - Pg_base) >> NORMAL_PAGE_SHIFT;
+}
+
 #endif  // PGTABLE_H

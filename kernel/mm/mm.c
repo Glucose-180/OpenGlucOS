@@ -207,6 +207,19 @@ unsigned int free_pages_of_proc(PTE* pgdir, pid_t pid)
 								else if (drt > 0)
 									++f_ymr;
 							}
+							else if (get_attribute(pgdir_l0[k], _PAGE_WRITE) == 0L)
+							{	/* Read only page */
+								unsigned int pgidx = get_pgidx(pgdir_l0[k]);
+								if (pg_uva[pgidx] == 0UL || pg_uva[pgidx] > UPROC_MAX)
+									panic_g("free_pages_of_proc: page %u is read only "
+										"but is 0x%lx in pg_uva[], 0x%lx of proc %d",
+										pgidx, pg_uva[pgidx], vpn2va(i, j, k), pid);
+								if (--pg_uva[pgidx] == 0UL)
+								{
+									free_page(pa2kva(get_pa(pgdir_l0[k])));
+									++f_ymr;
+								}
+							}
 							else
 							{
 								free_page(pa2kva(get_pa(pgdir_l0[k])));

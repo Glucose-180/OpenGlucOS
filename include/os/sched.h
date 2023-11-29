@@ -260,6 +260,7 @@ int get_proc_num(void);
 pcb_t *pcb_search(pid_t pid);
 pcb_t *pcb_search_name(const char *name);
 
+pid_t do_fork(void);
 
 #if MULTITHREADING != 0
 #include <os/sched-thread.h>

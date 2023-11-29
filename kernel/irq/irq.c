@@ -196,7 +196,8 @@ void handle_pagefault(regs_context_t *regs, uint64_t stval, uint64_t scause)
 			"PID(TID) %d(%d), $scause 0x%lx, $sstatus 0x%lx, $sepc 0x%lx, PTE 0x%lx",
 			stval, pf_ymr, ccpu->pid, ccpu->tid, scause, regs->sstatus, regs->sepc, *ppte);
 
-	if (stval < User_sp && stval >= User_sp - USTACK_NPG * NORMAL_PAGE_SIZE)
+	if ((stval < User_sp && stval >= User_sp - USTACK_NPG * NORMAL_PAGE_SIZE) ||
+		(stval >= ccpu->seg_start && stval < ccpu->seg_end))
 	{
 		if (*ppte == 0UL)
 		{	/* Page hasn't been allocated */
@@ -207,23 +208,42 @@ void handle_pagefault(regs_context_t *regs, uint64_t stval, uint64_t scause)
 		{	/* Page is swapped to disk (V is 0) or A or D is 0 */
 			/* Swap the page from disk or set A, D */
 			if (get_attribute(*ppte, _PAGE_PRESENT) != 0L)
+			{
+				if (get_attribute(*ppte, _PAGE_WRITE) == 0L &&
+					scause == EXC_STORE_PAGE_FAULT)
+				{	/* Copy-on-write! */
+					uintptr_t pg_kva;
+					unsigned int pgidx = get_pgidx(*ppte);
+#if DEBUG_EN != 0
+					writelog("Proc %d 0x%lx caused page %u copy-on-write",
+						ccpu->pid, stval, pgidx);
+#endif
+					pg_kva = alloc_page(1U, ccpu->pid, stval);
+					set_pfn(ppte, kva2pa(pg_kva) >> NORMAL_PAGE_SHIFT);
+					set_attribute(ppte, _PAGE_WRITE);
+					if (pg_uva[pgidx] == 0UL || pg_uva[pgidx] > UPROC_MAX)
+						panic_g("handle_pagefault: page %u is read only but is 0x%lx "
+								"in pg_uva[], $stval 0x%lx, $sepc 0x%lx",
+								pgidx, stval, pg_uva[pgidx], regs->sepc);
+					if (--pg_uva[pgidx] == 0UL)
+						free_page(pg_kva);
+				}
+				/* GlucOS don't use D bit at all, so just set it. */
 				set_attribute(ppte, _PAGE_ACCESSED | _PAGE_DIRTY);
-			else
-				swap_from_disk(ppte, stval);
-		}
-	}
-	else if (stval >= ccpu->seg_start && stval < ccpu->seg_end)
-	{
-		if (*ppte == 0UL)
-		{	/* Page hasn't been allocated */
-			/* Alloc page for segment */
-			alloc_page_helper(stval, (uintptr_t)(ccpu->pgdir_kva), ccpu->pid);
-		}
-		else
-		{	/* Page is swapped to disk (V is 0) or A or D is 0 */
-			/* Swap the page from disk or set A, D */
-			if (get_attribute(*ppte, _PAGE_PRESENT) != 0L)
-				set_attribute(ppte, _PAGE_ACCESSED | _PAGE_DIRTY);
+				/*
+				 * If store page fault happens but the page is not read only,
+				 * it may be caused by multithreading. One thread caused copy-on-write
+				 * but another thread running on another CPU has old TLB.
+				 */
+				local_flush_tlb_page(stval);
+#if DEBUG_EN != 0
+				if (get_attribute(*ppte, _PAGE_WRITE | _PAGE_ACCESSED | _PAGE_DIRTY)
+					== (_PAGE_WRITE | _PAGE_ACCESSED | _PAGE_DIRTY) &&
+					scause == EXC_STORE_PAGE_FAULT)
+					writelog("0x%lx caused store page fault for a W, A, D page %u",
+						stval, get_pgidx(*ppte));
+#endif
+			}
 			else
 			{
 				swap_from_disk(ppte, stval);

@@ -21,14 +21,18 @@
  * do_fork: fork a child process and return the
  * PID of child process or INVALID_PID on error.
  */
+#if DEBUG_EN == 0
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+#endif
 pid_t do_fork(void)
 {
 	pid_t pid;
 	unsigned int vpn2, vpn1, vpn0;
 	pcb_t *pnew, *qtemp, *ccpu = cur_cpu();
-	uintptr_t kernel_stack;
+	uintptr_t kernel_stack, pg_kva;
 	PTE *pgdir_l1, *pgdir_l0;
 	PTE *pgdir_l1_p, *pgdir_l0_p; /* For parent process */
+	unsigned int s_ymr = 0U;	/* Number of pages shared */
 
 	if ((r_sstatus() & SR_SPP) != 0UL || (reg_t)ccpu->trapframe != ccpu->kernel_sp)
 		panic_g("do_fork: trap is likely taken from S-mode:\n"
@@ -41,18 +45,18 @@ pid_t do_fork(void)
 #endif
 	if (get_proc_num() >= UPROC_MAX + NCPU || 
 		(pid = alloc_pid()) == INVALID_PID ||
-		(kernel_stack = (uintptr_t)kmalloc_g(Kstack_size)) == NULL)
+		(kernel_stack = (uintptr_t)kmalloc_g(Kstack_size)) == 0UL)
 		return INVALID_PID;
 	qtemp = lpcb_add_node_to_tail(ready_queue, &pnew, &ready_queue);
 	if (qtemp == NULL)
 	{
-		kfree_g((void *)uintptr_t);
+		kfree_g((void *)kernel_stack);
 		return INVALID_PID;
 	}
 	ready_queue = qtemp;
 
 	pnew->kernel_sp = kernel_stack + (ccpu->kernel_sp - ccpu->kernel_stack);
-	pnew->trapframe = pnew->kernel_sp;
+	pnew->trapframe = (regs_context_t*)pnew->kernel_sp;
 	pnew->user_sp = ccpu->user_sp;
 	pnew->seg_start = ccpu->seg_start;
 	pnew->seg_end = ccpu->seg_end;
@@ -74,12 +78,12 @@ pid_t do_fork(void)
 
 	memcpy((uint8_t*)pnew->trapframe, (uint8_t*)ccpu->trapframe,
 		sizeof(regs_context_t));
-	pnew->trapframe[OFFSET_REG_TP / sizeof(reg_t)] = (reg_t)pnew;
+	pnew->trapframe->regs[OFFSET_REG_TP / sizeof(reg_t)] = (reg_t)pnew;
 	/* Return value of child process */
-	pnew->trapframe[OFFSET_REG_A0 / sizeof(reg_t)] = 0UL;
+	pnew->trapframe->regs[OFFSET_REG_A0 / sizeof(reg_t)] = 0UL;
 
-	pnew->context[SR_RA] = (reg_t)ret_from_exception;
-	pnew->context[SR_SP] = (reg_t)pnew->kernel_sp;
+	pnew->context.regs[SR_RA] = (reg_t)ret_from_exception;
+	pnew->context.regs[SR_SP] = (reg_t)pnew->kernel_sp;
 
 	/* Allocate and copy page table */
 	pnew->pgdir_kva = (PTE*)alloc_pagetable(pid);
@@ -122,20 +126,47 @@ pid_t do_fork(void)
 							panic_g("do_fork: invalid L0 PTE %u %u %u 0x%lx",
 								vpn2, vpn1, vpn0, pgdir_l0_p[vpn0]);
 						if (get_attribute(pgdir_l0_p[vpn0], _PAGE_SHARED) != 0L)
-						{
-							// TODO: Shared page, just copy
+						{/* Shared page, just copy */
+							if (get_attribute(pgdir_l0_p[vpn0], _PAGE_WRITE) == 0L)
+								panic_g("do_fork: a shared but read only PTE 0x%lx "
+									"is found at UVA 0x%lx",
+									pgdir_l0_p[vpn0], vpn2va(vpn2, vpn1, vpn0));
+							pg_kva = alloc_page(1U, pid, vpn2va(vpn2, vpn1, vpn0));
+							memcpy((uint8_t*)pg_kva, (uint8_t*)pa2kva(get_pa(pgdir_l0_p[vpn0])),
+								NORMAL_PAGE_SIZE);
+							set_pfn(&pgdir_l0[vpn0], kva2pa(pg_kva) >> NORMAL_PAGE_SHIFT);
+							set_attribute(&pgdir_l0[vpn0], _PAGE_VURWXAD);
 						}
 						else if (get_attribute(pgdir_l0_p[vpn0], _PAGE_WRITE) == 0L)
-						{
-							// TODO: Read only page, copy PTE and increase `pg_uva[]`
+						{/* Read only page, copy PTE and increase `pg_uva[]` */
+							unsigned int pgidx;
+							pgdir_l0[vpn0] = pgdir_l0_p[vpn0];
+							pgidx = get_pgidx(pgdir_l0_p[vpn0]);
+							if (pg_charmap[pgidx] != CMAP_SHARED || pg_uva[pgidx] > UPROC_MAX)
+								panic_g("do_fork: Read only page pg_charmap[%u] is 0x%x,"
+									" pg_uva[%u] is 0x%lx", pgidx, (int)pg_charmap[pgidx],
+									pgidx, pg_uva[pgidx]);
+							++pg_uva[pgidx];
+							++s_ymr;
 						}
 						else
-						{
-							// TODO: Normal page, copy PTE and set W to zero.
+						{/* Normal page, copy PTE and set W to zero. */
+							unsigned int pgidx;
+							clear_attribute(&pgdir_l0_p[vpn0], _PAGE_WRITE);
+							pgdir_l0[vpn0] = pgdir_l0_p[vpn0];
+							pgidx = get_pgidx(pgdir_l0_p[vpn0]);
+							pg_charmap[pgidx] = CMAP_SHARED;
+							pg_uva[pgidx] = 2U;	/* 2 processes are using it */
+							++s_ymr;
 						}
 					}
 				}
 			}
 		}
 	}
+#if DEBUG_EN != 0
+	writelog("Proc %d forked child process %d and %u pages are shared.",
+		ccpu->pid, pid, s_ymr);
+#endif
+	return pid;
 }
