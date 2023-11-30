@@ -76,7 +76,7 @@ pthread_t do_thread_create(uintptr_t entry, uintptr_t arg, uintptr_t sp, uintptr
 	pnew->user_sp = ROUNDDOWN(sp, SP_ALIGN);
 	pnew->trapframe->regs[OFFSET_REG_RA / sizeof(reg_t)] = exit;
 	if (pcb_table_add(pnew) < 0)
-		panic_g("do_thread_create: Failed to create thread %d", tid);
+		panic_g("Failed to create thread %d", tid);
 #if DEBUG_EN != 0
 	writelog("thread %d of process %d is created", tid, ccpu->pid);
 #endif
@@ -120,7 +120,7 @@ void do_thread_exit()
 	 */
 	ccpu->status = TASK_ZOMBIE;
 	do_scheduler();
-	panic_g("do_thread_exit: Thread %d of proc %d is still running after exiting",
+	panic_g("Thread %d of proc %d is still running after exiting",
 		cur_cpu()->tid, cur_cpu()->pid);
 }
 
@@ -133,13 +133,13 @@ void thread_kill(tcb_t *p)
 	pcb_t **phead, *pdel;
 
 	if (p->status == TASK_RUNNING)
-		panic_g("thread_kill: thread %d of process %d is running",
+		panic_g("thread %d of process %d is running",
 		p->tid, p->pid);
 
 	phead = p->phead;
 	/* Checking... */
 	if (lpcb_search_node_tcb(*phead, p->pid, p->tid) != p)
-		panic_g("thread_kill: phead of thread %d proc %d is error",
+		panic_g("phead of thread %d proc %d is error",
 		p->tid, p->pid);
 	/* wake up threads in `wait_queue` */
 	while (p->wait_queue != NULL)
@@ -148,11 +148,11 @@ void thread_kill(tcb_t *p)
 	kfree_g((void *)p->kernel_stack);
 	*phead = lpcb_del_node(*phead, p, &pdel);
 	if (pdel == NULL)
-		panic_g("thread_kill: Failed to del pcb %d, %d in queue 0x%lx",
+		panic_g("Failed to del pcb %d, %d in queue 0x%lx",
 		p->tid, p->pid, (uint64_t)*phead);
 	kfree_g((void *)pdel);
 	if (pcb_table_del(pdel) < 0)
-		panic_g("thread_kill: Failed to remove pcb %d, %d from pcb_table[]",
+		panic_g("Failed to remove pcb %d, %d from pcb_table[]",
 		p->tid, p->pid);
 #if DEBUG_EN != 0
 	writelog("Thread %d of process %d is terminated", p->tid, p->pid);

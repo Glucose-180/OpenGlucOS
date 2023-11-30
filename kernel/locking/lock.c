@@ -135,7 +135,7 @@ int do_mutex_lock_acquire(int mlock_idx)
 		 * The lock will be reacquired after being unblocked.
 		 */
 		{
-			panic_g("do_mutex_lock_acquire: lock %d is LOCKED"
+			panic_g("lock %d is LOCKED"
 				" but no ready process is found", mlock_idx);
 			return -1;
 		}
@@ -310,7 +310,7 @@ int do_semaphore_up(int sidx)
 	}
 	/* Do a check */
 	if (ptsema->value >= 0 && ptsema->block_queue != NULL)
-		panic_g("do_semaphore_up: semaphore %d has nonnegative value %d "
+		panic_g("semaphore %d has nonnegative value %d "
 			"but non-empty block_queue", sidx, ptsema->value);
 	val = ptsema->value;
 err:

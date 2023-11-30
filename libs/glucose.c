@@ -169,7 +169,7 @@ void glucos_brake(void)
 /*
  * Print error information
  */
-void panic_g(const char *fmt, ...)
+void panic(const char *file, const char *func, int line, const char *fmt, ...)
 {
 	va_list va;
 	pid_t pid;
@@ -177,13 +177,14 @@ void panic_g(const char *fmt, ...)
 
 	disable_interrupt();
 	pid = (cur_cpu() != NULL ? cur_cpu()->pid : INVALID_PID);
-	printv("\n**CPU#%lu(%d) Panic: ", get_current_cpu_id(), pid);
+	printv("\n**CPU#%lu(%d) Panic in %s@%s:%d: ",
+		get_current_cpu_id(), pid, func, file, line);
 
 //#if DEBUG_EN != 0
 	uint64_t time;
 	time = get_timer();
-	printl("[t=%04lus] **CPU#%lu(%d) Panic: ",
-		time, get_current_cpu_id(), pid);
+	printl("[t=%04lus] **CPU#%lu(%d) Panic in %s@%s:%d: ",
+		time, get_current_cpu_id(), pid, func, file, line);
 //#endif
 
 	va_start(va, fmt);

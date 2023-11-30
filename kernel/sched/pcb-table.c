@@ -151,7 +151,7 @@ static void pcb_table_rearrange(void)
 			pcb_table[j++] = pcb_table[i];
 	}
 	if (j != proc_ymr)
-		panic_g("pcb_table_rearrange: algorithm error while rearranging");
+		panic_g("algorithm error while rearranging");
 	free_pt = j;
 	while (j < UPROC_MAX + NCPU)
 		pcb_table[j++] = NULL;

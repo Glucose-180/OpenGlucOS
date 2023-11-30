@@ -35,7 +35,7 @@ pid_t do_fork(void)
 	unsigned int s_ymr = 0U;	/* Number of pages shared */
 
 	if ((r_sstatus() & SR_SPP) != 0UL || (reg_t)ccpu->trapframe != ccpu->kernel_sp)
-		panic_g("do_fork: trap is likely taken from S-mode:\n"
+		panic_g("trap is likely taken from S-mode:\n"
 			"$sstatus 0x%lx, trapframe 0x%lx, kernel_sp 0x%lx",
 			r_sstatus(), (uint64_t)ccpu->trapframe, ccpu->kernel_sp);
 #if MULTITHREADING != 0
@@ -74,7 +74,7 @@ pid_t do_fork(void)
 	pnew->name[TASK_NAMELEN] = '\0';
 
 	if (pcb_table_add(pnew) < 0)
-		panic_g("do_fork: Failed to add proc %d to pcb_table[]", pid);
+		panic_g("Failed to add proc %d to pcb_table[]", pid);
 
 	memcpy((uint8_t*)pnew->trapframe, (uint8_t*)ccpu->trapframe,
 		sizeof(regs_context_t));
@@ -93,7 +93,7 @@ pid_t do_fork(void)
 		if (get_attribute(ccpu->pgdir_kva[vpn2], _PAGE_PRESENT) != 0L)
 		{
 			if (get_attribute(ccpu->pgdir_kva[vpn2], _PAGE_XWR) != 0L)
-				panic_g("do_fork: invalid L2 PTE %u 0x%lx",
+				panic_g("invalid L2 PTE %u 0x%lx",
 					vpn2, ccpu->pgdir_kva[vpn2]);
 			pgdir_l1 = (PTE*)alloc_pagetable(pid);
 			pgdir_l1_p = (PTE*)pa2kva(get_pa(ccpu->pgdir_kva[vpn2]));
@@ -106,7 +106,7 @@ pid_t do_fork(void)
 				if (get_attribute(pgdir_l1_p[vpn1], _PAGE_PRESENT) != 0L)
 				{
 					if (get_attribute(pgdir_l1_p[vpn1], _PAGE_XWR) != 0L)
-						panic_g("do_fork: invalid L1 PTE %u %u 0x%lx",
+						panic_g("invalid L1 PTE %u %u 0x%lx",
 							vpn2, vpn1, pgdir_l1_p[vpn1]);
 					pgdir_l0 = (PTE*)alloc_pagetable(pid);
 					pgdir_l0_p = (PTE*)pa2kva(get_pa(pgdir_l1_p[vpn1]));
@@ -123,12 +123,12 @@ pid_t do_fork(void)
 							swap_from_disk(&pgdir_l0_p[vpn0], vpn2va(vpn2, vpn1, vpn0));
 
 						if (get_attribute(pgdir_l0_p[vpn0], _PAGE_XWR) == 0L)
-							panic_g("do_fork: invalid L0 PTE %u %u %u 0x%lx",
+							panic_g("invalid L0 PTE %u %u %u 0x%lx",
 								vpn2, vpn1, vpn0, pgdir_l0_p[vpn0]);
 						if (get_attribute(pgdir_l0_p[vpn0], _PAGE_SHARED) != 0L)
 						{/* Shared page, just copy */
 							if (get_attribute(pgdir_l0_p[vpn0], _PAGE_WRITE) == 0L)
-								panic_g("do_fork: a shared but read only PTE 0x%lx "
+								panic_g("a shared but read only PTE 0x%lx "
 									"is found at UVA 0x%lx",
 									pgdir_l0_p[vpn0], vpn2va(vpn2, vpn1, vpn0));
 							pg_kva = alloc_page(1U, pid, vpn2va(vpn2, vpn1, vpn0));
@@ -143,7 +143,7 @@ pid_t do_fork(void)
 							pgdir_l0[vpn0] = pgdir_l0_p[vpn0];
 							pgidx = get_pgidx(pgdir_l0_p[vpn0]);
 							if (pg_charmap[pgidx] != CMAP_SHARED || pg_uva[pgidx] > UPROC_MAX)
-								panic_g("do_fork: Read only page pg_charmap[%u] is 0x%x,"
+								panic_g("Read only page pg_charmap[%u] is 0x%x,"
 									" pg_uva[%u] is 0x%lx", pgidx, (int)pg_charmap[pgidx],
 									pgidx, pg_uva[pgidx]);
 							++pg_uva[pgidx];

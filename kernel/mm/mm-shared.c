@@ -67,7 +67,7 @@ uintptr_t shm_page_get(int key)
 			if (ptsc->opid[pidid] == INVALID_PID)
 				break;
 		if (pidid >= NPSHM)
-			panic_g("shm_page_get: Cannot find pidid such that "
+			panic_g("Cannot find pidid such that "
 				"opid[pidid] is INVALID_PID for shm_ctrl[%u], proc %d",
 				shmid, ccpu->pid);
 		ptsc->opid[pidid] = ccpu->pid;
@@ -98,7 +98,7 @@ uintptr_t shm_page_get(int key)
 	ppte = (PTE*)(lpte & ~7UL);
 	lpte &= 7UL;
 	if (lpte != 0UL)
-		panic_g("shm_page_get: va2pte() returned invalid KVA: 0x%lx",
+		panic_g("va2pte() returned invalid KVA: 0x%lx",
 			(uintptr_t)ppte + lpte);
 	*ppte = 0UL;
 	set_attribute(ppte, _PAGE_SHARED | _PAGE_VURWXAD);
@@ -136,7 +136,7 @@ int shm_page_dt(uintptr_t addr, pid_t mpid, PTE* pgdir)
 		/* Not a shared page */
 		return -1;
 	if (get_attribute(*ppte, _PAGE_PRESENT) == 0L)
-		panic_g("shm_page_dt: PTE at 0x%lx is shared but not present: 0x%lx",
+		panic_g("PTE at 0x%lx is shared but not present: 0x%lx",
 			(uintptr_t)ppte, *ppte);
 	shm_page_kva = pa2kva(get_pa(*ppte));
 	*ppte = 0UL;
@@ -148,7 +148,7 @@ int shm_page_dt(uintptr_t addr, pid_t mpid, PTE* pgdir)
 		if (shm_ctrl[i].nproc > 0U && shm_ctrl[i].pgidx == pgidx)
 			break;
 	if (i >= NSHM)
-		panic_g("shm_page_dt: shared page %u with UVA 0x%lx is not found",
+		panic_g("shared page %u with UVA 0x%lx is not found",
 			pgidx, addr);
 	ptsc = shm_ctrl + i;
 
@@ -156,11 +156,11 @@ int shm_page_dt(uintptr_t addr, pid_t mpid, PTE* pgdir)
 		if (ptsc->opid[i] == pid)
 			break;
 	if (i >= NPSHM || ptsc->nproc == 0U)
-		panic_g("shm_page_dt: Cannot find current process in "
+		panic_g("Cannot find current process in "
 			"shm_ctrl[%d].opid[], .nproc %u", (int)(ptsc - shm_ctrl), ptsc->nproc);
 	ptsc->opid[i] = INVALID_PID;
 	if (pg_uva[ptsc->pgidx] != ptsc->nproc)
-		panic_g("shm_page_dt: pg_uva[%u] is %lu while shm_ctrl[%d].nproc is %u",
+		panic_g("pg_uva[%u] is %lu while shm_ctrl[%d].nproc is %u",
 			ptsc->pgidx, pg_uva[ptsc->pgidx], (int)(ptsc - shm_ctrl), ptsc->nproc);
 	pg_uva[ptsc->pgidx] -= 1U;
 	if (--(ptsc->nproc) == 0U)

@@ -132,7 +132,7 @@ pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 		return INVALID_PID;
 
 	if ((pid = alloc_pid()) == INVALID_PID)
-		panic_g("create_proc: No invalid PID");
+		panic_g("No invalid PID");
 	
 	pgdir_kva = (PTE*)alloc_pagetable(pid);
 	share_pgtable(pgdir_kva, (PTE*)PGDIR_VA);
@@ -147,7 +147,7 @@ pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 		 * The number of processes has been checked at the beginning,
 		 * so this opreation shouldn't fail.
 		 */
-		panic_g("create_proc: Failed to add to pcb_table");
+		panic_g("Failed to add to pcb_table");
 	ready_queue = qtemp;
 	pnew->pid = pid;
 	pnew->pgdir_kva = pgdir_kva;
@@ -193,10 +193,10 @@ del_pcb_and_pg_on_error:
 	free_pages_of_proc((PTE*)pgdir_kva, pid);
 	ready_queue = lpcb_del_node(ready_queue, pnew, &pdel);
 	if (pnew != pdel)
-		panic_g("create_proc: Failed to remove PCB %d from ready_queue", pid);
+		panic_g("Failed to remove PCB %d from ready_queue", pid);
 	kfree_g((void *)pdel);
 	if (pcb_table_del(pdel) < 0)
-		panic_g("create_proc: Failed to remove PCB %d from pcb_table[]", pid);
+		panic_g("Failed to remove PCB %d from pcb_table[]", pid);
 	return INVALID_PID;
 }
 
@@ -241,7 +241,7 @@ void do_scheduler(void)
 			{
 				pid_t kpid = p->pid;
 				if (kpid == ccpu->pid || kpid != do_kill(kpid))
-					panic_g("do_scheduler: Failed to kill proc %d", p->pid);
+					panic_g("Failed to kill proc %d", p->pid);
 			}
 #if MULTITHREADING != 0
 			else if (p->status == TASK_ZOMBIE)
@@ -256,11 +256,11 @@ void do_scheduler(void)
 			 * a ready process must be found, because GlucOS keep
 			 * main() of kernel as a proc with PID 0.
 			 */
-			panic_g("do_scheduler: Cannot find a ready process");
+			panic_g("Cannot find a ready process");
 		return;
 	}
 	else
-		panic_g("do_scheduler: cur_cpu() is NULL");
+		panic_g("cur_cpu() is NULL");
 }
 
 void do_sleep(uint32_t sleep_time)
@@ -282,20 +282,20 @@ void do_sleep(uint32_t sleep_time)
 		 * A ready process must be found, because GlucOS keep
 		 * main() of kernel as a proc with PID 0 (and PID 1 for 2 CPU).
 		 */
-		panic_g("do_sleep: Cannot find a READY process");
+		panic_g("Cannot find a READY process");
 
 	/* NOTE: Forgetting to do this has caused a sever bug! */
 	temp->status = TASK_RUNNING;
 
 	ready_queue = lpcb_del_node(ready_queue, cur_cpu(), &psleep);
 	if (psleep != cur_cpu())
-		panic_g("do_sleep: Failed to remove cur_cpu()");
+		panic_g("Failed to remove cur_cpu()");
 	if (ready_queue == NULL)
-		panic_g("do_sleep: ready_queue is NULL");
+		panic_g("ready_queue is NULL");
 	else
 		current_running[isscpu] = temp;
 	if ((sleep_queue = lpcb_insert_node(sleep_queue, psleep, NULL, &sleep_queue)) == NULL)
-		panic_g("do_sleep: Failed to insert proc %d to sleep_queue", psleep->pid);
+		panic_g("Failed to insert proc %d to sleep_queue", psleep->pid);
 	psleep->status = TASK_SLEEPING;
 	if ((psleep->wakeup_time = get_timer() + sleep_time) > time_max_sec)
 		/* Avoid creating a sleeping task that would never be woken up */
@@ -338,11 +338,11 @@ void check_sleeping(void)
 		 * operating the linked list.
 		 */
 		if (sleep_queue == NULL && pw != temp_sleep)
-			panic_g("check_sleeping: Linked list operation failed");
+			panic_g("Linked list operation failed");
 	} while (pw != temp_sleep);
 	return;
 err:
-	panic_g("check_sleeping: proc %d in sleep_queue is not SLEEPING", pw->pid);
+	panic_g("proc %d in sleep_queue is not SLEEPING", pw->pid);
 }
 
 /*
@@ -372,7 +372,7 @@ void wake_up(pcb_t * const T)
 		current_running[is_scpu()] = ready_queue;
 	return;
 err:
-	panic_g("wake_up: Failed to wake up proc %d", T->pid);
+	panic_g("Failed to wake up proc %d", T->pid);
 }
 
 /*
@@ -397,13 +397,13 @@ int do_block(pcb_t ** const Pqueue, spin_lock_t *slock)
 			cur_cpu()->status = TASK_RUNNING;
 			ready_queue = lpcb_del_node(ready_queue, q, &p);
 			if (p != q)
-				panic_g("do_block: Failed to remove"
+				panic_g("Failed to remove"
 					" cur_cpu() from ready_queue");
 			//ptlock->block_queue = do_block(p, &(ptlock->block_queue));
 			p->status = TASK_SLEEPING;
 			temp = lpcb_insert_node(*Pqueue, p, NULL, Pqueue);
 			if (temp == NULL)
-				panic_g("do_block: Failed to insert pcb %d to queue 0x%lx",
+				panic_g("Failed to insert pcb %d to queue 0x%lx",
 					p->pid, *Pqueue);
 			*Pqueue = temp;
 			/*
@@ -424,7 +424,7 @@ int do_block(pcb_t ** const Pqueue, spin_lock_t *slock)
 	 * A ready process must be found, because GlucOS keep
 	 * main() of kernel as a proc with PID 0.
 	 */
-	panic_g("do_block: Cannot find a READY process");
+	panic_g("Cannot find a READY process");
 	return 1;
 }
 
@@ -440,15 +440,15 @@ pcb_t *do_unblock(pcb_t * const Queue)
 
 	nq = lpcb_del_node(Queue, Queue, &prec);
 	if (prec == NULL)
-		panic_g("do_unblock: Failed to remove the head of queue 0x%lx", (long)Queue);
+		panic_g("Failed to remove the head of queue 0x%lx", (long)Queue);
 	if (prec->status == TASK_SLEEPING)
 		prec->status = TASK_READY;
 	else
-		panic_g("do_unblock: proc %d in queue 0x%lx has error status %d",
+		panic_g("proc %d in queue 0x%lx has error status %d",
 			prec->pid, (uintptr_t)Queue, (int)prec->status);
 	temp = lpcb_insert_node(ready_queue, prec, cur_cpu(), &ready_queue);
 	if (temp == NULL)
-		panic_g("do_unblock: Failed to insert process %d to ready_queue", prec->pid);
+		panic_g("Failed to insert process %d to ready_queue", prec->pid);
 	ready_queue = temp;
 	return nq;
 }
@@ -500,7 +500,7 @@ void init_pcb_stack(
 		 * the privilige is User Mode for user process.
 		 */
 	pcb->trapframe->sstatus = (r_sstatus() & ~SR_SIE & ~SR_SPP) | SR_SPIE;// | SR_SUM;
-	//panic_g("init_pcb_stack: SPP is not zero");
+	//panic_g("SPP is not zero");
 	pcb->trapframe->regs[OFFSET_REG_TP / sizeof(reg_t)] = (reg_t)pcb;
 	pcb->trapframe->regs[OFFSET_REG_SP / sizeof(reg_t)] = (reg_t)(pcb->user_sp);
 	/*
@@ -594,7 +594,7 @@ int do_process_show(void)
 		}
 	}
 	if (uproc_ymr + NCPU != get_proc_num())
-		panic_g("do_process_show: count of proc is error");
+		panic_g("count of proc is error");
 	return uproc_ymr;
 }
 
@@ -639,7 +639,7 @@ pid_t do_exec(const char *name, int argc, char *argv[])
 		argc = 0;
 	pnew = lpcb_search_node(ready_queue, pid);
 	if (pnew == NULL)
-		panic_g("do_exec: Cannot find PCB of %d: %s", pid, name);
+		panic_g("Cannot find PCB of %d: %s", pid, name);
 	/*
 	 * NOTE: command arguments should NOT be too large to
 	 * ensure that writing them wouldnot exceed a page!
@@ -652,7 +652,7 @@ pid_t do_exec(const char *name, int argc, char *argv[])
 	argv_base = (char **)(pnew->user_sp);
 	argv_base_kva = (char **)va2kva((uintptr_t)argv_base, pnew->pgdir_kva);
 	if (argv_base_kva == NULL)
-		panic_g("do_exec: Failed to translate virtual address 0x%lx in page dir 0x%lx",
+		panic_g("Failed to translate virtual address 0x%lx in page dir 0x%lx",
 			pnew->user_sp, (uint64_t)pnew->pgdir_kva);
 	argv_base_kva[argc] = NULL;
 
@@ -666,7 +666,7 @@ pid_t do_exec(const char *name, int argc, char *argv[])
 		argv_base_kva[i] = (char *)(pnew->user_sp -= (unsigned int)(l + 1));
 		arg_kva = (char *)va2kva((uintptr_t)argv_base_kva[i], pnew->pgdir_kva);
 		if (arg_kva == NULL)
-			panic_g("do_exec: Failed to translate virtual address 0x%lx in page dir 0x%lx",
+			panic_g("Failed to translate virtual address 0x%lx in page dir 0x%lx",
 				argv_base_kva[i], (uint64_t)pnew->pgdir_kva);
 		strncpy(arg_kva, argv[i], l);
 		arg_kva[l] = '\0';
@@ -727,7 +727,7 @@ pid_t do_kill(pid_t pid)
 	{
 		cur_cpu()->status = TASK_EXITED;
 		do_scheduler();
-		panic_g("do_kill: thread %d of proc %d is still running after killed",
+		panic_g("thread %d of proc %d is still running after killed",
 			cur_cpu()->tid, pid);
 	}
 	if ((nth = pcb_search_all(pid, farr)) == 0U)
@@ -746,7 +746,7 @@ pid_t do_kill(pid_t pid)
 	{
 		cur_cpu()->status = TASK_EXITED;
 		do_scheduler();
-		panic_g("do_kill: proc %d is still running after killed", pid);
+		panic_g("proc %d is still running after killed", pid);
 	}
 	if ((p = pcb_search(pid)) == NULL)
 		/* Not found */
@@ -775,7 +775,7 @@ pid_t do_kill(pid_t pid)
 
 	/* Checking... */
 	if (lpcb_search_node(*phead, pid) != p)
-		panic_g("do_kill: phead of proc %d is error", pid);
+		panic_g("phead of proc %d is error", pid);
 
 	/* wake up proc in wait_queue */
 	while (p->wait_queue != NULL)
@@ -787,10 +787,10 @@ pid_t do_kill(pid_t pid)
 
 	*phead = lpcb_del_node(*phead, p, &pdel);
 	if (pdel == NULL)
-		panic_g("do_kill: Failed to del pcb %d in queue 0x%lx", pid, (uint64_t)*phead);
+		panic_g("Failed to del pcb %d in queue 0x%lx", pid, (uint64_t)*phead);
 	kfree_g((void *)pdel);
 	if (pcb_table_del(pdel) < 0)
-		panic_g("do_kill: Failed to remove pcb %d from pcb_table", pid);
+		panic_g("Failed to remove pcb %d from pcb_table", pid);
 #if DEBUG_EN != 0
 	writelog("Process %d is terminated and %u page frames are freed",
 		pid, pgfreed_ymr);
@@ -802,7 +802,7 @@ pid_t do_kill(pid_t pid)
 void do_exit(void)
 {
 	if (do_kill(cur_cpu()->pid) != cur_cpu()->pid)
-		panic_g("do_exit: proc %d failed to exit", cur_cpu()->pid);
+		panic_g("proc %d failed to exit", cur_cpu()->pid);
 }
 
 /*
@@ -859,7 +859,7 @@ pid_t do_taskset(int create, char *name, pid_t pid, unsigned int cpu_mask)
 			return npid;
 		p = pcb_search(npid);
 		if (p == NULL)
-			panic_g("do_taskset: Cannot find process \"%s\" with PID %d",
+			panic_g("Cannot find process \"%s\" with PID %d",
 				name, npid);
 		p->cpu_mask = cpu_mask;
 		return npid;

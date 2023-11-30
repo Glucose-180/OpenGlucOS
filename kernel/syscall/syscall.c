@@ -35,7 +35,7 @@ void invalid_syscall(long sysno, long arg0, long arg1, long arg2, long arg3, lon
 	}
 	else
 		panic_g(
-			"invalid_syscall: invalid syscall %ld of pid %d\n"
+			"invalid syscall %ld of pid %d\n"
 			"arg0: 0x%lx\targ1: 0x%lx\targ2: 0x%lx\n"
 			"arg3: 0x%lx\targ4: 0x%lx\n",
 			sysno, cur_cpu()->pid, arg0, arg1, arg2, arg3, arg4

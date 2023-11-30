@@ -64,7 +64,7 @@ void init_mm(void)
 	pgtb_charmap[0] = pgtb_charmap[1] = 0U;
 	pg_uva = kmalloc_g(sizeof(uintptr_t) * NPF);
 	if (pg_uva == NULL)
-		panic_g("init_mm: Failed to alloc `pg_uva`");
+		panic_g("Failed to alloc `pg_uva`");
 }
 
 /*
@@ -77,9 +77,9 @@ uintptr_t alloc_page(unsigned int npages, pid_t pid, uintptr_t uva)
 {
 	uintptr_t rt;
 	if (npages != 1U)
-		panic_g("alloc_page: only supports 1 page up to now");
+		panic_g("only supports 1 page up to now");
 	if ((uint8_t)pid == CMAP_FREE)
-		panic_g("alloc_page: pid is invalid: 0x%x", (int)CMAP_FREE);
+		panic_g("pid is invalid: 0x%x", (int)CMAP_FREE);
 	if (pg_ffree >= NPF)
 	{	/* No free page */
 		pg_ffree = swap_to_disk();
@@ -109,9 +109,9 @@ void free_page(uintptr_t pg_kva)
 	//pg_idx = (pg_kva - Pg_base) / PAGE_SIZE;
 	pg_idx = (pg_kva - Pg_base) >> NORMAL_PAGE_SHIFT;
 	if (pg_kva < Pg_base || (pg_kva & (PAGE_SIZE - 1UL)) != 0UL || pg_idx >= NPF)
-		panic_g("free_page: invalid addr of page: 0x%lx", pg_kva);
+		panic_g("invalid addr of page: 0x%lx", pg_kva);
 	if (pg_charmap[pg_idx] == CMAP_FREE)
-		panic_g("free_page: page 0x%lx is already free", pg_kva);
+		panic_g("page 0x%lx is already free", pg_kva);
 	pg_charmap[pg_idx] = CMAP_FREE;
 	/* Update `pg_ffree` */
 	pg_ffree = (pg_idx < pg_ffree ? pg_idx : pg_ffree);
@@ -128,10 +128,10 @@ uintptr_t alloc_pagetable(pid_t pid)
 	uintptr_t rt;
 
 	if ((uint8_t)pid == CMAP_FREE)
-		panic_g("alloc_pagetable: pid is invalid: %d", pid);
+		panic_g("pid is invalid: %d", pid);
 	if (pgtb_ffree >= NPT)
 		/* No free page table */
-		panic_g("alloc_pagetable: no free page table for proc %d", pid);
+		panic_g("no free page table for proc %d", pid);
 	rt = Pgtb_base + pgtb_ffree * NORMAL_PAGE_SIZE;
 	clear_pgdir(rt);
 	pgtb_charmap[pgtb_ffree] = (uint8_t)pid;
@@ -149,11 +149,11 @@ void free_pagetable(uintptr_t pgtb_kva)
 	pgtb_idx = (pgtb_kva - Pgtb_base) >> NORMAL_PAGE_SHIFT;
 	if (pgtb_kva < Pgtb_base || (pgtb_kva & (PAGE_SIZE - 1UL)) != 0UL ||
 		pgtb_idx >= NPT)
-		panic_g("free_pagetable: invalid addr of page table: 0x%lx", pgtb_kva);
+		panic_g("invalid addr of page table: 0x%lx", pgtb_kva);
 	if (pgtb_charmap[pgtb_idx] == 0U)
-		panic_g("free_page: cannot free page table 0x%lx used by kernel", pgtb_kva);
+		panic_g("cannot free page table 0x%lx used by kernel", pgtb_kva);
 	if (pgtb_charmap[pgtb_idx] == CMAP_FREE)
-		panic_g("free_pagetable: page table 0x%lx is already free", pgtb_kva);
+		panic_g("page table 0x%lx is already free", pgtb_kva);
 	pgtb_charmap[pgtb_idx] = CMAP_FREE;
 	/* Update `pgtb_free` */
 	pgtb_ffree = (pgtb_idx < pgtb_ffree ? pgtb_idx : pgtb_ffree);
@@ -201,7 +201,7 @@ unsigned int free_pages_of_proc(PTE* pgdir, pid_t pid)
 							{	/* Don't free it directly if it is shared */
 								int drt = shm_page_dt(vpn2va(i, j, k), pid, pgdir);
 								if (drt < 0)
-									panic_g("free_pages_of_proc: Failed to free shared "
+									panic_g("Failed to free shared "
 										"pages with UVA 0x%lx and PTE 0x%lx",
 										vpn2va(i, j, k), pgdir_l0[k]);
 								else if (drt > 0)
@@ -211,7 +211,7 @@ unsigned int free_pages_of_proc(PTE* pgdir, pid_t pid)
 							{	/* Read only page */
 								unsigned int pgidx = get_pgidx(pgdir_l0[k]);
 								if (pg_uva[pgidx] == 0UL || pg_uva[pgidx] > UPROC_MAX)
-									panic_g("free_pages_of_proc: page %u is read only "
+									panic_g("page %u is read only "
 										"but is 0x%lx in pg_uva[], 0x%lx of proc %d",
 										pgidx, pg_uva[pgidx], vpn2va(i, j, k), pid);
 								if (--pg_uva[pgidx] == 0UL)
@@ -286,7 +286,7 @@ uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir_kva, pid_t pid)
 	{
 		pgdir_l1 = (PTE*)pa2kva(get_pa(pgdir[vpn2]));
 		if (get_attribute(pgdir[vpn2], _PAGE_PRESENT) == 0U)
-			panic_g("alloc_page_helper: pgdir[vpn2]: 0x%lx is not 0 but V is 0,\n"
+			panic_g("pgdir[vpn2]: 0x%lx is not 0 but V is 0,\n"
 				"pgdir is 0x%lx, vpn2 is %lu", pgdir[vpn2], pgdir_kva, vpn2);
 	}
 
@@ -300,7 +300,7 @@ uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir_kva, pid_t pid)
 	{
 		pgdir_l0 = (PTE*)pa2kva(get_pa(pgdir_l1[vpn1]));
 		if (get_attribute(pgdir_l1[vpn1], _PAGE_PRESENT) == 0U)
-			panic_g("alloc_page_helper: pgdir_l1[vpn1]: 0x%lx is not 0 but V is 0,\n"
+			panic_g("pgdir_l1[vpn1]: 0x%lx is not 0 but V is 0,\n"
 				"pgdir_l1 is 0x%lx, vpn1 is %lu",
 				pgdir_l1[vpn1], (uintptr_t)pgdir_l1, vpn1);
 	}
@@ -314,7 +314,7 @@ uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir_kva, pid_t pid)
 	{
 		pg_kva = pa2kva(get_pa(pgdir_l0[vpn0]));
 		if (get_attribute(pgdir_l0[vpn0], _PAGE_VURWXAD) != _PAGE_VURWXAD)
-			panic_g("alloc_page_helper: pgdir_l0[vpn0]: 0x%lx is not 0 but has wrong attrib,\n"
+			panic_g("pgdir_l0[vpn0]: 0x%lx is not 0 but has wrong attrib,\n"
 				"pgdir_l0 is 0x%lx, vpn0 is %lu",
 				pgdir_l0[vpn0], (uintptr_t)pgdir_l0, vpn0);
 	}
@@ -373,7 +373,7 @@ uintptr_t va2pte(uintptr_t va, PTE* pgdir_kva)
 		if (get_attribute(pgdir_l0[vpn0], _PAGE_XWR) == 0L)
 		{
 			/* It's error as X, W, R are all 0! */
-			panic_g("va2pte: an L0 page whose X, W, R are all 0 is found while"
+			panic_g("an L0 page whose X, W, R are all 0 is found while"
 				" looking up virtual address 0x%lx in page dir 0x%lx", va, pgdir_kva);
 			return 0UL;
 		}
@@ -421,7 +421,7 @@ uintptr_t va2kva(uintptr_t va, PTE* pgdir_kva)
 			return pa2kva(get_pa(*ppte) + offset);
 			break;
 		default:
-			panic_g("pa2kva: va2pte() returned invalid KVA: 0x%lx",
+			panic_g("va2pte() returned invalid KVA: 0x%lx",
 				(uintptr_t)ppte + lpte);
 			return 0UL;
 			break;

@@ -47,7 +47,7 @@ void unlock_kernel()
 {
 	/* TODO: P3-TASK3 multicore*/
 	if (global_kernel_lock.status == UNLOCKED)
-		panic_g("unlock_kernel: CPU %lu: Global kernel lock is unlocked",
+		panic_g("CPU %lu: Global kernel lock is unlocked",
 			get_current_cpu_id());
 	__sync_synchronize();
 	__sync_lock_release(&(global_kernel_lock.status));

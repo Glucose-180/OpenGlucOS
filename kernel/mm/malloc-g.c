@@ -38,7 +38,7 @@ void malloc_init()
 	kallocbuf = (void *)ROUND((uintptr_t)__BSS_END__ + 16UL, 16UL);
 
 	if ((uintptr_t)kallocbuf + KSL > 0xffffffc050e00000UL)
-		panic_g("malloc_init: no enough space for kallocbuf: 0x%lx",
+		panic_g("no enough space for kallocbuf: 0x%lx",
 			(uintptr_t)kallocbuf);
 
 	kpav = (header*)kallocbuf;
@@ -95,7 +95,7 @@ void* kmalloc_g(const uint32_t Size)
 		/* Set f->head = h for checking in xfree_g */
 	}
 	if (((int64_t)(h + 1) & (ADDR_ALIGN - 1)) != 0)
-		panic_g("kmalloc_g: addr %x is not %d-byte aligned", (int32_t)(int64_t)(h + 1), ADDR_ALIGN);
+		panic_g("addr %x is not %d-byte aligned", (int32_t)(int64_t)(h + 1), ADDR_ALIGN);
 	/* return the true address(after the header) */
 	return (void*)(h + 1);
 }
@@ -115,7 +115,7 @@ void kfree_g(void* const P)
 	if (((int64_t)P & (ADDR_ALIGN - 1)) != 0 ||
 		((int64_t)f & (ADDR_ALIGN - 1)) != 0 ||
 		f->head != h)
-		panic_g("kfree_g: Addr 0x%lx is not allocated by kmalloc_g\n", (int64_t)P);
+		panic_g("Addr 0x%lx is not allocated by kmalloc_g\n", (int64_t)P);
 
 	lf = h - 1;	/* foot of the left block */
 	if ((int8_t*)h - kallocbuf <= 0)

@@ -154,7 +154,7 @@ int do_mbox_send(int midx, const uint8_t* msg, unsigned int msg_length)
 	}
 	for (i = 0U; i < msg_length; ++i)
 		if (queue_enter(midx, msg[i]) != msg[i])
-			panic_g("do_mbox_send: Buffer queue of mailbox %d is full", midx);
+			panic_g("Buffer queue of mailbox %d is full", midx);
 	while (ptmbox->block_queue_r != NULL &&
 		len_of_queue(midx) >= ptmbox->block_queue_r->req_len)
 		ptmbox->block_queue_r = do_unblock(ptmbox->block_queue_r);
@@ -208,7 +208,7 @@ int do_mbox_recv(int midx, uint8_t* msg, unsigned int msg_length)
 	}
 	for (i = 0U; i < msg_length; ++i)
 		if ((d = queue_depart(midx)) == -1)
-			panic_g("do_mbox_recv: Buffer queue of mailbox %d is empty", midx);
+			panic_g("Buffer queue of mailbox %d is empty", midx);
 		else
 			msg[i] = (uint8_t)d;
 	while (ptmbox->block_queue_s != NULL)

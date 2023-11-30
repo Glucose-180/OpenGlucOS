@@ -122,14 +122,14 @@ static void init_pcb(void)
 #else
 	if (ready_queue == NULL)
 #endif
-		panic_g("init_pcb: Failed to init ready_queue");
+		panic_g("Failed to init ready_queue");
 	if (pcb_table_add(current_running[0]) < 0 ||
 #if NCPU == 2
 		pcb_table_add(current_running[1]) < 0)
 #else
 		0)
 #endif
-		panic_g("init_pcb: Failed to add 0 to pcb_table");
+		panic_g("Failed to add 0 to pcb_table");
 }
 
 static void init_syscall(void)
@@ -288,7 +288,7 @@ int main(reg_t a0, reg_t a1)
 	local_flush_tlb_all();
 #else
 	if (a1 != 3UL)
-		panic_g("main: `npages_used` from boot.c is %lu", a1);
+		panic_g("`npages_used` from boot.c is %lu", a1);
 	revoke_temp_mapping();
 #endif
 	/*
@@ -310,9 +310,9 @@ int main(reg_t a0, reg_t a1)
 	screen_clear();
 
 	if ((pid = do_exec("glush", -1, argv)) == INVALID_PID)
-		panic_g("main: Failed to start glush");
+		panic_g("Failed to start glush");
 	if (do_taskset(0, NULL, pid, ~0U) != pid)
-		panic_g("main: Failed to set `cpu_mask` of glush %d", pid);
+		panic_g("Failed to set `cpu_mask` of glush %d", pid);
 	unlock_kernel();
 
 	set_preempt();
@@ -332,10 +332,10 @@ int main_s(reg_t a0, reg_t a1)
 	pcb_t *p0;
 
 #if NCPU != 2
-	panic_g("main_s: Only %d CPU but main_s() is entered", NCPU);
+	panic_g("Only %d CPU but main_s() is entered", NCPU);
 #endif
 	if (a1 != 3UL)
-		panic_g("main: npages_used from boot.c is %lu", a1);
+		panic_g("npages_used from boot.c is %lu", a1);
 	revoke_temp_mapping();
 
 	init_exception_s();

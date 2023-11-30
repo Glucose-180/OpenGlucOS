@@ -63,7 +63,7 @@ static unsigned int alloc_swap_page(pid_t pid)
 	unsigned int rt;
 
 	if ((uint8_t)pid == CMAP_FREE)
-		panic_g("alloc_swap_page: pid is invalid: 0x%x", (int)CMAP_FREE);
+		panic_g("pid is invalid: 0x%x", (int)CMAP_FREE);
 	if (spg_ffree >= NPSWAP)
 		return UINT32_MAX;
 	rt = spg_ffree;
@@ -82,9 +82,9 @@ static unsigned int alloc_swap_page(pid_t pid)
 void free_swap_page(unsigned int spg_idx)
 {
 	if (spg_idx >= NPSWAP)
-		panic_g("free_swap_page: invalid index %u", spg_idx);
+		panic_g("invalid index %u", spg_idx);
 	if (spg_charmap[spg_idx] == CMAP_FREE)
-		panic_g("free_swap_page: page %u is already free", spg_idx);
+		panic_g("page %u is already free", spg_idx);
 	spg_charmap[spg_idx] = CMAP_FREE;
 	spg_ffree = (spg_idx < spg_ffree ? spg_idx : spg_ffree);
 }
@@ -109,7 +109,7 @@ unsigned int swap_to_disk()
 		p = pcb_search(pid = pg_charmap[clock_pt]);
 		/* PANIC will also happen if a free page is found. */
 		if (p == NULL && (uint8_t)pid != CMAP_SHARED)
-			panic_g("swap_to_disk: invalid PID %d for page frame %u",
+			panic_g("invalid PID %d for page frame %u",
 				pid, clock_pt);
 		/*
 		 * Don't swap the page of a process running on another CPU!
@@ -126,7 +126,7 @@ unsigned int swap_to_disk()
 			ppte = (PTE*)(lpte & ~7UL);
 			lpte &= 7UL;
 			if (lpte != 0UL || get_attribute(*ppte, _PAGE_PRESENT) == 0L)
-				panic_g("swap_to_disk: invalid PTE 0x%lx at 0x%lx", *ppte, (uintptr_t)ppte);
+				panic_g("invalid PTE 0x%lx at 0x%lx", *ppte, (uintptr_t)ppte);
 			if (get_attribute(*ppte, _PAGE_ACCESSED) != 0U)
 				*ppte &= ~_PAGE_ACCESSED;	/* Clear its A bit */
 			else
@@ -142,7 +142,7 @@ unsigned int swap_to_disk()
 		 * Just handle this situation by panic.
 		 * In future design, we can terminate a process to save the OS.
 		 */
-		panic_g("swap_to_disk: No free page on disk for %d", pid);
+		panic_g("No free page on disk for %d", pid);
 	/* Write the page to disk */
 	bios_sd_write((unsigned int)kva2pa(Pg_base + (clock_pt << NORMAL_PAGE_SHIFT)),
 		NORMAL_PAGE_SIZE / SECTOR_SIZE, get_sec_idx(spidx));
@@ -161,7 +161,7 @@ unsigned int swap_to_disk()
 		local_flush_icache_all();
 	/* 0 PTE will be considered as not allocated */
 	if (*ppte == 0UL)
-		panic_g("swap_to_disk: PTE at 0x%lx of %d becomes 0",
+		panic_g("PTE at 0x%lx of %d becomes 0",
 			(uintptr_t)ppte, pid);
 #if DEBUG_EN != 0
 	writelog("Page %u of proc %d is swapped to disk at %u",
@@ -191,7 +191,7 @@ uintptr_t swap_from_disk(PTE *ppte, uintptr_t uva)
 		return 0UL;
 	pg_kva = alloc_page(1U, cur_cpu()->pid, uva);
 	if (pg_kva == 0UL)
-		panic_g("swap_from_disk: alloc_page() returns 0");
+		panic_g("alloc_page() returns 0");
 	bios_sd_read((unsigned int)kva2pa(pg_kva),
 		NORMAL_PAGE_SIZE / SECTOR_SIZE, get_sec_idx(spidx));
 	free_swap_page(spidx);

@@ -1,6 +1,8 @@
 #ifndef __GLUCOSE_H__
 #define __GLUCOSE_H__
 
+#include <stdarg.h>
+
 #ifndef SECTOR_SIZE
 #define SECTOR_SIZE 512U
 #endif
@@ -46,8 +48,19 @@ int getline(char* str, const int Len);
 char *getcmd(void);
 char **split(char *src, const char Sep);
 void glucos_brake(void);
-void panic_g(const char *fmt, ...);
+void panic(const char *file, const char *func, int line, const char *fmt, ...);
 void writelog(const char *fmt, ...);
 int do_ulog(const char *str);
+
+/*
+ * Call `panic()` function with file name, function name and line number.
+ * Print error information and stop GlucOS from running.
+ */
+#define panic_g(fmt, ...) panic(__FILE__, __FUNCTION__, __LINE__, fmt, ##__VA_ARGS__)
+
+/*
+ * `##__VA_ARGS__`: the `##` means that this argument is optional.
+ * This is learned from ChatGPT.
+ */
 
 #endif

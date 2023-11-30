@@ -27,7 +27,7 @@ void interrupt_helper(regs_context_t *regs, uint64_t stval, uint64_t scause)
 		* by process on another CPU while running.
 		*/
 		do_exit();
-		panic_g("interrupt_helper: proc %d is still running after killed",
+		panic_g("proc %d is still running after killed",
 			cur_cpu()->pid);
 	}
 #endif
@@ -35,7 +35,7 @@ void interrupt_helper(regs_context_t *regs, uint64_t stval, uint64_t scause)
 	{	/* Interrupt */
 		scause &= (((uint64_t)~0UL) >> 1);
 		if (scause >= IRQC_COUNT)
-			panic_g("interrupt_helper: exception code of "
+			panic_g("exception code of "
 				"Interrupt is error: 0x%lx", scause);
 		irq_table[scause](regs, stval, scause);
 	}
@@ -119,7 +119,7 @@ void handle_other(regs_context_t *regs, uint64_t stval, uint64_t scause)
 			printk("\n\r");
 		}
 		panic_g(
-			"handle_other: unknown trap happens from S-mode:\n"
+			"Unknown trap happens from S-mode:\n"
 			"$sstatus: 0x%lx, $stval: 0x%lx, $scause: 0x%lx,\n"
 			"$sepc: 0x%lx, sbadaddr: 0x%lx (should equals $stval)\n",
 			regs->sstatus, stval, scause,
@@ -166,7 +166,7 @@ void handle_pagefault(regs_context_t *regs, uint64_t stval, uint64_t scause)
 	}
 
 	if (ccpu->pid < NCPU)
-		panic_g("handle_pagefault: kernel page fault: 0x%lx, $scause is 0x%lx",
+		panic_g("kernel page fault: 0x%lx, $scause is 0x%lx",
 			stval, scause);
 
 	lpte = va2pte(stval, ccpu->pgdir_kva);
@@ -184,7 +184,7 @@ void handle_pagefault(regs_context_t *regs, uint64_t stval, uint64_t scause)
 		 */
 	if ((r_sstatus() & SR_SPP) != 0UL && stval >= KVA_MIN)
 		/* Kernel page fault at S-mode should not happen up to now */
-		panic_g("handle_pagefault: L%lu page fault of proc %d: 0x%lx",
+		panic_g("L%lu page fault of proc %d: 0x%lx",
 			lpte, ccpu->pid, stval);
 #if DEBUG_EN != 0
 	if ((r_sstatus() & SR_SPP) != 0UL && cur_cpu()->pid >= NCPU)
@@ -192,7 +192,7 @@ void handle_pagefault(regs_context_t *regs, uint64_t stval, uint64_t scause)
 			"$stval is 0x%lx, $scause is 0x%lx", cur_cpu()->pid, stval, scause);
 #endif
 	if (pf_ymr >= 3U)
-		panic_g("handle_pagefault: $stval 0x%lx has appeared %u times consecutively:\n"
+		panic_g("$stval 0x%lx has appeared %u times consecutively:\n"
 			"PID(TID) %d(%d), $scause 0x%lx, $sstatus 0x%lx, $sepc 0x%lx, PTE 0x%lx",
 			stval, pf_ymr, ccpu->pid, ccpu->tid, scause, regs->sstatus, regs->sepc, *ppte);
 
@@ -231,7 +231,7 @@ void handle_pagefault(regs_context_t *regs, uint64_t stval, uint64_t scause)
 					set_pfn(ppte, kva2pa(pg_kva) >> NORMAL_PAGE_SHIFT);
 					set_attribute(ppte, _PAGE_WRITE);
 					if (pg_uva[pgidx] == 0UL || pg_uva[pgidx] > UPROC_MAX)
-						panic_g("handle_pagefault: page %u is read only but is 0x%lx "
+						panic_g("page %u is read only but is 0x%lx "
 							"in pg_uva[], $stval 0x%lx, $sepc 0x%lx",
 							pgidx, stval, pg_uva[pgidx], regs->sepc);
 					if (--pg_uva[pgidx] == 0UL)
