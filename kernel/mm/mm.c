@@ -260,13 +260,35 @@ void share_pgtable(PTE* dest_pgdir, PTE* src_pgdir)
 }
 
 /*
- * allocate a physical page for `va`, mapping it into `pgdir_kva`,
- * return the kernel virtual address for the page.
+ * alloc_page_helper: allocate a physical page for `va`,
+ * mapping it into `pgdir_kva`, and return the kernel virtual address of it.
  * `pid` is the PID of the process for which the page is used.
  * This function either succeeds, or causes panic.
+ * NOTE: if the page corresponding with `va` is allocated (the PTE is not 0),
+ * panic will happen!
  */
 uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir_kva, pid_t pid)
 {
+	PTE* ppte;
+	uint64_t lpte;
+
+	lpte = va2pte(va, (PTE*)pgdir_kva, 1, pid);
+	ppte = (PTE*)(lpte & ~7UL);
+	lpte &= 7UL;
+
+	if (lpte != 0U)
+		panic_g("va2pte(0x%lx, 0x%lx, 1, %d) returns invalid address: 0x%lx",
+			va, pgdir_kva, pid, (uint64_t)ppte + lpte);
+	if (*ppte != 0UL)
+		panic_g("VA 0x%lx is already mapped to PTE 0x%lx in 0x%lx of %d",
+			va, *ppte, pgdir_kva, pid);
+	lpte = alloc_page(1U, pid, va);	/* Reuse `lpte` */
+	set_pfn(ppte, kva2pa(lpte) >> NORMAL_PAGE_SHIFT);
+	set_attribute(ppte, _PAGE_VURWXAD);
+	return lpte;
+}
+
+/*{
 	uint64_t vpn2, vpn1, vpn0;
 	PTE* pgdir = (PTE*)pgdir_kva, *pgdir_l1 = NULL, *pgdir_l0 = NULL;
 	uintptr_t pg_kva;
@@ -319,7 +341,7 @@ uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir_kva, pid_t pid)
 				pgdir_l0[vpn0], (uintptr_t)pgdir_l0, vpn0);
 	}
 	return pg_kva;
-}
+}*/
 
 /*
  * va2pte: look up the page table at `pgdir_kva`
@@ -330,58 +352,53 @@ uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir_kva, pid_t pid)
  * 0b01: PTE of L1 page table;
  * 0b00: PTE of L0 page table.
  * NOTE: the V of PTE may not be 1, which means that
- * the page of `va` is not in main memory! If a PTE with V 0
- * is found while looking up, the looking process is stopped
- * and the KVA of it is returned.
+ * the page of `va` is not in main memory!
+ * If `alloc` is 0: if a PTE with V 0 is found while looking up,
+ * the looking process is stopped and the KVA of it is returned.
+ * Otherwise, necessary PTEs and L1 or L0 page tables would be allocated
+ * for process `pid`. `pid` is ignored if `alloc` is 0.
+ * This is learned from XV6: vm.c: walk().
  */
-uintptr_t va2pte(uintptr_t va, PTE* pgdir_kva)
+uintptr_t va2pte(uintptr_t va, PTE* pgdir, int alloc, pid_t pid)
 {
-	uint64_t vpn2, vpn1, vpn0;
-	PTE *pgdir_l1 = NULL, *pgdir_l0 = NULL;
+	int level;
+	PTE* ppte;
 
-	va &= VA_MASK;
-	vpn2 = va >> (NORMAL_PAGE_SHIFT + PPN_BITS + PPN_BITS);
-	vpn1 = (vpn2 << PPN_BITS) ^ (va >> (NORMAL_PAGE_SHIFT + PPN_BITS));
-	vpn0 = (va >> NORMAL_PAGE_SHIFT) & ~(~0UL << PPN_BITS);
-
-	if (get_attribute(pgdir_kva[vpn2], _PAGE_PRESENT) != 0L)
+	for (level = 2; level >= 0; --level)
 	{
-		if (get_attribute(pgdir_kva[vpn2], _PAGE_XWR) == 0L)
-			/* Point to next level of page table */
-			pgdir_l1 = (PTE *)pa2kva(get_pa(pgdir_kva[vpn2]));
-		else
-			/* It is leave page table */
-			return (uintptr_t)&pgdir_kva[vpn2] + 2UL;
-	}
-	else
-		return (uintptr_t)&pgdir_kva[vpn2] + 2UL;	/* Not present */
-	
-	if (get_attribute(pgdir_l1[vpn1], _PAGE_PRESENT) != 0L)
-	{
-		if (get_attribute(pgdir_l1[vpn1], _PAGE_XWR) == 0L)
-			/* Point to next level of page table */
-			pgdir_l0 = (PTE *)pa2kva(get_pa(pgdir_l1[vpn1]));
-		else
-			/* It is leave page table */
-			return (uintptr_t)&pgdir_l1[vpn1] + 1UL;
-	}
-	else
-		return (uintptr_t)&pgdir_l1[vpn1] + 1UL;
-
-	if (get_attribute(pgdir_l0[vpn0], _PAGE_PRESENT) != 0L)
-	{
-		if (get_attribute(pgdir_l0[vpn0], _PAGE_XWR) == 0L)
+		unsigned int vpn = VPN(va, level);
+		ppte = &pgdir[vpn];
+		if (get_attribute(*ppte, _PAGE_PRESENT) != 0L)
 		{
-			/* It's error as X, W, R are all 0! */
-			panic_g("an L0 page whose X, W, R are all 0 is found while"
-				" looking up virtual address 0x%lx in page dir 0x%lx", va, pgdir_kva);
-			return 0UL;
+			if (get_attribute(*ppte, _PAGE_XWR) == 0L)
+				/* Point to next level of page table */
+				pgdir = (PTE*)pa2kva(get_pa(*ppte));
+			else
+				/*
+				 * Why does it stop if V is not 0 even if `level` is not 0?
+				 * This would make this function useful for kernel page table
+				 * because the kernel uses 2 MiB large page.
+				 */
+				return (uintptr_t)ppte + (uint64_t)level;
 		}
 		else
-			return (uintptr_t)&pgdir_l0[vpn0];
+		{
+			if (level > 0 && alloc != 0)
+			{
+				if (*ppte != 0UL)
+					panic_g("Level %d PTE 0x%lx at 0x%lx is not 0 but V is 0",
+						level, *ppte, (uint64_t)ppte);
+				pgdir = (PTE*)alloc_pagetable(pid);
+				set_pfn(ppte, kva2pa((uintptr_t)pgdir) >> NORMAL_PAGE_SHIFT);
+				set_attribute(ppte, _PAGE_PRESENT);
+			}
+			else
+				return (uintptr_t)ppte + (uint64_t)level;
+		}
 	}
-	else
-		return (uintptr_t)&pgdir_l0[vpn0];
+	panic_g("Valid level 0 PTE 0x%lx at 0x%lx has zero X, W, R",
+		*ppte, (uint64_t)ppte);
+	return 0UL;
 }
 
 /*
@@ -402,7 +419,7 @@ uintptr_t va2kva(uintptr_t va, PTE* pgdir_kva)
 	vpn0 = (va >> NORMAL_PAGE_SHIFT) & ~(~0UL << NORMAL_PAGE_SHIFT);
 	offset = va & (NORMAL_PAGE_SIZE - 1U);
 
-	lpte = va2pte(va, pgdir_kva);
+	lpte = va2pte(va, pgdir_kva, 0, 0);
 	ppte = (PTE*)(lpte & ~7UL);
 	lpte &= 7UL;
 

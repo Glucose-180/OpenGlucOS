@@ -85,6 +85,10 @@ static inline void set_satp(
 #define PPN_BITS 9lu
 #define NUM_PTE_ENTRY (1U << PPN_BITS)
 
+/* Get `level` level virtual page number from `va` */
+#define VPN(va, level) \
+	((((uint64_t)(va)) >> (NORMAL_PAGE_SHIFT + PPN_BITS * (level))) & (NUM_PTE_ENTRY - 1U))
+
 typedef uint64_t PTE;
 
 /* Translation between physical addr and kernel virtual addr */
@@ -114,10 +118,10 @@ static inline uintptr_t get_pfn(PTE entry)
 	/* TODO: [P4-task1] */
 	return (entry & _PAGE_PPN_MASK) >> _PAGE_PFN_SHIFT;
 }
-static inline void set_pfn(PTE *entry, uint64_t pfn)
+static inline void set_pfn(PTE *pentry, uint64_t pfn)
 {
 	/* TODO: [P4-task1] */
-	*entry = (*entry & ~_PAGE_PPN_MASK) |
+	*pentry = (*pentry & ~_PAGE_PPN_MASK) |
 		((pfn << _PAGE_PFN_SHIFT) & _PAGE_PPN_MASK);
 }
 

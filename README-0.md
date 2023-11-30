@@ -234,3 +234,5 @@ Project 4。
 
   优化了`panic_g()`，使之成为宏定义，并可自动打印函数名、文件名和行号。参见`glucose.h`。
 
+  学习 XV6 `vm.c`中`walk()`函数的写法优化了`va2pte()`和`alloc_page_helper()`，使之更简洁。但引入了一个问题：`alloc_page_helper()`不再支持对已经分配的页面重新分配，这种情况（根据虚地址查到的 PTE 不为零）将导致 panic！
+

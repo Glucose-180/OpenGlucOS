@@ -19,7 +19,7 @@ uintptr_t shm_page_get(int key)
 	unsigned int pidid;
 	/* UVA of the shared page for this process */
 	uintptr_t uva;
-	uintptr_t pg_kva, pg_kva2;
+	uintptr_t pg_kva;
 	PTE* ppte;
 	uint64_t lpte;
 	pcb_t *ccpu = cur_cpu();
@@ -48,13 +48,15 @@ uintptr_t shm_page_get(int key)
 #endif
 	if (ptsc->nproc == 0U)
 	{	/* It is the first process using it */
-		pg_kva = alloc_page_helper(uva, (uintptr_t)ccpu->pgdir_kva, CMAP_SHARED);
+		pg_kva = alloc_page_helper(uva, (uintptr_t)ccpu->pgdir_kva, ccpu->pid);
 		/*
 		 * If it is the first process using this page,
 		 * clear it.
 		 */
 		clear_pgdir(pg_kva);
 		ptsc->pgidx = (pg_kva - Pg_base) >> NORMAL_PAGE_SHIFT;
+		/* It is set to `ccpu->pid` in `alloc_page_helper()`. Set it again. */
+		pg_charmap[ptsc->pgidx] = CMAP_SHARED;
 		pg_uva[ptsc->pgidx] = 1U;
 		pidid = 0U;
 		ptsc->opid[0U] = ccpu->pid;
@@ -79,22 +81,12 @@ uintptr_t shm_page_get(int key)
 #if DEBUG_EN != 0
 	ptsc->uva[pidid] = uva;
 #endif
-	/*
-	 * We do not need a new page frame. We just need a valid PTE in L0 page table.
-	 * If it is the first process using this shared memory, `pg_kva2` must equal
-	 * `pg_kva` as the `uva` has just been used to allocate a page.
-	 * Otherwise, they must be different because the `uva` is greater than the original
-	 * `seg_end` of this process, which means that it is not allocated.
-	 * In this case, we should free the page frame as we just need the PTE.
-	 */
-	pg_kva2 = alloc_page_helper(uva, (uintptr_t)ccpu->pgdir_kva, CMAP_SHARED);
-	if ((ptsc->nproc > 1U) != (pg_kva2 != pg_kva))
-		panic_g("shm_ctrl[%u].nproc is %u but pg_kva is 0x%lx, pg_kva2 is 0x%lx",
-			shmid, ptsc->nproc, pg_kva, pg_kva2);
 	if (ptsc->nproc > 1U)
-		/* Don't forget that we just need the PTE. */
-		free_page(pg_kva2);
-	lpte = va2pte(uva, ccpu->pgdir_kva);
+		/* A new PTE should be created. */
+		lpte = va2pte(uva, ccpu->pgdir_kva, 1, ccpu->pid);
+	else
+		/* There should be a valid PTE as we have allocated a page. */
+		lpte = va2pte(uva, ccpu->pgdir_kva, 0, 0);
 	ppte = (PTE*)(lpte & ~7UL);
 	lpte &= 7UL;
 	if (lpte != 0UL)
@@ -126,9 +118,9 @@ int shm_page_dt(uintptr_t addr, pid_t mpid, PTE* pgdir)
 	pid_t pid = (mpid == INVALID_PID ? cur_cpu()->pid : mpid);
 
 	if (mpid == INVALID_PID)
-		lpte = va2pte(addr, cur_cpu()->pgdir_kva);
+		lpte = va2pte(addr, cur_cpu()->pgdir_kva, 0, 0);
 	else
-		lpte = va2pte(addr, pgdir);
+		lpte = va2pte(addr, pgdir, 0, 0);
 	ppte = (PTE*)(lpte & ~7UL);
 	lpte &= 7UL;
 

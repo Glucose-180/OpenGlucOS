@@ -122,7 +122,7 @@ unsigned int swap_to_disk()
 				i = NCPU + 5033;
 		if (i <= NCPU && (uint8_t)pid != CMAP_SHARED)
 		{
-			lpte = va2pte(pg_uva[clock_pt], p->pgdir_kva);
+			lpte = va2pte(pg_uva[clock_pt], p->pgdir_kva, 0, 0);
 			ppte = (PTE*)(lpte & ~7UL);
 			lpte &= 7UL;
 			if (lpte != 0UL || get_attribute(*ppte, _PAGE_PRESENT) == 0L)

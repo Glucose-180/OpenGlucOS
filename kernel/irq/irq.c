@@ -169,7 +169,7 @@ void handle_pagefault(regs_context_t *regs, uint64_t stval, uint64_t scause)
 		panic_g("kernel page fault: 0x%lx, $scause is 0x%lx",
 			stval, scause);
 
-	lpte = va2pte(stval, ccpu->pgdir_kva);
+	lpte = va2pte(stval, ccpu->pgdir_kva, 0, 0);
 	ppte = (PTE*)(lpte & ~7UL);
 	lpte &= 7UL;
 
@@ -200,10 +200,8 @@ void handle_pagefault(regs_context_t *regs, uint64_t stval, uint64_t scause)
 		(stval >= ccpu->seg_start && stval < ccpu->seg_end))
 	{
 		if (*ppte == 0UL)
-		{	/* Page hasn't been allocated */
-			/* Alloc page for stack */
+			/* Page hasn't been allocated */
 			alloc_page_helper(stval, (uintptr_t)(ccpu->pgdir_kva), ccpu->pid);
-		}
 		else
 		{	/* Page is swapped to disk (V is 0) or A or D is 0 */
 			/* Swap the page from disk or set A, D */
@@ -253,7 +251,10 @@ void handle_pagefault(regs_context_t *regs, uint64_t stval, uint64_t scause)
 			}
 			else
 			{
-				swap_from_disk(ppte, stval);
+				if (swap_from_disk(ppte, stval) == 0UL)
+					panic_g("Failed to swap page (PTE 0x%lx) from disk:\n"
+						"$scause 0x%lx, $sstatus 0x%lx, $sepc 0x%lx",
+						*ppte, scause, regs->sstatus, regs->sepc);
 				local_flush_icache_all();
 			}
 		}
