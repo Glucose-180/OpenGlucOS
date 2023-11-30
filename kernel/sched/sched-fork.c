@@ -126,9 +126,9 @@ pid_t do_fork(void)
 							panic_g("invalid L0 PTE %u %u %u 0x%lx",
 								vpn2, vpn1, vpn0, pgdir_l0_p[vpn0]);
 						if (get_attribute(pgdir_l0_p[vpn0], _PAGE_SHARED) != 0L)
-						{/* Shared page, just copy */
-							if (get_attribute(pgdir_l0_p[vpn0], _PAGE_WRITE) == 0L)
-								panic_g("a shared but read only PTE 0x%lx "
+						{	/* Shared page, just copy */
+							if (get_attribute(pgdir_l0_p[vpn0], _PAGE_COW) != 0L)
+								panic_g("a shared but COW PTE 0x%lx "
 									"is found at UVA 0x%lx",
 									pgdir_l0_p[vpn0], vpn2va(vpn2, vpn1, vpn0));
 							pg_kva = alloc_page(1U, pid, vpn2va(vpn2, vpn1, vpn0));
@@ -137,8 +137,8 @@ pid_t do_fork(void)
 							set_pfn(&pgdir_l0[vpn0], kva2pa(pg_kva) >> NORMAL_PAGE_SHIFT);
 							set_attribute(&pgdir_l0[vpn0], _PAGE_VURWXAD);
 						}
-						else if (get_attribute(pgdir_l0_p[vpn0], _PAGE_WRITE) == 0L)
-						{/* Read only page, copy PTE and increase `pg_uva[]` */
+						else if (get_attribute(pgdir_l0_p[vpn0], _PAGE_COW) != 0L)
+						{	/* COW page, copy PTE and increase `pg_uva[]` */
 							unsigned int pgidx;
 							pgdir_l0[vpn0] = pgdir_l0_p[vpn0];
 							pgidx = get_pgidx(pgdir_l0_p[vpn0]);
@@ -150,8 +150,9 @@ pid_t do_fork(void)
 							++s_ymr;
 						}
 						else
-						{/* Normal page, copy PTE and set W to zero. */
+						{	/* Normal page, copy PTE and set W to zero. */
 							unsigned int pgidx;
+							set_attribute(&pgdir_l0_p[vpn0], _PAGE_COW);
 							clear_attribute(&pgdir_l0_p[vpn0], _PAGE_WRITE);
 							pgdir_l0[vpn0] = pgdir_l0_p[vpn0];
 							pgidx = get_pgidx(pgdir_l0_p[vpn0]);

@@ -221,7 +221,7 @@ char *test_fork(void)
 			loc = LOC0 + 3;
 			pid2 = sys_getpid();
 			sys_move_cursor(0, loc);
-			printf("%d: I am child process of %d.", pid2, pid0);
+			printf("%d: I am child process of %d.", pid2, pid1);
 			strcpy(p, str[3]);
 			sys_sleep(3);
 			sys_move_cursor(3, loc);

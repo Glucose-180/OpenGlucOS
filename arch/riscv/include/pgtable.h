@@ -61,6 +61,7 @@ static inline void set_satp(
 #define _PAGE_DIRTY (1UL << 7)    /* Set by hardware on any write */
 //#define _PAGE_SOFT (1UL << 8)     /* Reserved for software */
 #define _PAGE_SHARED (1UL << 8)		/* For shared page */
+#define _PAGE_COW (1UL << 9)		/* Copy-on-Write */
 
 #define _PAGE_XWR (_PAGE_EXEC | _PAGE_WRITE | _PAGE_READ)
 

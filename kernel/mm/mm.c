@@ -207,11 +207,11 @@ unsigned int free_pages_of_proc(PTE* pgdir, pid_t pid)
 								else if (drt > 0)
 									++f_ymr;
 							}
-							else if (get_attribute(pgdir_l0[k], _PAGE_WRITE) == 0L)
-							{	/* Read only page */
+							else if (get_attribute(pgdir_l0[k], _PAGE_COW) != 0L)
+							{	/* COW page */
 								unsigned int pgidx = get_pgidx(pgdir_l0[k]);
 								if (pg_uva[pgidx] == 0UL || pg_uva[pgidx] > UPROC_MAX)
-									panic_g("page %u is read only "
+									panic_g("page %u is COW "
 										"but is 0x%lx in pg_uva[], 0x%lx of proc %d",
 										pgidx, pg_uva[pgidx], vpn2va(i, j, k), pid);
 								if (--pg_uva[pgidx] == 0UL)
@@ -287,61 +287,6 @@ uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir_kva, pid_t pid)
 	set_attribute(ppte, _PAGE_VURWXAD);
 	return lpte;
 }
-
-/*{
-	uint64_t vpn2, vpn1, vpn0;
-	PTE* pgdir = (PTE*)pgdir_kva, *pgdir_l1 = NULL, *pgdir_l0 = NULL;
-	uintptr_t pg_kva;
-	
-	va &= VA_MASK;
-	vpn2 = va >> (NORMAL_PAGE_SHIFT + PPN_BITS + PPN_BITS);
-	vpn1 = (vpn2 << PPN_BITS) ^ (va >> (NORMAL_PAGE_SHIFT + PPN_BITS));
-	vpn0 = (va >> NORMAL_PAGE_SHIFT) & ~(~0UL << PPN_BITS);
-
-	if (pgdir[vpn2] == 0UL)
-	{
-		pgdir_l1 = (PTE*)alloc_pagetable(pid);
-		set_pfn(&pgdir[vpn2], kva2pa((uintptr_t)pgdir_l1) >> NORMAL_PAGE_SHIFT);
-		set_attribute(&pgdir[vpn2], _PAGE_PRESENT);
-	}
-	else
-	{
-		pgdir_l1 = (PTE*)pa2kva(get_pa(pgdir[vpn2]));
-		if (get_attribute(pgdir[vpn2], _PAGE_PRESENT) == 0U)
-			panic_g("pgdir[vpn2]: 0x%lx is not 0 but V is 0,\n"
-				"pgdir is 0x%lx, vpn2 is %lu", pgdir[vpn2], pgdir_kva, vpn2);
-	}
-
-	if (pgdir_l1[vpn1] == 0UL)
-	{
-		pgdir_l0 = (PTE*)alloc_pagetable(pid);
-		set_pfn(&pgdir_l1[vpn1], kva2pa((uintptr_t)pgdir_l0) >> NORMAL_PAGE_SHIFT);
-		set_attribute(&pgdir_l1[vpn1], _PAGE_PRESENT);
-	}
-	else
-	{
-		pgdir_l0 = (PTE*)pa2kva(get_pa(pgdir_l1[vpn1]));
-		if (get_attribute(pgdir_l1[vpn1], _PAGE_PRESENT) == 0U)
-			panic_g("pgdir_l1[vpn1]: 0x%lx is not 0 but V is 0,\n"
-				"pgdir_l1 is 0x%lx, vpn1 is %lu",
-				pgdir_l1[vpn1], (uintptr_t)pgdir_l1, vpn1);
-	}
-	if (pgdir_l0[vpn0] == 0UL)
-	{
-		pg_kva = alloc_page(1U, pid, va);
-		set_pfn(&pgdir_l0[vpn0], kva2pa(pg_kva) >> NORMAL_PAGE_SHIFT);
-		set_attribute(&pgdir_l0[vpn0], _PAGE_VURWXAD);
-	}
-	else
-	{
-		pg_kva = pa2kva(get_pa(pgdir_l0[vpn0]));
-		if (get_attribute(pgdir_l0[vpn0], _PAGE_VURWXAD) != _PAGE_VURWXAD)
-			panic_g("pgdir_l0[vpn0]: 0x%lx is not 0 but has wrong attrib,\n"
-				"pgdir_l0 is 0x%lx, vpn0 is %lu",
-				pgdir_l0[vpn0], (uintptr_t)pgdir_l0, vpn0);
-	}
-	return pg_kva;
-}*/
 
 /*
  * va2pte: look up the page table at `pgdir_kva`
