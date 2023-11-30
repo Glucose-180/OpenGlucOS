@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
 			* Try to cause page fault after trapped to kernel.
 			*/
 			//printf("%c%cnshin", p[i * Pgsize], p[i * Pgsize + 1]);
-			sys_screen_write(p + i * Pgsize, strlen(p + i * Pgsize));
+			sys_screen_write(p + i * Pgsize, strlen("Genshin"));
 			if (strncmp(p + i * Pgsize, "Genshin", 8U) != 0)
 			{
 				printf("\n**Test failed at %d: 0x%lx!\n", i, (long)(p + i * Pgsize));
