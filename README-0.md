@@ -243,3 +243,22 @@ Project 4。
 #### [2023-12-01]
 
   补充 README 文件，准备双仓库开源。
+
+  已进行双仓库开源，在 GitLab 和 GitHub 上各有一个，添加的命令为：
+
+```powershell
+PS E:\OneDrive\UCAS-5\操作系统（研讨课）\OpenGlucOS> git remote add public ssh://git@gitlab.agileserve.org.cn:8082/zhongjian21/openglucos.git
+PS E:\OneDrive\UCAS-5\操作系统（研讨课）\OpenGlucOS> git push public
+...
+PS E:\OneDrive\UCAS-5\操作系统（研讨课）\OpenGlucOS> git remote add public2 https://github.com/Glucose-180/GlucOS.git
+PS E:\OneDrive\UCAS-5\操作系统（研讨课）\OpenGlucOS> git push public2
+...
+```
+
+  推送到主仓库（原有的 private 仓库）时，可使用：
+
+```powershell
+PS E:\OneDrive\UCAS-5\操作系统（研讨课）\OpenGlucOS> git push origin
+Everything up-to-date
+```
+
