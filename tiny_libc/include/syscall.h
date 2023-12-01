@@ -54,6 +54,9 @@
 #define SYS_shm_get 61
 #define SYS_shm_dt 62
 
+#define SYS_net_send 70
+#define SYS_net_recv 71
+
 #define SYS_kprint_avail_table 90
 
 #endif

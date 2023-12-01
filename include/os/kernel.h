@@ -87,7 +87,6 @@ static inline int bios_sd_write(unsigned mem_address, unsigned num_of_blocks, \
 
 static inline void bios_logging(char *str)
 {
-    //call_jmptab(QEMU_LOGGING, (long)kva2pa((uintptr_t)str), 0, 0, 0, 0);
 	call_jmptab(QEMU_LOGGING, (long)str, 0, 0, 0, 0);
 }
 

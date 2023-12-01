@@ -87,6 +87,10 @@ void *sys_sbrk(uint64_t size);
 /* shmpageget/dt */
 void* sys_shmpageget(int key);
 int sys_shmpagedt(void *addr);
+
+/* net send and recv */
+int sys_net_send(void *txpacket, int length);
+int sys_net_recv(void *rxbuffer, int pkt_num, int *pkt_lens);
 /************************************************************/
 
 int sys_semaphore_init(int key, int value);

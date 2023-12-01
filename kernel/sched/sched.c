@@ -205,11 +205,14 @@ void do_scheduler(void)
 	pcb_t *p, *q;
 	pcb_t *ccpu = cur_cpu();
 	uint64_t isscpu = is_scpu();
-	// TODO: [p2-task3] Check sleep queue to wake up PCBs
+	/************************************************************/
+	// TODO: [p5-task3] Check send/recv queue to unblock PCBs
+	/************************************************************/
 
-	/************************************************************/
-	/* Do not touch this comment. Reserved for future projects. */
-	/************************************************************/
+	// TODO: [p2-task1] Modify the current_running pointer.
+
+
+	// TODO: [p2-task1] switch_to current_running
 
 	check_sleeping();
 	if (ccpu != NULL)
