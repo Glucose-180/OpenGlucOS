@@ -20,13 +20,12 @@ void smp_init()
 
 void init_exception_s(void)
 {
-	reg_t sstatus;
-
+	/*
+	 * We only set SUM, SPIE and SIE of $sstatus.
+	 * Write $sstatus directly to avoid uncertainty.
+	 */
+	w_sstatus(SR_SUM | SR_SPIE);
 	setup_exception();
-	sstatus = r_sstatus();
-	sstatus |= SR_SPIE | SR_SUM;
-	sstatus &= ~SR_SPP;
-	w_sstatus(sstatus);
 }
 
 void wakeup_other_hart()
@@ -47,7 +46,7 @@ void unlock_kernel()
 {
 	/* TODO: P3-TASK3 multicore*/
 	if (global_kernel_lock.status == UNLOCKED)
-		panic_g("CPU %lu: Global kernel lock is unlocked",
+		panic_g("Global kernel lock is unlocked",
 			get_current_cpu_id());
 	__sync_synchronize();
 	__sync_lock_release(&(global_kernel_lock.status));

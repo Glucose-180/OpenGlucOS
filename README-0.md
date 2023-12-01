@@ -262,3 +262,6 @@ PS E:\OneDrive\UCAS-5\操作系统（研讨课）\OpenGlucOS> git push origin
 Everything up-to-date
 ```
 
+  GitHub 远端仓库改名为“OpenGlucOS”。注意，使用`git remote set-url public2 https://github.com/Glucose-180/OpenGlucOS.git`，URL 末尾不能加“/”。
+
+  进行了最后的优化（系统启动时直接写入`sstatus`以减少不确定性）和测试。

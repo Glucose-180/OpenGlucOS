@@ -49,8 +49,6 @@ void handle_irq_timer(regs_context_t *regs, uint64_t stval, uint64_t scause)
 {
 	// TODO: [p2-task4] clock interrupt handler.
 	// Note: use bios_set_timer to reset the timer and remember to reschedule
-	//printk("Timer interrupt comes!\n");	//Only for TEST
-
 	set_preempt();	/* Reset timer */
 	do_scheduler();
 }
@@ -60,7 +58,6 @@ void init_exception()
 	/* TODO: [p2-task3] initialize exc_table */
 	/* NOTE: handle_syscall, handle_other, etc.*/
 	int i;
-	reg_t sstatus;
 
 	for (i = 0; i < EXCC_COUNT; ++i)
 		exc_table[i] = handle_other;
@@ -80,13 +77,12 @@ void init_exception()
 	irq_table[IRQC_S_TIMER] = handle_irq_timer;
 	irq_table[IRQ_S_SOFT] = handle_soft;
 
-	/* TODO: [p2-task3] set up the entrypoint of exceptions */
+	/*
+	 * We only set SUM, SPIE and SIE of $sstatus.
+	 * Write $sstatus directly to avoid uncertainty.
+	 */
+	w_sstatus(SR_SUM | SR_SPIE);
 	setup_exception();
-
-	sstatus = r_sstatus();
-	sstatus |= SR_SPIE | SR_SUM;
-	sstatus &= ~(SR_SPP | SR_FS);
-	w_sstatus(sstatus);
 }
 
 static void handle_soft(regs_context_t *regs, uint64_t stval, uint64_t scause)
