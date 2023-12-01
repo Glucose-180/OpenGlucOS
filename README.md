@@ -1,6 +1,6 @@
 # GlucOS for UCAS-OS-Lab
 
-### Project4-Virtual_Memory_Management
+### Branch: Project4-Virtual_Memory_Management
 
 #### 简介
 
@@ -20,13 +20,15 @@
 $ bash ./GlucOS-auto-make.sh clean
 ```
 
+  如果出现“bad interpreter”的错误，可以检查该文件的行尾是否是 LF，如果不是请修改。
+
   注：为了查看日志，请检查工作目录下有没有`glucos-fpga.log`和`glucos-qemu.log`文件，如果没有请创建。
 
 #### 运行
 
   将 SD 卡插入，`make floppy`把镜像写入，然后插到开发板上并启动，`make minicom`，等待数秒后依次输入`printlon`、`loadbootm`即可启动 GlucOS，此时`tail -f glucos-fpga.log`可查看打印出的日志信息。
 
-  如果不用硬件开发板，也可以直接`make run-smp`，在 QEMU 中模拟运行，然后输入`loadbootm`即可启动。`tail -f glucos-qemu.log`查看日志。
+  如果不用硬件开发板，也可以直接`make run-smp`，在 QEMU 中模拟运行，然后输入`loadbootm`即可启动。`tail -f glucos-qemu.log`查看日志。但如果要测试页交换功能，在启动 QEMU 前请执行`make swap NPSWAP=512`将镜像文件扩充作为交换区。
 
   GlucOS 启动后将自动运行 glush（终端程序）。
 
@@ -56,6 +58,8 @@ glucose180@GlucOS:~$ exec rw-g 0x40000000 &
   用`clear`命令可以清屏。
 
   接下来验证页交换（swap）功能。`exec swap-test 500 &`可启动测试程序 swap-test 来尝试对 500 个页框进行读写，由于已经限制可用物理页框数为 200，这势必导致缺页。这个程序会检查读写的内容是否正确，测试过程中如果正确会在屏幕上打印出读写的字符串内容“Genshin”，全部测试完成后打印“Swapping test passed!”后退出。这期间可以从日志中看到大量的页交换信息。
+
+  GlucOS 曾接受过高强度的测试，在`NPF=51200`（200 MiB 的物理内存）和`NPSWAP=262144`（1 GiB的交换区）的条件下，执行`exec swap-test 200000 &`测试 781 MiB 左右的内存读写，成功进行了写入，但在读取时实在太慢了被迫中止。但在`NPF=5120`（20 MiB 的物理内存）的条件下，测试`exec swap-test 10240 &`测试访问 40 MiB 的内存是完全胜任的。
 
   注：GlucOS 可以支持异常嵌套，在内核态触发缺页也能处理。测试程序的源代码`swap-test.c`中有一段精心设计的程序：
 
