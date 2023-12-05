@@ -285,12 +285,16 @@ int main(reg_t a0, reg_t a1)
     e1000 = (volatile uint8_t *)bios_read_fdt(ETHERNET_ADDR);
     uint64_t plic_addr = bios_read_fdt(PLIC_ADDR);
     uint32_t nr_irqs = (uint32_t)bios_read_fdt(NR_IRQS);
-    printk("> [INIT] e1000: %lx, plic_addr: %lx, nr_irqs: %lx.\n", e1000, plic_addr, nr_irqs);
+    printk("> [INIT] e1000: 0x%lx, plic_addr: 0x%lx, nr_irqs: 0x%lx.\n",
+		e1000, plic_addr, nr_irqs);
 
     // IOremap
     plic_addr = (uintptr_t)ioremap((uint64_t)plic_addr, 0x4000 * NORMAL_PAGE_SIZE);
     e1000 = (uint8_t *)ioremap((uint64_t)e1000, 8 * NORMAL_PAGE_SIZE);
-    printk("> [INIT] IOremap initialization succeeded.\n");
+	if (plic_addr != 0UL && e1000 != NULL)
+    	printk("> [INIT] IOremap initialization succeeded.\n");
+	else
+		panic_g("IOremap failed: 0x%lx, 0x%lx", plic_addr, (uint64_t)e1000);
 
 
 	// Init lock mechanism o(´^｀)o

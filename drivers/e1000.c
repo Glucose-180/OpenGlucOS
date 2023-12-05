@@ -8,16 +8,19 @@
 // E1000 Registers Base Pointer
 volatile uint8_t *e1000;  // use virtual memory address
 
-// E1000 Tx & Rx Descriptors
-static struct e1000_tx_desc tx_desc_array[TXDESCS] __attribute__((aligned(16)));
-static struct e1000_rx_desc rx_desc_array[RXDESCS] __attribute__((aligned(16)));
+// E1000 Tx & Rx Descriptors: circular queues
+static struct e1000_tx_desc tx_desc_cq[TXDESCS] __attribute__((aligned(16)));
+static struct e1000_rx_desc rx_desc_cq[RXDESCS] __attribute__((aligned(16)));
+
+static unsigned int tcq_head, tcq_tail; /* Tx desc queue pointers */
+static unsigned int rcq_head, rcq_tail; /* Rx desc queue pointers */
 
 // E1000 Tx & Rx packet buffer
 static char tx_pkt_buffer[TXDESCS][TX_PKT_SIZE];
 static char rx_pkt_buffer[RXDESCS][RX_PKT_SIZE];
 
 // Fixed Ethernet MAC Address of E1000
-static const uint8_t enetaddr[6] = {0x00, 0x0a, 0x35, 0x00, 0x1e, 0x53};
+static const uint8_t Enetaddr[] = {0x00, 0x0a, 0x35, 0x00, 0x1e, 0x53};
 
 /**
  * e1000_reset - Reset Tx and Rx Units; mask and clear all interrupts.
@@ -54,13 +57,22 @@ static void e1000_reset(void)
  **/
 static void e1000_configure_tx(void)
 {
+    uint32_t e1000_tctl;
     /* TODO: [p5-task1] Initialize tx descriptors */
-
+    tcq_head = tcq_tail = 0U;
     /* TODO: [p5-task1] Set up the Tx descriptor base address and length */
-
+    e1000_write_reg(e1000, E1000_TDBAL, kva2pa((uintptr_t)tx_desc_cq) & (~0UL >> 32));
+    e1000_write_reg(e1000, E1000_TDBAH, kva2pa((uintptr_t)tx_desc_cq) >> 32);
 	/* TODO: [p5-task1] Set up the HW Tx Head and Tail descriptor pointers */
-
+    e1000_write_reg(e1000, E1000_TDH, tcq_head);
+    e1000_write_reg(e1000, E1000_TDT, tcq_tail);
     /* TODO: [p5-task1] Program the Transmit Control Register */
+    e1000_tctl = e1000_read_reg(e1000, E1000_TCTL);
+    e1000_tctl |= E1000_TCTL_EN | E1000_TCTL_PSP;
+    e1000_tctl &= ~(E1000_TCTL_CT | E1000_TCTL_COLD);
+    e1000_tctl |= 0x10UL << 4;  /* TCTL::CT */
+    e1000_tctl |= 0x40UL << 12; /* TCTL::COLD */
+    e1000_write_reg(e1000, E1000_TCTL, e1000_tctl);
 }
 
 /**
