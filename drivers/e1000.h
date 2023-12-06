@@ -35,8 +35,20 @@
 #include <io.h>
 
 /* NIC specific static variables go here */
-#define TXDESCS 64          // Number of tx descriptors
-#define RXDESCS 64          // Number of rx descriptors
+#ifndef TXDESCS
+/*
+ * Number of tx descriptors
+ */
+//#define TXDESCS 64
+#define TXDESCS 16
+#endif
+#ifndef RXDESCS
+/*
+ * Number of rx descriptors
+ */
+#define RXDESCS 64
+#endif
+
 #define TX_PKT_SIZE 2048
 #define RX_PKT_SIZE 2048
 
@@ -437,7 +449,7 @@ extern volatile uint8_t *e1000;
 
 /* E1000 Function Definitions */
 void e1000_init(void);
-int e1000_transmit(void *txpacket, int length);
+int e1000_transmit(const void *txpacket, int length);
 int e1000_poll(void *rxbuffer);
 
 #endif  // !_E1000_HW_H_

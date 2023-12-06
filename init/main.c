@@ -49,6 +49,7 @@
 #include <type.h>
 #include <csr.h>
 #include <os/smp.h>
+#include <os/net.h>
 
 extern void ret_from_exception();
 
@@ -185,7 +186,7 @@ static void init_syscall(void)
 		syscall[SYS_thread_exit] = (long (*)())do_thread_exit;
 #endif
 	}
-	/* Screen, clock and IO */ {
+	/* IO: Screen, clock and log */ {
 		syscall[SYS_screen_write] = (long (*)())do_screen_write;
 		syscall[SYS_bios_getchar] = (long (*)())bios_getchar;
 		syscall[SYS_move_cursor] = (long (*)())screen_move_cursor;
@@ -220,6 +221,10 @@ static void init_syscall(void)
 		syscall[SYS_sbrk] = (long (*)())do_sbrk;
 		syscall[SYS_shm_get] = (long (*)())shm_page_get;
 		syscall[SYS_shm_dt] = (long (*)())do_shm_page_dt;
+	}
+	/* IO: NIC */ {
+		syscall[SYS_net_send] = (long (*)())do_net_send;
+		syscall[SYS_net_recv] = (long (*)())do_net_recv;
 	}
 }
 

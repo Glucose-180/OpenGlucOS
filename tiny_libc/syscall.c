@@ -324,15 +324,17 @@ int sys_shmpagedt(void *addr)
 	return invoke_syscall(SYS_shm_dt, (long)addr, Ignore, Ignore, Ignore, Ignore);
 }
 
-int sys_net_send(void *txpacket, int length)
+int sys_net_send(const void *txpacket, int length)
 {
     /* TODO: [p5-task1] call invoke_syscall to implement sys_net_send */
-    return 0;
+    return invoke_syscall(SYS_net_send, (long)txpacket, (long)length,
+		Ignore, Ignore, Ignore);
 }
 
 int sys_net_recv(void *rxbuffer, int pkt_num, int *pkt_lens)
 {
     /* TODO: [p5-task2] call invoke_syscall to implement sys_net_recv */
-    return 0;
+	return invoke_syscall(SYS_net_recv, (long)rxbuffer, (long)pkt_num,
+		(long)pkt_lens, Ignore, Ignore);
 }
 /************************************************************/

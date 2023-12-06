@@ -203,6 +203,9 @@ extern pcb_t *ready_queue;
 //extern list_head sleep_queue;
 extern pcb_t *sleep_queue;
 
+/* Block queues for NIC */
+extern pcb_t *send_block_queue, *recv_block_queue;
+
 /* current running task PCB */
 extern pcb_t * volatile current_running[NCPU];
 

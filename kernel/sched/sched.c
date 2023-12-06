@@ -205,16 +205,13 @@ void do_scheduler(void)
 	pcb_t *p, *q;
 	pcb_t *ccpu = cur_cpu();
 	uint64_t isscpu = is_scpu();
-	/************************************************************/
-	// TODO: [p5-task3] Check send/recv queue to unblock PCBs
-	/************************************************************/
-
-	// TODO: [p2-task1] Modify the current_running pointer.
-
-
-	// TODO: [p2-task1] switch_to current_running
 
 	check_sleeping();
+
+	/* NOTE: TEMPorarily!!! */
+	void check_sleeping_on_nic(void);
+	check_sleeping_on_nic();
+
 	if (ccpu != NULL)
 	{
 		pcb_t *nextp;
@@ -273,37 +270,13 @@ void do_sleep(uint32_t sleep_time)
 	// 1. block the cur_cpu()
 	// 2. set the wake up time for the blocked task
 	// 3. reschedule because the cur_cpu() is blocked.
-	pcb_t *temp, *psleep;
-	uint64_t isscpu = is_scpu();
+	pcb_t *psleep = cur_cpu();
 
-	for (temp = cur_cpu()->next; temp != cur_cpu(); temp = temp->next)
-		if (temp->status == TASK_READY &&
-			(temp->cpu_mask & (1U << get_current_cpu_id())) != 0U)
-			break;
-	if (temp == cur_cpu())
-		/*
-		 * A ready process must be found, because GlucOS keep
-		 * main() of kernel as a proc with PID 0 (and PID 1 for 2 CPU).
-		 */
-		panic_g("Cannot find a READY process");
-
-	/* NOTE: Forgetting to do this has caused a sever bug! */
-	temp->status = TASK_RUNNING;
-
-	ready_queue = lpcb_del_node(ready_queue, cur_cpu(), &psleep);
-	if (psleep != cur_cpu())
-		panic_g("Failed to remove cur_cpu()");
-	if (ready_queue == NULL)
-		panic_g("ready_queue is NULL");
-	else
-		current_running[isscpu] = temp;
-	if ((sleep_queue = lpcb_insert_node(sleep_queue, psleep, NULL, &sleep_queue)) == NULL)
-		panic_g("Failed to insert proc %d to sleep_queue", psleep->pid);
 	psleep->status = TASK_SLEEPING;
 	if ((psleep->wakeup_time = get_timer() + sleep_time) > time_max_sec)
 		/* Avoid creating a sleeping task that would never be woken up */
 		psleep->wakeup_time = time_max_sec;
-	switch_to(&(psleep->context), &(cur_cpu()->context));
+	do_block(&sleep_queue, NULL);
 }
 
 /*
@@ -387,22 +360,21 @@ err:
 int do_block(pcb_t ** const Pqueue, spin_lock_t *slock)
 {
 	// TODO: [p2-task2] block the pcb task into the block queue
-	pcb_t *p, *q, *temp;
+	pcb_t *p, *q, *temp, *ccpu = cur_cpu();
 	int isscpu = is_scpu();
 
-	for (p = cur_cpu()->next; p != cur_cpu(); p = p->next)
+	for (p = ccpu->next; p != ccpu; p = p->next)
 	{
 		if (p->status == TASK_READY &&
 			(p->cpu_mask & (1U << get_current_cpu_id())) != 0U)
 		{
-			q = cur_cpu();
-			current_running[isscpu] = p;
-			cur_cpu()->status = TASK_RUNNING;
+			q = ccpu;
+			ccpu = current_running[isscpu] = p;
+			ccpu->status = TASK_RUNNING;
 			ready_queue = lpcb_del_node(ready_queue, q, &p);
 			if (p != q)
 				panic_g("Failed to remove"
 					" cur_cpu() from ready_queue");
-			//ptlock->block_queue = do_block(p, &(ptlock->block_queue));
 			p->status = TASK_SLEEPING;
 			temp = lpcb_insert_node(*Pqueue, p, NULL, Pqueue);
 			if (temp == NULL)
@@ -415,7 +387,7 @@ int do_block(pcb_t ** const Pqueue, spin_lock_t *slock)
 			 */
 			if (slock != NULL)
 				spin_lock_release(slock);
-			switch_to(&(p->context), &(cur_cpu()->context));
+			switch_to(&(p->context), &(ccpu->context));
 
 			/* Reacquire the spin lock */
 			if (slock != NULL)

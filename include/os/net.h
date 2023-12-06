@@ -8,6 +8,8 @@
 
 void net_handle_irq(void);
 int do_net_recv(void *rxbuffer, int pkt_num, int *pkt_lens);
-int do_net_send(void *txpacket, int length);
+int do_net_send(const void *txpacket, int length);
+
+void check_sleeping_on_nic(void);
 
 #endif  // !__INCLUDE_NET_H__
