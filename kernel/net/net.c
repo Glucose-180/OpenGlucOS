@@ -39,12 +39,31 @@ int do_net_send(const void *txpacket, int length)
 	return rt;
 }
 
+/*
+ * do_net_recv: Receive `pkt_num` packets from NIC, write them
+ * to `rx_buffer` and their lengths to `pkt_lens`.
+ * Return the number of bytes received successfully
+ * or 0 on error.
+ */
 int do_net_recv(void *rxbuffer, int pkt_num, int *pkt_lens)
 {
 	// TODO: [p5-task2] Receive one network packet via e1000 device
 	// TODO: [p5-task3] Call do_block when there is no packet on the way
+	int i, r_ymr = 0, rt;
 
-	return 0;  // Bytes it has received
+	if ((uintptr_t)rxbuffer >= KVA_MIN || pkt_num <= 0 ||
+		(uintptr_t)pkt_lens >= KVA_MIN)
+		return 0;
+	for (i = 0; i < pkt_num; ++i)
+	{
+		while ((rt = e1000_poll(rxbuffer)) == -1)
+		{
+			do_block(&recv_block_queue, NULL);
+		}
+		r_ymr += rt;
+		pkt_lens[i] = rt;
+	}
+	return r_ymr;  // Bytes it has received
 }
 
 void net_handle_irq(void)

@@ -17,9 +17,9 @@ static volatile struct e1000_rx_desc
 static volatile unsigned int tcq_head, tcq_tail; /* Tx desc queue pointers */
 static volatile unsigned int rcq_head, rcq_tail; /* Rx desc queue pointers */
 
-// E1000 Tx & Rx packet buffer
-static char tx_pkt_buffer[TXDESCS][TX_PKT_SIZE];
-static char rx_pkt_buffer[RXDESCS][RX_PKT_SIZE];
+// E1000 Tx & Rx frame buffer
+static char tx_frm_buffer[TXDESCS][TX_FRM_SIZE];
+static char rx_frm_buffer[RXDESCS][RX_FRM_SIZE];
 
 // Fixed Ethernet MAC Address of E1000
 static const uint8_t Enetaddr[] = {0x00, 0x0a, 0x35, 0x00, 0x1e, 0x53};
@@ -71,8 +71,8 @@ static void e1000_configure_tx(void)
 	/* TODO: [p5-task1] Initialize tx descriptors */
 	tcq_head = tcq_tail = 0U;
 	/* TODO: [p5-task1] Set up the Tx descriptor base address and length */
-	e1000_write_reg(e1000, E1000_TDBAL, kva2pa((uintptr_t)tx_desc_cq) & (~0UL >> 32));
-	e1000_write_reg(e1000, E1000_TDBAH, kva2pa((uintptr_t)tx_desc_cq) >> 32);
+	e1000_write_reg(e1000, E1000_TDBAL, (uint32_t)kva2pa((uintptr_t)tx_desc_cq));
+	e1000_write_reg(e1000, E1000_TDBAH, (uint32_t)(kva2pa((uintptr_t)tx_desc_cq) >> 32));
 	/* TODO: [p5-task1] Set up the HW Tx Head and Tail descriptor pointers */
 	e1000_write_reg(e1000, E1000_TDH, tcq_head);
 	e1000_write_reg(e1000, E1000_TDT, tcq_tail);
@@ -91,17 +91,29 @@ static void e1000_configure_tx(void)
  **/
 static void e1000_configure_rx(void)
 {
+	unsigned int i;
 	/* TODO: [p5-task2] Set e1000 MAC Address to RAR[0] */
-
+	e1000_write_reg_array(e1000, E1000_RA, 0U,		/* $RAL0 */
+		*(uint32_t*)Enetaddr);
+	e1000_write_reg_array(e1000, E1000_RA, 1U,		/* $RAH0 */
+		(uint32_t)*(uint16_t*)Enetaddr | E1000_RAH_AV);
 	/* TODO: [p5-task2] Initialize rx descriptors */
-
+	for (i = 0U; i < RXDESCS; ++i)
+		rx_desc_cq[i].addr = kva2pa((uintptr_t)tx_frm_buffer[i]);
+	rcq_head = 0U;
+	rcq_tail = RXDESCS - 1U;
 	/* TODO: [p5-task2] Set up the Rx descriptor base address and length */
-
+	e1000_write_reg(e1000, E1000_RDBAL, (uint32_t)kva2pa((uintptr_t)rx_desc_cq));
+	e1000_write_reg(e1000, E1000_RDBAH, (uint32_t)(kva2pa((uintptr_t)rx_desc_cq) >> 32));
+	e1000_write_reg(e1000, E1000_RDLEN, sizeof(rx_desc_cq));
 	/* TODO: [p5-task2] Set up the HW Rx Head and Tail descriptor pointers */
-
+	e1000_write_reg(e1000, E1000_RDH, rcq_head);
+	e1000_write_reg(e1000, E1000_RDT, rcq_tail);
 	/* TODO: [p5-task2] Program the Receive Control Register */
-
+	e1000_write_reg(e1000, E1000_RCTL,
+		(E1000_RCTL_EN | E1000_RCTL_BAM | E1000_RCTL_SZ_2048) & ~E1000_RCTL_BSEX);
 	/* TODO: [p5-task3] Enable RXDMT0 Interrupt */
+
 }
 
 /**
@@ -119,23 +131,23 @@ void e1000_init(void)
 	e1000_configure_rx();
 }
 
-/**
- * e1000_transmit - Transmit packet through e1000 net device
- * @param txpacket - The buffer address of packet to be transmitted
- * @param length - Length of this packet
- * @return - Number of bytes that are transmitted successfully,
+/*
+ * e1000_transmit: Transmit data frame through e1000 net device
+ * `txpacket`: The buffer address of frame to be transmitted
+ * `length`: Length of this frame
+ * Return: Number of bytes that are transmitted successfully,
  * or -1 if the queue is full, 0 on error.
- **/
-int e1000_transmit(const void *txpacket, int length)
+ */
+int e1000_transmit(const void *txframe, int length)
 {
-	/* TODO: [p5-task1] Transmit one packet from txpacket */
-	if (length > TX_PKT_SIZE || length <= 0)
+	/* TODO: [p5-task1] Transmit one frame from txpacket */
+	if (length > TX_FRM_SIZE || length <= 0)
 		return 0;
 	tcq_head = e1000_read_reg(e1000, E1000_TDH);
 	if (tcq_len() >= TXDESCS - 1U)
 		return -1;
-	memcpy((uint8_t *)tx_pkt_buffer[tcq_tail], txpacket, (unsigned int)length);
-	tx_desc_cq[tcq_tail].addr = kva2pa((uintptr_t)tx_pkt_buffer[tcq_tail]);
+	memcpy((uint8_t *)tx_frm_buffer[tcq_tail], txframe, (unsigned int)length);
+	tx_desc_cq[tcq_tail].addr = kva2pa((uintptr_t)tx_frm_buffer[tcq_tail]);
 	tx_desc_cq[tcq_tail].length = (uint16_t)length;
 	tx_desc_cq[tcq_tail].cmd = (E1000_TXD_CMD_RS | E1000_TXD_CMD_EOP) &
 		~E1000_TXD_CMD_DEXT;
@@ -146,14 +158,32 @@ int e1000_transmit(const void *txpacket, int length)
 	return length;
 }
 
-/**
- * e1000_poll - Receive packet through e1000 net device
- * @param rxbuffer - The address of buffer to store received packet
- * @return - Length of received packet
- **/
+/*
+ * e1000_poll: Receive data frame through e1000 net device
+ * `rxbuffer`: The address of buffer to store received frame
+ * Return: Length of received frame or -1 if no frame is done
+ */
 int e1000_poll(void *rxbuffer)
 {
-	/* TODO: [p5-task2] Receive one packet and put it into rxbuffer */
-
-	return 0;
+	int len;
+	local_flush_dcache();
+	/* TODO: [p5-task2] Receive one frame and put it into rxbuffer */
+	if ((rx_desc_cq[rcq_head].status & E1000_RXD_STAT_DD) == 0U)
+		return -1;
+	len = (int)(uint32_t)rx_desc_cq[rcq_head].length;
+	memcpy((uint8_t*)rxbuffer, (uint8_t *)rx_frm_buffer[rcq_head], len);
+	/*
+	 * It seems unnecessary to clear the bits of `rx_desc_cq[rcq_head]`
+	 * except `addr`. So, just clear DD, which may be also unnecessary.
+	 */
+	rx_desc_cq[rcq_head].status &= ~E1000_RXD_STAT_DD;
+	if (++rcq_head >= RXDESCS)
+		rcq_head = 0U;
+	rx_desc_cq[rcq_tail].addr = kva2pa((uintptr_t)tx_frm_buffer[rcq_tail]);
+	*(((uint64_t *)(rx_desc_cq + rcq_tail)) + 1) = 0UL;	/* Clear other bits */
+	if (++rcq_tail >= RXDESCS)
+		rcq_tail = 0U;
+	e1000_write_reg(e1000, E1000_RDT, rcq_tail);
+	local_flush_dcache();
+	return len;
 }

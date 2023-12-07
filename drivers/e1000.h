@@ -49,32 +49,32 @@
 #define RXDESCS 64
 #endif
 
-#define TX_PKT_SIZE 2048
-#define RX_PKT_SIZE 2048
+#define TX_FRM_SIZE 2048
+#define RX_FRM_SIZE 2048
 
 /* E1000 I/O wrapper functions */
 static inline void
 e1000_write_reg(volatile void *addr, uint32_t reg, uint32_t val)
 {
-    writel(val, (uint8_t *)addr + reg);
+	writel(val, (uint8_t *)addr + reg);
 }
 
 static inline uint32_t
 e1000_read_reg(volatile void *addr, uint32_t reg)
 {
-    return readl((uint8_t *)addr + reg);
+	return readl((uint8_t *)addr + reg);
 }
 
 static inline void
 e1000_write_reg_array(volatile void *addr, uint32_t reg, uint32_t offset, uint32_t val)
 {
-    writel(val, (uint8_t *)addr + reg + (offset << 2));
+	writel(val, (uint8_t *)addr + reg + (offset << 2));
 }
 
 static inline uint32_t
 e1000_read_reg_array(volatile void *addr, uint32_t reg, uint32_t offset)
 {
-    return readl((uint8_t *)addr + reg + (offset << 2));
+	return readl((uint8_t *)addr + reg + (offset << 2));
 }
 
 /* Receive Descriptor */
@@ -111,12 +111,12 @@ struct e1000_rx_desc {
 /* Transmit Descriptor */
 struct e1000_tx_desc {
 	uint64_t addr;	    /* Address of the descriptor's data buffer */
-    uint16_t length;	/* Data buffer length */
-    uint8_t cso;	    /* Checksum offset */
-    uint8_t cmd;	    /* Descriptor control */
-    uint8_t status;	    /* Descriptor status */
-    uint8_t css;	    /* Checksum start */
-    uint16_t special;
+	uint16_t length;	/* Data buffer length */
+	uint8_t cso;	    /* Checksum offset */
+	uint8_t cmd;	    /* Descriptor control */
+	uint8_t status;	    /* Descriptor status */
+	uint8_t css;	    /* Checksum start */
+	uint16_t special;
 }__attribute__((packed));
 
 /* Transmit Descriptor bit definitions */
@@ -449,7 +449,7 @@ extern volatile uint8_t *e1000;
 
 /* E1000 Function Definitions */
 void e1000_init(void);
-int e1000_transmit(const void *txpacket, int length);
+int e1000_transmit(const void *txframe, int length);
 int e1000_poll(void *rxbuffer);
 
 #endif  // !_E1000_HW_H_
