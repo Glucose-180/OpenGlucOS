@@ -49,3 +49,7 @@ Project 5。
   修改了`e1000_poll()`函数，废除了无用的`rcq_head`指针，接收时直接从`rcq_tail`所指的的下一个位置开始。目前 -O2 上板正常，可以接收数量超过接收描述符队列长度的数据包。
 
   发现 Bug：在 recv2 接收数据过程中，glush 执行`ps`可能会报出 Segment fault，地址是`0x1e00350a20`！
+
+  上述 Bug 只会出现在 -O2 情况下！大概是在内核态触发了缺页……
+
+  肉眼瞪出了这个 Bug，是`rx_frm_buffer[]`误写成了`tx_frm_buffer[]`……

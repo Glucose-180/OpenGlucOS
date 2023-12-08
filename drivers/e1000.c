@@ -174,7 +174,7 @@ int e1000_poll(void *rxbuffer)
 	len = (int)(uint32_t)rx_desc_cq[tail_next].length;
 	memcpy((uint8_t*)rxbuffer, (uint8_t *)rx_frm_buffer[tail_next], len);
 
-	rx_desc_cq[tail_next].addr = kva2pa((uintptr_t)tx_frm_buffer[tail_next]);
+	rx_desc_cq[tail_next].addr = kva2pa((uintptr_t)rx_frm_buffer[tail_next]);
 	*(((uint64_t *)(rx_desc_cq + tail_next)) + 1) = 0UL;	/* Clear other bits */
 
 	rcq_tail = tail_next;
