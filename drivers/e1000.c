@@ -15,7 +15,7 @@ static volatile struct e1000_rx_desc
 	rx_desc_cq[RXDESCS] __attribute__((aligned(16)));
 
 static volatile unsigned int tcq_head, tcq_tail; /* Tx desc queue pointers */
-static volatile unsigned int rcq_head, rcq_tail; /* Rx desc queue pointers */
+static volatile unsigned int rcq_tail; /* Rx desc queue pointers */
 
 // E1000 Tx & Rx frame buffer
 static char tx_frm_buffer[TXDESCS][TX_FRM_SIZE];
@@ -100,14 +100,13 @@ static void e1000_configure_rx(void)
 	/* TODO: [p5-task2] Initialize rx descriptors */
 	for (i = 0U; i < RXDESCS; ++i)
 		rx_desc_cq[i].addr = kva2pa((uintptr_t)rx_frm_buffer[i]);
-	rcq_head = 0U;
 	rcq_tail = RXDESCS - 1U;
 	/* TODO: [p5-task2] Set up the Rx descriptor base address and length */
 	e1000_write_reg(e1000, E1000_RDBAL, (uint32_t)kva2pa((uintptr_t)rx_desc_cq));
 	e1000_write_reg(e1000, E1000_RDBAH, (uint32_t)(kva2pa((uintptr_t)rx_desc_cq) >> 32));
 	e1000_write_reg(e1000, E1000_RDLEN, sizeof(rx_desc_cq));
 	/* TODO: [p5-task2] Set up the HW Rx Head and Tail descriptor pointers */
-	e1000_write_reg(e1000, E1000_RDH, rcq_head);
+	e1000_write_reg(e1000, E1000_RDH, 0U);
 	e1000_write_reg(e1000, E1000_RDT, rcq_tail);
 	/* TODO: [p5-task2] Program the Receive Control Register */
 	e1000_write_reg(e1000, E1000_RCTL,
@@ -166,23 +165,19 @@ int e1000_transmit(const void *txframe, int length)
 int e1000_poll(void *rxbuffer)
 {
 	int len;
+	unsigned int tail_next = (rcq_tail + 1U) % RXDESCS;
+
 	local_flush_dcache();
 	/* TODO: [p5-task2] Receive one frame and put it into rxbuffer */
-	if ((rx_desc_cq[rcq_head].status & E1000_RXD_STAT_DD) == 0U)
+	if ((rx_desc_cq[tail_next].status & E1000_RXD_STAT_DD) == 0U)
 		return -1;
-	len = (int)(uint32_t)rx_desc_cq[rcq_head].length;
-	memcpy((uint8_t*)rxbuffer, (uint8_t *)rx_frm_buffer[rcq_head], len);
-	/*
-	 * It seems unnecessary to clear the bits of `rx_desc_cq[rcq_head]`
-	 * except `addr`. So, just clear DD, which may be also unnecessary.
-	 */
-	rx_desc_cq[rcq_head].status &= ~E1000_RXD_STAT_DD;
-	if (++rcq_head >= RXDESCS)
-		rcq_head = 0U;
-	rx_desc_cq[rcq_tail].addr = kva2pa((uintptr_t)tx_frm_buffer[rcq_tail]);
-	*(((uint64_t *)(rx_desc_cq + rcq_tail)) + 1) = 0UL;	/* Clear other bits */
-	if (++rcq_tail >= RXDESCS)
-		rcq_tail = 0U;
+	len = (int)(uint32_t)rx_desc_cq[tail_next].length;
+	memcpy((uint8_t*)rxbuffer, (uint8_t *)rx_frm_buffer[tail_next], len);
+
+	rx_desc_cq[tail_next].addr = kva2pa((uintptr_t)tx_frm_buffer[tail_next]);
+	*(((uint64_t *)(rx_desc_cq + tail_next)) + 1) = 0UL;	/* Clear other bits */
+
+	rcq_tail = tail_next;
 	e1000_write_reg(e1000, E1000_RDT, rcq_tail);
 	local_flush_dcache();
 	return len;

@@ -61,8 +61,8 @@ int main(int argc, char *argv[])
 				recv_length[i] = len_lim;
 
 			if (flag_char != 0)
-				for (int j = 0; j < (recv_length[i] + 31) / 32; ++j) {
-					for (int k = 0; k < 32 && (j * 32 + k < recv_length[i]); ++k) {
+				for (int j = 0; j < (recv_length[i] + 47) / 48; ++j) {
+					for (int k = 0; k < 48 && (j * 48 + k < recv_length[i]); ++k) {
 						int c = *(uint8_t*)curr;
 						if (c >= 32 && c <= 126)
 							printf("%c", c);
