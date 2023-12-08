@@ -96,10 +96,10 @@ static void e1000_configure_rx(void)
 	e1000_write_reg_array(e1000, E1000_RA, 0U,		/* $RAL0 */
 		*(uint32_t*)Enetaddr);
 	e1000_write_reg_array(e1000, E1000_RA, 1U,		/* $RAH0 */
-		(uint32_t)*(uint16_t*)Enetaddr | E1000_RAH_AV);
+		(uint32_t)*(uint16_t*)(Enetaddr + 4) | E1000_RAH_AV);
 	/* TODO: [p5-task2] Initialize rx descriptors */
 	for (i = 0U; i < RXDESCS; ++i)
-		rx_desc_cq[i].addr = kva2pa((uintptr_t)tx_frm_buffer[i]);
+		rx_desc_cq[i].addr = kva2pa((uintptr_t)rx_frm_buffer[i]);
 	rcq_head = 0U;
 	rcq_tail = RXDESCS - 1U;
 	/* TODO: [p5-task2] Set up the Rx descriptor base address and length */

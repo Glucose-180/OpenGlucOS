@@ -56,7 +56,7 @@ int do_net_recv(void *rxbuffer, int pkt_num, int *pkt_lens)
 		return 0;
 	for (i = 0; i < pkt_num; ++i)
 	{
-		while ((rt = e1000_poll(rxbuffer)) == -1)
+		while ((rt = e1000_poll((uint8_t*)rxbuffer + r_ymr)) == -1)
 		{
 			do_block(&recv_block_queue, NULL);
 		}

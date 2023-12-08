@@ -322,13 +322,16 @@ int main(reg_t a0, reg_t a1)
 	init_syscall();
 	printk("> [INIT] System call initialized successfully.\n");
 
+	printk("> [INIT] GlucOS built at %s, %s.\n", __DATE__, __TIME__);
+
 	writelog("=============================\n"
 		"          GlucOS, boot! I am CPU %lu.", get_current_cpu_id());
 	writelog("Multithreading: %d, Timer_interval_ms: %d,\n"
 		"          NCPU: %d, NPF: %u, NPSWAP: %u, DEBUG_EN: %d,\n"
-		"          USEG_MAX: %u MiB, USTACK_NPG: %u",
+		"          USEG_MAX: %u MiB, USTACK_NPG: %u,\n"
+		"          Built at %s, %s",
 		MULTITHREADING, TIMER_INTERVAL_MS, NCPU, NPF, NPSWAP, DEBUG_EN,
-		(unsigned)(USEG_MAX >> 20), USTACK_NPG);
+		(unsigned)(USEG_MAX >> 20), USTACK_NPG, __DATE__, __TIME__);
 #if DEBUG_EN != 0
 	printk("\n> [INFO] Debug mode is enabled.\n");
 	printk("> [INFO] Multithreading: %d, Timer_interval_ms: %d,\n"
@@ -337,6 +340,8 @@ int main(reg_t a0, reg_t a1)
 		MULTITHREADING, TIMER_INTERVAL_MS, NCPU, NPF, NPSWAP,
 		(unsigned)(USEG_MAX >> 20), USTACK_NPG);
 #endif
+
+	printk("> [INFO] Press any key to keep these information...\n");
 
 #if NCPU == 2
 	smp_init();
@@ -356,6 +361,12 @@ int main(reg_t a0, reg_t a1)
 	 * start the first process.
 	 */
 	latency(3U);
+	if (bios_getchar() != NOI)
+	{
+		printk("> [INFO] Press any key to continue...\n");
+		while (bios_getchar() == NOI)
+			;
+	}
 
 	/*
 	 * Lock kernel to protect do_exec(glush)
