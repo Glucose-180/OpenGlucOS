@@ -106,12 +106,8 @@ static void handle_irq_ext(regs_context_t *regs, uint64_t stval, uint64_t scause
 		uint32_t e1000_icr = e1000_read_reg(e1000, E1000_ICR);
 		if ((e1000_icr & E1000_ICR_TXQE) != 0U)
 			handle_e1000_int_txqe();
-		else if ((e1000_icr & E1000_ICR_RXDMT0) != 0U)
+		if ((e1000_icr & E1000_ICR_RXDMT0) != 0U)
 			handle_e1000_int_rxdmt0();
-#if DEBUG_EN != 0
-		else
-			writelog("**Warning: unknown E1000 interrupt: %u", e1000_icr);
-#endif
 		/* Clear interrupt mask to disenable it */
 		e1000_write_reg(e1000, E1000_IMC, e1000_icr);
 	}
