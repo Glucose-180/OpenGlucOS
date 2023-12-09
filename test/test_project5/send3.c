@@ -9,21 +9,35 @@
 #include <unistd.h>
 #include <string.h>
 
-#define NMSG 10
+#define NMSG 1
 
 const char *msg[NMSG] = {
-	"The train bound for Universal Resort is arriving!",
-	"This train is bound for Universal Resort.",
-	"The next station is Gongzhufen.",
-	"Change here for Line 10.",
-	"We are now arriving at Gongzhufen.",
+	"The train bound for Universal Resort is arriving! "
+	"This train is bound for Universal Resort. "
+	"The next station is Gongzhufen. "
+	"Change here for Line 10. "
+	"We are now arriving at Gongzhufen. "
 
-	"The train is arriving, please mind the gap.",
-	"This train stops service at Zhangguozhuang station.",
+	"The train is arriving, please mind the gap. "
+	"This train stops service at Zhangguozhuang station. "
 
-	"Buy tickets at 95306!",
-	"Deliver goods at 12306!",
-	"China railway wishes you a pleasant journey!"
+	"Buy tickets at 95306! "
+	"Deliver goods at 12306! "
+	"China railway wishes you a pleasant journey! "
+
+
+	"The train bound for Universal Resort is arriving! "
+	"This train is bound for Universal Resort. "
+	"The next station is Gongzhufen. "
+	"Change here for Line 10. "
+	"We are now arriving at Gongzhufen. "
+
+	"The train is arriving, please mind the gap. "
+	"This train stops service at Zhangguozhuang station. "
+
+	"Buy tickets at 95306! "
+	"Deliver goods at 12306! "
+	"China railway wishes you a pleasant journey! "
 
 };
 

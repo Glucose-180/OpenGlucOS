@@ -40,6 +40,7 @@
  * Number of tx descriptors
  */
 //#define TXDESCS 64
+//#define TXDESCS 2048
 #define TXDESCS 64
 #endif
 #ifndef RXDESCS
@@ -49,7 +50,7 @@
 #define RXDESCS 64
 #endif
 
-#define TX_FRM_SIZE 2048
+#define TX_FRM_SIZE 1024
 #define RX_FRM_SIZE 2048
 
 /* E1000 I/O wrapper functions */
