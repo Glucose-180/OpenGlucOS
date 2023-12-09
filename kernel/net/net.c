@@ -42,6 +42,33 @@ int do_net_send(const void *txpacket, int length)
 }
 
 /*
+ * do_net_send_array: send `npkt` packets through NIC.
+ * The i-th packet is pointed by `vpkt[i]` with length `vlen[i]`.
+ * Return the number of bytes transmitted successfully or 0 on error.
+ * NOTE: It is used to trig blocking and TXQE interrupt by design.
+ */
+int do_net_send_array(const void **vpkt, int *vlen, int npkt)
+{
+	int rt;
+	unsigned int block_ymr = 0U;
+
+	if ((uintptr_t)vpkt >= KVA_MIN || (uintptr_t)vlen >= KVA_MIN)
+		return 0;
+	while ((rt = e1000_transmit_array(vpkt, vlen, npkt)) == -1)
+	{
+		e1000_write_reg(e1000, E1000_IMS, E1000_IMS_TXQE);
+		do_block(&send_block_queue, NULL);
+		++block_ymr;
+	}
+#if DEBUG_EN != 0
+	if (block_ymr > 0U)
+		writelog("Proc %d has been blocked %u times in send_block_queue",
+			cur_cpu()->pid, block_ymr);
+#endif
+	return rt;
+}
+
+/*
  * do_net_recv: Receive `pkt_num` packets from NIC, write them
  * to `rx_buffer` and their lengths to `pkt_lens`.
  * Return the number of bytes received successfully

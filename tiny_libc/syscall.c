@@ -337,4 +337,10 @@ int sys_net_recv(void *rxbuffer, int pkt_num, int *pkt_lens)
 	return invoke_syscall(SYS_net_recv, (long)rxbuffer, (long)pkt_num,
 		(long)pkt_lens, Ignore, Ignore);
 }
+
+int sys_net_send_array(const void **vpkt, int *vlen, int npkt)
+{
+	return invoke_syscall(SYS_net_send_array, (long)vpkt, (long)vlen,
+		npkt, Ignore, Ignore);
+}
 /************************************************************/

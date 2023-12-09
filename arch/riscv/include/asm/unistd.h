@@ -56,6 +56,7 @@
 
 #define SYS_net_send 70
 #define SYS_net_recv 71
+#define SYS_net_send_array 72
 
 #define SYS_kprint_avail_table 90
 

@@ -159,6 +159,40 @@ int e1000_transmit(const void *txframe, int length)
 }
 
 /*
+ * e1000_transmit_array: transmit `nfrm` frames through E1000.
+ * The i-th frame is pointed by `vfrm[i]` with length `vlen[i]`.
+ * Return the number of bytes transmitted successfully,
+ * or -1 if free descriptors are not enough, 0 on error.
+ */
+int e1000_transmit_array(const void **vfrm, int *vlen, int nfrm)
+{
+	int i, t_ymr = 0;
+
+	if (nfrm <= 0 || nfrm > TXDESCS - 1)
+		return 0;
+	for (i = 0; i < nfrm; ++i)
+		if (vlen[i] <= 0 || vlen[i] > TX_FRM_SIZE)
+			return 0;
+	tcq_head = e1000_read_reg(e1000, E1000_TDH);
+	if (tcq_len() + (unsigned int)nfrm > TXDESCS - 1U)
+		return -1;
+	for (i = 0; i < nfrm; ++i)
+	{
+		memcpy((uint8_t *)tx_frm_buffer[tcq_tail], vfrm[i], (unsigned int)vlen[i]);
+		tx_desc_cq[tcq_tail].addr = kva2pa((uintptr_t)tx_frm_buffer[tcq_tail]);
+		tx_desc_cq[tcq_tail].length = (uint16_t)vlen[i];
+		tx_desc_cq[tcq_tail].cmd = (E1000_TXD_CMD_RS | E1000_TXD_CMD_EOP) &
+			~E1000_TXD_CMD_DEXT;
+		if (++tcq_tail >= TXDESCS)
+			tcq_tail = 0U;
+		t_ymr += vlen[i];
+	}
+	local_flush_dcache();
+	e1000_write_reg(e1000, E1000_TDT, tcq_tail);
+	return t_ymr;
+}
+
+/*
  * e1000_poll: Receive data frame through e1000 net device
  * `rxbuffer`: The address of buffer to store received frame
  * Return: Length of received frame or -1 if no frame is done

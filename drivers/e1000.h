@@ -40,7 +40,7 @@
  * Number of tx descriptors
  */
 //#define TXDESCS 64
-#define TXDESCS 16
+#define TXDESCS 64
 #endif
 #ifndef RXDESCS
 /*
@@ -450,6 +450,7 @@ extern volatile uint8_t *e1000;
 /* E1000 Function Definitions */
 void e1000_init(void);
 int e1000_transmit(const void *txframe, int length);
+int e1000_transmit_array(const void **vfrm, int *vlen, int nfrm);
 int e1000_poll(void *rxbuffer);
 void handle_e1000_int_txqe(void);
 void handle_e1000_int_rxdmt0(void);

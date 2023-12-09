@@ -226,6 +226,7 @@ static void init_syscall(void)
 	/* IO: NIC */ {
 		syscall[SYS_net_send] = (long (*)())do_net_send;
 		syscall[SYS_net_recv] = (long (*)())do_net_recv;
+		syscall[SYS_net_send_array] = (long (*)())do_net_send_array;
 	}
 }
 
