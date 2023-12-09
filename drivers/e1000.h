@@ -451,5 +451,7 @@ extern volatile uint8_t *e1000;
 void e1000_init(void);
 int e1000_transmit(const void *txframe, int length);
 int e1000_poll(void *rxbuffer);
+void handle_e1000_int_txqe(void);
+void handle_e1000_int_rxdmt0(void);
 
 #endif  // !_E1000_HW_H_

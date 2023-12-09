@@ -80,12 +80,21 @@
 #define DEBUG_EN 0
 #endif
 
+#ifndef PYNQ
+/* On PYNQ FPGA or QEMU? */
+	#if DEBUG_EN != 0
+		#define PYNQ 0
+	#else
+		#define PYNQ 1
+	#endif
+#endif
+
 enum FDT_TYPE {
-    TIMEBASE,
-    SLCR_BADE_ADDR,
-    ETHERNET_ADDR,
-    PLIC_ADDR,
-    NR_IRQS
+	TIMEBASE,
+	SLCR_BADE_ADDR,
+	ETHERNET_ADDR,
+	PLIC_ADDR,
+	NR_IRQS
 };
 
 // enter a char into serial port

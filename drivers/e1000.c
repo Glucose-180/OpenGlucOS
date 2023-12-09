@@ -2,6 +2,7 @@
 #include <type.h>
 #include <os/string.h>
 #include <os/time.h>
+#include <os/sched.h>
 #include <assert.h>
 #include <pgtable.h>
 
@@ -109,8 +110,8 @@ static void e1000_configure_rx(void)
 	e1000_write_reg(e1000, E1000_RDH, 0U);
 	e1000_write_reg(e1000, E1000_RDT, rcq_tail);
 	/* TODO: [p5-task2] Program the Receive Control Register */
-	e1000_write_reg(e1000, E1000_RCTL,
-		(E1000_RCTL_EN | E1000_RCTL_BAM | E1000_RCTL_SZ_2048) & ~E1000_RCTL_BSEX);
+	e1000_write_reg(e1000, E1000_RCTL, (E1000_RCTL_RDMTS_HALF |
+		E1000_RCTL_EN | E1000_RCTL_BAM | E1000_RCTL_SZ_2048) & ~E1000_RCTL_BSEX);
 	/* TODO: [p5-task3] Enable RXDMT0 Interrupt */
 
 }
@@ -181,4 +182,18 @@ int e1000_poll(void *rxbuffer)
 	e1000_write_reg(e1000, E1000_RDT, rcq_tail);
 	local_flush_dcache();
 	return len;
+}
+
+/* Transmission queue empty interrupt */
+void handle_e1000_int_txqe(void)
+{
+	while (send_block_queue != NULL)
+		send_block_queue = do_unblock(send_block_queue);
+}
+
+/* Receive descriptor minimum threshold interrupt */
+void handle_e1000_int_rxdmt0(void)
+{
+	while (recv_block_queue != NULL)
+		recv_block_queue = do_unblock(recv_block_queue);
 }

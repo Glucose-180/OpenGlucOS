@@ -11,11 +11,17 @@
 #include <csr.h>
 #include <os/mm.h>
 #include <os/smp.h>
+#include <plic.h>
+#include <e1000.h>
 
 handler_t irq_table[IRQC_COUNT];
 handler_t exc_table[EXCC_COUNT];
 
+static void handle_irq_timer(regs_context_t *regs, uint64_t stval, uint64_t scause);
 static void handle_soft(regs_context_t *regs, uint64_t stval, uint64_t scause);
+static void handle_irq_ext(regs_context_t *regs, uint64_t stval, uint64_t scause);
+static void handle_pagefault(regs_context_t *regs, uint64_t stval, uint64_t scause);
+static void handle_other(regs_context_t *regs, uint64_t stval, uint64_t scause);
 
 void interrupt_helper(regs_context_t *regs, uint64_t stval, uint64_t scause)
 {
@@ -45,20 +51,6 @@ void interrupt_helper(regs_context_t *regs, uint64_t stval, uint64_t scause)
 	}
 }
 
-void handle_irq_timer(regs_context_t *regs, uint64_t stval, uint64_t scause)
-{
-	// TODO: [p2-task4] clock interrupt handler.
-	// Note: use bios_set_timer to reset the timer and remember to reschedule
-	set_preempt();	/* Reset timer */
-	do_scheduler();
-}
-
-void handle_irq_ext(regs_context_t *regs, uint64_t stval, uint64_t scause)
-{
-    // TODO: [p5-task3] external interrupt handler.
-    // Note: plic_claim and plic_complete will be helpful ...
-}
-
 void init_exception()
 {
 	/* TODO: [p2-task3] initialize exc_table */
@@ -81,7 +73,8 @@ void init_exception()
 	 */
 	//irq_table[IRQC_U_TIMER] = handle_irq_timer;
 	irq_table[IRQC_S_TIMER] = handle_irq_timer;
-	irq_table[IRQ_S_SOFT] = handle_soft;
+	irq_table[IRQC_S_SOFT] = handle_soft;
+	irq_table[IRQC_S_EXT] = handle_irq_ext;
 
 	/*
 	 * We only set SUM, SPIE and SIE of $sstatus.
@@ -89,6 +82,44 @@ void init_exception()
 	 */
 	w_sstatus(SR_SUM | SR_SPIE);
 	setup_exception();
+}
+
+static void handle_irq_timer(regs_context_t *regs, uint64_t stval, uint64_t scause)
+{
+	// TODO: [p2-task4] clock interrupt handler.
+	// Note: use bios_set_timer to reset the timer and remember to reschedule
+	set_preempt();	/* Reset timer */
+	do_scheduler();
+}
+
+static void handle_irq_ext(regs_context_t *regs, uint64_t stval, uint64_t scause)
+{
+	// TODO: [p5-task3] external interrupt handler.
+	// Note: plic_claim and plic_complete will be helpful ...
+	int32_t claim = (int32_t)plic_claim();
+#if DEBUG_EN != 0
+	if (claim == PLIC_E1000_PYNQ_IRQ || claim == PLIC_E1000_QEMU_IRQ)
+#else
+	if (claim == (PYNQ ? PLIC_E1000_PYNQ_IRQ : PLIC_E1000_QEMU_IRQ))
+#endif
+	{
+		uint32_t e1000_icr = e1000_read_reg(e1000, E1000_ICR);
+		if ((e1000_icr & E1000_ICR_TXQE) != 0U)
+			handle_e1000_int_txqe();
+		else if ((e1000_icr & E1000_ICR_RXDMT0) != 0U)
+			handle_e1000_int_rxdmt0();
+#if DEBUG_EN != 0
+		else
+			writelog("**Warning: unknown E1000 interrupt: %u", e1000_icr);
+#endif
+		/* Clear interrupt mask to disenable it */
+		e1000_write_reg(e1000, E1000_IMC, e1000_icr);
+	}
+
+	plic_complete(claim);
+#if DEBUG_EN != 0
+	writelog("PLIC %d interrupt has completed.", claim);
+#endif
 }
 
 static void handle_soft(regs_context_t *regs, uint64_t stval, uint64_t scause)
@@ -101,43 +132,7 @@ static void handle_soft(regs_context_t *regs, uint64_t stval, uint64_t scause)
 #endif
 }
 
-void handle_other(regs_context_t *regs, uint64_t stval, uint64_t scause)
-{
-	static char* reg_name[] = {
-		"zero "," ra  "," sp  "," gp  "," tp  ",
-		" t0  "," t1  "," t2  ","s0/fp"," s1  ",
-		" a0  "," a1  "," a2  "," a3  "," a4  ",
-		" a5  "," a6  "," a7  "," s2  "," s3  ",
-		" s4  "," s5  "," s6  "," s7  "," s8  ",
-		" s9  "," s10 "," s11 "," t3  "," t4  ",
-		" t5  "," t6  "
-	};
-	if ((regs->sstatus & SR_SPP) != 0UL)
-	{
-		for (int i = 0; i < 32; i += 3) {
-			for (int j = 0; j < 3 && i + j < 32; ++j) {
-				printk("%s : %016lx ",reg_name[i+j], regs->regs[i+j]);
-			}
-			printk("\n\r");
-		}
-		panic_g(
-			"Unknown trap happens from S-mode:\n"
-			"$sstatus: 0x%lx, $stval: 0x%lx, $scause: 0x%lx,\n"
-			"$sepc: 0x%lx, sbadaddr: 0x%lx (should equals $stval)\n",
-			regs->sstatus, stval, scause,
-			regs->sepc, regs->sbadaddr
-		);
-	}
-	else
-	{	/* From U-mode */
-		printk("**Exception 0x%lx happens at 0x%lx: 0x%lx\n",
-			scause, regs->sepc, stval);
-		do_exit();
-	}
-}
-
-
-void handle_pagefault(regs_context_t *regs, uint64_t stval, uint64_t scause)
+static void handle_pagefault(regs_context_t *regs, uint64_t stval, uint64_t scause)
 {
 	uint64_t lpte;
 	PTE* ppte;
@@ -238,9 +233,9 @@ void handle_pagefault(regs_context_t *regs, uint64_t stval, uint64_t scause)
 					if (--pg_uva[pgidx] == 0UL)
 						free_page(Pg_base + (pgidx << NORMAL_PAGE_SHIFT));
 					/*
-					* Flush I-Cache in case of a process modifies its
-					* .text section, or instructions.
-					*/
+					 * Flush I-Cache in case of a process modifies its
+					 * .text section, or instructions.
+					 */
 					local_flush_icache_all();
 				}
 				/* GlucOS don't use D bit at all, so just set it. */
@@ -272,6 +267,41 @@ void handle_pagefault(regs_context_t *regs, uint64_t stval, uint64_t scause)
 		 * Can you ensure that no error will happen if you just call
 		 * `do_exit()` and then call `do_scheduler()` to switch to another process?
 		 */
+		do_exit();
+	}
+}
+
+static void handle_other(regs_context_t *regs, uint64_t stval, uint64_t scause)
+{
+	static char* reg_name[] = {
+		"zero "," ra  "," sp  "," gp  "," tp  ",
+		" t0  "," t1  "," t2  ","s0/fp"," s1  ",
+		" a0  "," a1  "," a2  "," a3  "," a4  ",
+		" a5  "," a6  "," a7  "," s2  "," s3  ",
+		" s4  "," s5  "," s6  "," s7  "," s8  ",
+		" s9  "," s10 "," s11 "," t3  "," t4  ",
+		" t5  "," t6  "
+	};
+	if ((regs->sstatus & SR_SPP) != 0UL)
+	{
+		for (int i = 0; i < 32; i += 3) {
+			for (int j = 0; j < 3 && i + j < 32; ++j) {
+				printk("%s : %016lx ",reg_name[i+j], regs->regs[i+j]);
+			}
+			printk("\n\r");
+		}
+		panic_g(
+			"Unknown trap happens from S-mode:\n"
+			"$sstatus: 0x%lx, $stval: 0x%lx, $scause: 0x%lx,\n"
+			"$sepc: 0x%lx, sbadaddr: 0x%lx (should equals $stval)\n",
+			regs->sstatus, stval, scause,
+			regs->sepc, regs->sbadaddr
+		);
+	}
+	else
+	{	/* From U-mode */
+		printk("**Exception 0x%lx happens at 0x%lx: 0x%lx\n",
+			scause, regs->sepc, stval);
 		do_exit();
 	}
 }

@@ -180,12 +180,14 @@ typedef struct pcb
 	 */
 	struct pcb ** phead;	/* TP */
 	/*
-	 * req_len is used to store the length of mailbox
+	 * `req_len` is used to store the length of mailbox
 	 * request when blocked in queue of mailbox.
+	 * Since Project 5, it is also used to store the
+	 * length of NIC receiving request.
 	 */
 	unsigned int req_len;	/* TP */
 	/*
-	 * cpu_mask is used to set CPU affinity. If a CPU has ID i,
+	 * `cpu_mask` is used to set CPU affinity. If a CPU has ID i,
 	 * this process can run on it if and only if (1<<i)&cpu_mask is not zero.
 	 */
 	unsigned int cpu_mask;	/* TP */

@@ -49,6 +49,7 @@
 #include <type.h>
 #include <csr.h>
 #include <os/smp.h>
+#include <plic.h>
 #include <os/net.h>
 
 extern void ret_from_exception();
@@ -311,8 +312,8 @@ int main(reg_t a0, reg_t a1)
 	printk("> [INIT] Interrupt processing initialization succeeded.\n");
 
     // TODO: [p5-task3] Init plic
-    // plic_init(plic_addr, nr_irqs);
-    // printk("> [INIT] PLIC initialized successfully. addr = 0x%lx, nr_irqs=0x%x\n", plic_addr, nr_irqs);
+	plic_init(plic_addr, nr_irqs);
+	printk("> [INIT] PLIC initialized successfully.\n");
 
     // Init network device
     e1000_init();

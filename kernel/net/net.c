@@ -29,12 +29,14 @@ int do_net_send(const void *txpacket, int length)
 	while ((rt = e1000_transmit(txpacket, length)) == -1)
 	{
 		/* Sending queue is full */
+		e1000_write_reg(e1000, E1000_IMS, E1000_IMS_TXQE);
 		do_block(&send_block_queue, NULL);
 		++block_ymr;
 	}
 #if DEBUG_EN != 0
-	writelog("Proc %d has been blocked %u times in send_block_queue",
-		cur_cpu()->pid, block_ymr);
+	if (block_ymr > 0U)
+		writelog("Proc %d has been blocked %u times in send_block_queue",
+			cur_cpu()->pid, block_ymr);
 #endif
 	return rt;
 }
@@ -58,6 +60,9 @@ int do_net_recv(void *rxbuffer, int pkt_num, int *pkt_lens)
 	{
 		while ((rt = e1000_poll((uint8_t*)rxbuffer + r_ymr)) == -1)
 		{
+			/* Store the number of packets to be received */
+			cur_cpu()->req_len = pkt_num - i;
+			e1000_write_reg(e1000, E1000_IMS, E1000_IMS_RXDMT0);
 			do_block(&recv_block_queue, NULL);
 		}
 		r_ymr += rt;
@@ -66,20 +71,16 @@ int do_net_recv(void *rxbuffer, int pkt_num, int *pkt_lens)
 	return r_ymr;  // Bytes it has received
 }
 
-void net_handle_irq(void)
-{
-	// TODO: [p5-task3] Handle interrupts from network device
-}
-
 /*
- * This is a temporary function to wake up
- * processes blocked because of NIC. Later it will be
- * replaced by TXQE and RXDMT0 interrupt.
+ * check_sleeping_on_nic: Wake up processes that are waiting for
+ * packets less than or equal to half of the rx descriptors when
+ * the timer interrupt comes. That is because RXDMT interrupt
+ * comes only when more than half of the queue is filled with
+ * received data.
  */
 void check_sleeping_on_nic(void)
 {
-	while (send_block_queue != NULL)
-		send_block_queue = do_unblock(send_block_queue);
-	while (recv_block_queue != NULL)
+	while (recv_block_queue != NULL &&
+		recv_block_queue->req_len <= (RXDESCS >> 1))
 		recv_block_queue = do_unblock(recv_block_queue);
 }
