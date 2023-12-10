@@ -32,6 +32,8 @@ const uintptr_t User_sp = USER_STACK_ADDR;
 const uint32_t //Ustack_size = USTACK_NPG * PAGE_SIZE,
 	Kstack_size = 16 * 1024;
 
+pid_t pid_glush = INVALID_PID;
+
 /*
  * It is used to represent main.c:main()
  */
@@ -208,7 +210,6 @@ void do_scheduler(void)
 
 	check_sleeping();
 
-	/* NOTE: TEMPorarily!!! */
 	void check_sleeping_on_nic(void);
 	check_sleeping_on_nic();
 
@@ -668,6 +669,7 @@ pid_t do_exec(const char *name, int argc, char *argv[])
 pid_t do_kill(pid_t pid)
 {
 	unsigned int pgfreed_ymr;
+	pid_t start_glush(void);
 
 	if (pid < NCPU)
 		return INVALID_PID;
@@ -714,6 +716,9 @@ pid_t do_kill(pid_t pid)
 			pid, pgfreed_ymr);
 #endif
 	}
+	if (pid == pid_glush)
+		/* If glush is killed, restart it. */
+		pid_glush = start_glush();
 	return pid;
 #else
 	pcb_t *p, **phead, *pdel;
@@ -770,6 +775,9 @@ pid_t do_kill(pid_t pid)
 	writelog("Process %d is terminated and %u page frames are freed",
 		pid, pgfreed_ymr);
 #endif
+	if (pid == pid_glush)
+		/* If glush is killed, restart it. */
+		pid_glush = start_glush();
 	return pid;
 #endif
 }

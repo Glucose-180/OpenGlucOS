@@ -8,11 +8,24 @@ int getchar(void)
 #define QEMPTY (qhead == qtail)
 #define QFULL ((qhead - qtail) % QS == 1)
 
+/*
+ * If it has been 10 sec since the user pressed a key,
+ * lower the scanning frequency to save power.
+ */
+#define WTIME 10U
+
 	/* Input buffer. It's a CIRCULAR queue. */
 	static signed char ibuf[QS];
 	static unsigned int qhead = 0,
 		qtail = 0;	/* pointers of buffer */
 	int ch;
+	static unsigned long time_base = 0UL, tlast = 0UL;
+
+	if (time_base == 0UL)
+	{	/* Initialization */
+		time_base = (unsigned long)sys_get_timebase();
+		tlast = sys_get_tick() / time_base;
+	}
 
 	if (!QEMPTY)
 	{
@@ -24,7 +37,12 @@ int getchar(void)
 	while (1)
 	{
 		while ((ch = sys_bios_getchar()) == NOI)
-			;
+		{
+			if (sys_get_tick() / time_base - tlast >= WTIME)
+				sys_sleep(2U);
+		}
+		
+		tlast = sys_get_tick() / time_base;
 		if (ch == '\b' || ch == '\177')
 		{	/* backspace */
 			if (!QEMPTY)

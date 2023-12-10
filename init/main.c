@@ -244,15 +244,8 @@ static void revoke_temp_mapping(void)
 	local_flush_tlb_all();
 }
 
-/************************************************************/
-/*
- * a0, a1 are arguments passed from boot_kernel() and _start.
- * Now, a0 is CPU ID, and a1 is `npages_used` in boot.c.
- */
-#pragma GCC diagnostic ignored "-Wmain"
-int main(reg_t a0, reg_t a1)
+pid_t start_glush(void)
 {
-	pid_t pid;
 #ifndef TERMINAL_BEGIN
 #define TERMINAL_BEGIN "17"
 #endif
@@ -267,7 +260,22 @@ int main(reg_t a0, reg_t a1)
 		"0",
 #endif
 		NULL};
+	pid_glush = do_exec("glush", -1, argv);
+	if (pid_glush == INVALID_PID)
+		return INVALID_PID;
+	if (do_taskset(0, NULL, pid_glush, ~0U) != pid_glush)
+		panic_g("Failed to set `cpu_mask` of glush %d", pid_glush);
+	return pid_glush;
+}
 
+/************************************************************/
+/*
+ * a0, a1 are arguments passed from boot_kernel() and _start.
+ * Now, a0 is CPU ID, and a1 is `npages_used` in boot.c.
+ */
+#pragma GCC diagnostic ignored "-Wmain"
+int main(reg_t a0, reg_t a1)
+{
 	// Init jump table provided by kernel and bios(ΦωΦ)
 	init_jmptab();
 
@@ -378,10 +386,8 @@ int main(reg_t a0, reg_t a1)
 	/* Clear screen and start glush */
 	screen_clear();
 
-	if ((pid = do_exec("glush", -1, argv)) == INVALID_PID)
+	if ((pid_glush = start_glush()) == INVALID_PID)
 		panic_g("Failed to start glush");
-	if (do_taskset(0, NULL, pid, ~0U) != pid)
-		panic_g("Failed to set `cpu_mask` of glush %d", pid);
 	unlock_kernel();
 
 	set_preempt();

@@ -197,6 +197,8 @@ extern const uintptr_t User_sp;
 extern const uint32_t //Ustack_size,
 	Kstack_size;
 
+extern pid_t pid_glush;
+
 /* ready queue to run */
 //extern list_head ready_queue;
 extern pcb_t *ready_queue;
