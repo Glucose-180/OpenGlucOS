@@ -343,4 +343,10 @@ int sys_net_send_array(const void **vpkt, int *vlen, int npkt)
 	return invoke_syscall(SYS_net_send_array, (long)vpkt, (long)vlen,
 		npkt, Ignore, Ignore);
 }
+
+unsigned int sys_net_recv_stream(uint8_t *buf, int len)
+{
+	return invoke_syscall(SYS_net_recv_stream, (long)buf, len,
+		Ignore, Ignore, Ignore);
+}
 /************************************************************/

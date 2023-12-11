@@ -69,3 +69,7 @@ Project 5。
   优化了用户库函数`getchar()`，在查询键盘输入时，如果连续 10（`WTIME`）秒得不到输入，则降低查询频率（每 2 秒才查询一次）以降低功耗。
 
   新增专门起 glush 的函数`start_glush()`，在`do_kill()`中增加判断，如果 glush 被终止了，自动重新起一个 glush。
+
+#### [2023-12-11]
+
+  初步尝试做 Task 4（可靠的网络数据传输），使用“GNTP”（GlucOS Network Transmission Protocol），测试程序源代码为`recv3.c`。但似乎不太对劲：为什么系统调用`sys_net_recv_stream()`会返回一个 5 万多的数呢？

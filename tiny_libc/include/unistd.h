@@ -92,6 +92,7 @@ int sys_shmpagedt(void *addr);
 int sys_net_send(const void *txpacket, int length);
 int sys_net_recv(void *rxbuffer, int pkt_num, int *pkt_lens);
 int sys_net_send_array(const void **vpkt, int *vlen, int npkt);
+unsigned int sys_net_recv_stream(uint8_t *buf, int len);
 /************************************************************/
 
 int sys_semaphore_init(int key, int value);
