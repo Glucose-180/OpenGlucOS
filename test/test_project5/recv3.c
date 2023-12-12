@@ -1,9 +1,10 @@
 /*
  * This program is used to test reliable data transmission with GNTP.
- * Usage: recv3 -l[LEN] [-c] [-p[PLOC]]
- * where [LEN] is the number of bytes to be received,
- * [PLOC] is the bottom of printing area,
- * and `-c` means that print data in char format rather than hex.
+ * Usage: recv3 -l[LEN] [-c] [-ch] [-p[PLOC]]
+ * [LEN] is the number of bytes to be received;
+ * [PLOC] is the bottom of printing area;
+ * `-c` means that print data in char format rather than hex;
+ * `-ch` means that enable Chinese display.
  */
 #include <stdio.h>
 #include <unistd.h>
@@ -29,6 +30,8 @@ int main(int argc, char *argv[])
 		++argv;
 		if (strcmp("-c", *argv) == 0)
 			flag_char = 1;
+		else if (strcmp("-ch", *argv) == 0)
+			flag_char = 2;
 		else if (strncmp("-l", *argv, 2) == 0)
 			recv_len = atoi(*argv + 2);
 		else if (strncmp("-p", *argv, 2) == 0)
@@ -45,16 +48,27 @@ int main(int argc, char *argv[])
 		printf("**Failed to allocate memory!\n");
 		return 2;
 	}
-	printf("Waiting for %d bytes data...", recv_len);
+	printf("Waiting for %d bytes data...(测试)", recv_len);
 	while ((rt = sys_net_recv_stream((void*)rbuf, recv_len)) > 0)
 	{
 		sys_move_cursor(0, 0);
 		printf("%d bytes of %u B file are received using GNTP:\n", rt, *(uint32_t*)rbuf);
+		if (flag_char == 2)
+		{
+			int sc;
+			for (i = 0; i < recv_len; i += sc)
+			{
+				for (sc = 0; rbuf[i + sc] != '\n' && rbuf[i + sc] != '\r' && rbuf[i + sc] != '\0'; ++sc)
+					;
+				rbuf[i + sc] = '\0';
+				printf("%s\n", rbuf + i);
+			}
+		}
 		if (flag_char != 0)
 		{
 			for (i = j = 0; i < recv_len; ++i)
 			{
-				int c = rbuf[i];
+				int c = (unsigned char)rbuf[i];
 				if (c >= 32 && c <= 126)
 				{
 					printf("%c", c);

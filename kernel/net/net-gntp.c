@@ -13,7 +13,7 @@
 
 /* Constants */
 #define GNTP_MAGIC 0x45U
-#define GNTP_TIMEOUT 10U
+#define GNTP_TIMEOUT 100U
 #define GNTP_HEADER_START 54
 
 /* Mask of the `type` byte in header */
@@ -34,6 +34,8 @@ static gntp_header_t header_temp;
 static uint8_t *fb = NULL;
 
 static void reply(unsigned int type, uint32_t seq);
+static void copy_header_to_buffer(uint8_t *fb);
+static void copy_header_from_buffer(const uint8_t *fb);
 
 /*
  * do_net_recv_stream: Receive `len` bytes through NIC using
@@ -79,7 +81,7 @@ unsigned int do_net_recv_stream(uint8_t *buf, int len)
 		}
 		else
 		{	/* One frame is received */
-			memcpy((void *)&header_temp, fb + GNTP_HEADER_START, sizeof(gntp_header_t));
+			copy_header_from_buffer(fb + GNTP_HEADER_START);
 			if (header_temp.magic != GNTP_MAGIC ||
 				(header_temp.type & GNTP_DAT) == 0U)
 				continue;
@@ -114,11 +116,43 @@ static void reply(unsigned int type, uint32_t seq)
 	header_temp.type = type;
 	header_temp.length = 0U;
 	header_temp.seq = seq;
-	memcpy(fb + GNTP_HEADER_START, (void *)&header_temp, sizeof(header_temp));
+	copy_header_to_buffer(fb + GNTP_HEADER_START);
 	while (-1 == e1000_transmit(fb,
 		(unsigned int)GNTP_HEADER_START + sizeof(header_temp)))
 	{
 		e1000_write_reg(e1000, E1000_IMS, E1000_IMS_TXQE);
 		do_block(&send_block_queue, NULL);
 	}
+}
+
+/*
+ * copy_header_to_buffer & copy_header_from_header:
+ * The frame header received is Big Endian, but GlucOS is Little Endian.
+ * So use these two functions to copy the header to or from
+ * frame buffer from or to `header_temp`.
+ */
+static void copy_header_to_buffer(uint8_t *fb)
+{
+	fb[0] = header_temp.magic;
+	fb[1] = header_temp.type;
+	*(uint16_t *)(fb + 2) = (uint16_t)
+		(((uint32_t)header_temp.length >> 8) | (header_temp.length << 8));
+	*(uint32_t *)(fb + 4) = (uint32_t)(
+		((header_temp.seq >> 24) & 0xffU) |
+		((header_temp.seq >> 8) & (0xffU << 8)) |
+		((header_temp.seq << 8) & (0xffU << 16)) |
+		((header_temp.seq << 24) & (0xffU << 24))
+	);
+}
+static void copy_header_from_buffer(const uint8_t *fb)
+{
+	header_temp.magic = fb[0];
+	header_temp.type = fb[1];
+	header_temp.length = ((uint32_t)fb[2] << 8) | (uint32_t)fb[3];
+	header_temp.seq = (
+		((uint32_t)fb[4] << 24) |
+		((uint32_t)fb[5] << 16) |
+		((uint32_t)fb[6] << 8) |
+		(uint32_t)fb[7]
+	);
 }

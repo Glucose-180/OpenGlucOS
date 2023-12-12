@@ -53,52 +53,53 @@ static void vt100_show_cursor()
 void screen_write_ch(char ch)
 {
 	char flag_limited;
+	pcb_t * ccpu = cur_cpu();
 
 	if (ch == '\n')
 	{
 write_lf:
-		cur_cpu()->cursor_x = 0;
-		if (cur_cpu()->cursor_y < SCREEN_HEIGHT - 1)
+		ccpu->cursor_x = 0;
+		if (ccpu->cursor_y < SCREEN_HEIGHT - 1)
 		{
-			cur_cpu()->cursor_y++;
+			ccpu->cursor_y++;
 			flag_limited = 0;
 		}
 		else
 			flag_limited = 1;
-		if (cur_cpu()->cylim_l >= 0 &&	/* Auto scroll */
-			cur_cpu()->cylim_h >= cur_cpu()->cylim_l &&
+		if (ccpu->cylim_l >= 0 &&	/* Auto scroll */
+			ccpu->cylim_h >= ccpu->cylim_l &&
 			(
-				cur_cpu()->cursor_y > cur_cpu()->cylim_h ||
+				ccpu->cursor_y > ccpu->cylim_h ||
 				flag_limited == 1
 			)
 		)
 		{
 			int y, x;
-			for (y = cur_cpu()->cylim_l; y < cur_cpu()->cylim_h; ++y)
+			for (y = ccpu->cylim_l; y < ccpu->cylim_h; ++y)
 			{
 				for (x = 0; x < SCREEN_WIDTH; ++x)
 					new_screen[SCREEN_LOC(x, y)] = new_screen[SCREEN_LOC(x, y + 1)];
 			}
-			cur_cpu()->cursor_y = y;
+			ccpu->cursor_y = y;
 			for (x = 0; x < SCREEN_WIDTH; ++x)
-				new_screen[SCREEN_LOC(x, cur_cpu()->cursor_y)] = ' ';
+				new_screen[SCREEN_LOC(x, ccpu->cursor_y)] = ' ';
 		}
 		return;
 	}
 	else if (ch == '\b' || ch == '\177')
 	{	/* Backspace: by Glucose180 */
-		if (cur_cpu()->cursor_x > 0)
-			cur_cpu()->cursor_x--;
-		else if (cur_cpu()->cursor_y > 0)
+		if (ccpu->cursor_x > 0)
+			ccpu->cursor_x--;
+		else if (ccpu->cursor_y > 0)
 		{
-			cur_cpu()->cursor_y--;
-			cur_cpu()->cursor_x = SCREEN_WIDTH - 1;
+			ccpu->cursor_y--;
+			ccpu->cursor_x = SCREEN_WIDTH - 1;
 		}
 	}
 	else
 	{
-		new_screen[SCREEN_LOC(cur_cpu()->cursor_x, cur_cpu()->cursor_y)] = ch;
-		if (++cur_cpu()->cursor_x >= SCREEN_WIDTH)
+		new_screen[SCREEN_LOC(ccpu->cursor_x, ccpu->cursor_y)] = ch;
+		if (++ccpu->cursor_x >= SCREEN_WIDTH)
 		{
 			goto write_lf;
 		}
@@ -203,7 +204,7 @@ unsigned int do_screen_write(char *buff, unsigned int len)
  */
 void screen_reflush(void)
 {
-	int i, j;
+	int i, j, i0 = 0, j0 = 0;
 
 	/* here to reflush screen buffer to serial port */
 	for (i = 0; i < SCREEN_HEIGHT; i++)
@@ -213,9 +214,13 @@ void screen_reflush(void)
 			/* We only print the data of the modified location. */
 			if (new_screen[SCREEN_LOC(j, i)] != old_screen[SCREEN_LOC(j, i)])
 			{
-				vt100_move_cursor(j + 1, i + 1);
+				if (!(i == i0 && j == j0 + 1))
+				/* If they two are consecutive, don't move cursor. */
+					vt100_move_cursor(j + 1, i + 1);
 				bios_putchar(new_screen[SCREEN_LOC(j, i)]);
 				old_screen[SCREEN_LOC(j, i)] = new_screen[SCREEN_LOC(j, i)];
+				i0 = i;
+				j0 = j;
 			}
 		}
 	}
