@@ -48,6 +48,8 @@ unsigned int do_net_recv_stream(uint8_t *buf, int len)
 	int flen;
 	/* Bytes lower than `lfr` are received successfully. */
 	unsigned int lfr;
+	/* The max seq of all packets received */
+	unsigned int seq_max = 0U;
 	/* Has the receiving started? */
 	char recv_started;
 	/* How long since the last time `lfr` is moved? */
@@ -67,12 +69,21 @@ unsigned int do_net_recv_stream(uint8_t *buf, int len)
 		if (flen == -1)
 		{	/* This transmission has finished. */
 			if (lfr > 0U && time == 0U)
-				/* Some frames have just been received */
+				/* Some packets have just been received */
 				reply(GNTP_ACK, lfr);
 			if (time > GNTP_TIMEOUT)
 			{
-				reply(GNTP_RSD, lfr);
-				time = 0U;
+				if (seq_max > lfr || time > GNTP_TIMEOUT * 2U)
+				{
+					/*
+					 * If first timeout, only when a packet with greater `seq` has received
+					 * can we reply RSD. Otherwise many invalid RSD might be send
+					 * (an RSD with a `seq` that has never be sent).
+					 * But if the timeout is big, reply RSD to deal with loss.
+					 */
+					reply(GNTP_RSD, lfr);
+					time = 0U;
+				}
 			}
 			cur_cpu()->req_len = 1U;
 			do_block(&recv_block_queue, NULL);
@@ -80,7 +91,7 @@ unsigned int do_net_recv_stream(uint8_t *buf, int len)
 				++time;
 		}
 		else
-		{	/* One frame is received */
+		{	/* One packet is received */
 			copy_header_from_buffer(fb + GNTP_HEADER_START);
 			if (header_temp.magic != GNTP_MAGIC ||
 				(header_temp.type & GNTP_DAT) == 0U)
@@ -102,6 +113,8 @@ unsigned int do_net_recv_stream(uint8_t *buf, int len)
 				}
 				time = 0U;
 			}
+			if (header_temp.seq > seq_max)
+				seq_max = header_temp.seq;
 		}
 	}
 }
@@ -113,6 +126,7 @@ unsigned int do_net_recv_stream(uint8_t *buf, int len)
  */
 static void reply(unsigned int type, uint32_t seq)
 {
+	header_temp.magic = GNTP_MAGIC;
 	header_temp.type = type;
 	header_temp.length = 0U;
 	header_temp.seq = seq;

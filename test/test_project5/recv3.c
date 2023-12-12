@@ -1,9 +1,10 @@
 /*
  * This program is used to test reliable data transmission with GNTP.
- * Usage: recv3 -l[LEN] [-c] [-ch] [-p[PLOC]]
+ * Usage: recv3 -l[LEN] [-h] [-c] [-ch] [-p[PLOC]]
  * [LEN] is the number of bytes to be received;
  * [PLOC] is the bottom of printing area;
- * `-c` means that print data in char format rather than hex;
+ * `-h` means that print data in hex format;
+ * `-c` means that print data in char format;
  * `-ch` means that enable Chinese display.
  */
 #include <stdio.h>
@@ -14,10 +15,15 @@
 
 int print_location = 15;
 int recv_len = 48;
-int flag_char = 0;
+
+enum Format {NONE, HEX, CHAR, ZHCN};
+
+enum Format print_format = NONE;
 
 #define LINEMAX_CHAR 48
 #define LINEMAX_HEX 16
+
+uint16_t fletcher16(const uint8_t *data, int len);
 
 int main(int argc, char *argv[])
 {
@@ -29,9 +35,11 @@ int main(int argc, char *argv[])
 	{
 		++argv;
 		if (strcmp("-c", *argv) == 0)
-			flag_char = 1;
+			print_format = CHAR;
+		if (strcmp("-h", *argv) == 0)
+			print_format = HEX;
 		else if (strcmp("-ch", *argv) == 0)
-			flag_char = 2;
+			print_format = ZHCN;
 		else if (strncmp("-l", *argv, 2) == 0)
 			recv_len = atoi(*argv + 2);
 		else if (strncmp("-p", *argv, 2) == 0)
@@ -42,7 +50,7 @@ int main(int argc, char *argv[])
 		printf("**Invalid argument!\n");
 		return 1;
 	}
-	sys_set_cylim(0, print_location);
+	sys_set_cylim(1, print_location);
 	if ((rbuf = malloc(recv_len + 16)) == NULL)
 	{
 		printf("**Failed to allocate memory!\n");
@@ -53,18 +61,22 @@ int main(int argc, char *argv[])
 	{
 		sys_move_cursor(0, 0);
 		printf("%d bytes of %u B file are received using GNTP:\n", rt, *(uint32_t*)rbuf);
-		if (flag_char == 2)
+		if (print_format == ZHCN)
 		{
 			int sc;
-			for (i = 0; i < recv_len; i += sc + 1)
+			int temp;
+			for (i = 4; i < recv_len; i += sc + 1)
 			{
 				for (sc = 0; rbuf[i + sc] != '\n' && rbuf[i + sc] != '\r' && rbuf[i + sc] != '\0'; ++sc)
 					;
+				temp = rbuf[i + sc];
 				rbuf[i + sc] = '\0';
 				printf("%s\n", rbuf + i);
+				/* Restore the byte as it will influence Fletcher! */
+				rbuf[i + sc] = temp;
 			}
 		}
-		else if (flag_char != 0)
+		else if (print_format == CHAR)
 		{
 			for (i = j = 0; i < recv_len; ++i)
 			{
@@ -86,7 +98,7 @@ int main(int argc, char *argv[])
 				}
 			}
 		}
-		else
+		else if (print_format == HEX)
 		{
 			for (i = 0; i < (recv_len + LINEMAX_HEX - 1) / LINEMAX_HEX; ++i)
 			{
@@ -95,7 +107,22 @@ int main(int argc, char *argv[])
 				printf("\n");
 			}
 		}
+		printf("### The Fletcher sum of the file is %u.\n",
+			fletcher16((uint8_t *)rbuf + 4, *(int32_t*)rbuf - 4));
 	}
 	printf("**Failed to receive %d bytes\n", recv_len);
 	return 3;
+}
+
+uint16_t fletcher16(const uint8_t *data, int len)
+{
+	uint16_t sum1 = 0U, sum2 = 0U;
+	int i;
+
+	for (i = 0; i < len; ++i)
+	{
+		sum1 = (sum1 + data[i]) % 0xffU;
+		sum2 = (sum2 + sum1) % 0xffU;
+	}
+	return (sum2 << 8) | sum1;
 }

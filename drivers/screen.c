@@ -204,7 +204,7 @@ unsigned int do_screen_write(char *buff, unsigned int len)
  */
 void screen_reflush(void)
 {
-	int i, j, i0 = 0, j0 = 0;
+	int i, j, i0 = -1, j0 = -2;
 
 	/* here to reflush screen buffer to serial port */
 	for (i = 0; i < SCREEN_HEIGHT; i++)

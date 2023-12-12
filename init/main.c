@@ -346,7 +346,7 @@ int main(reg_t a0, reg_t a1)
 #if DEBUG_EN != 0
 	printk("\n> [INFO] Debug mode is enabled.\n");
 	printk("> [INFO] Multithreading: %d, Timer_interval_ms: %d,\n"
-		"NCPU: %d, NPF: %u, NPSWAP: %u,"
+		"NCPU: %d, NPF: %u, NPSWAP: %u, "
 		"USEG_MAX: %u MiB, USTACK_NPG: %u\n",
 		MULTITHREADING, TIMER_INTERVAL_MS, NCPU, NPF, NPSWAP,
 		(unsigned)(USEG_MAX >> 20), USTACK_NPG);
