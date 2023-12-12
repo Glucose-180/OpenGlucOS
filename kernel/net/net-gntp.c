@@ -15,6 +15,8 @@
 #define GNTP_MAGIC 0x45U
 #define GNTP_TIMEOUT 100U
 #define GNTP_HEADER_START 54
+#define GNTP_WINSIZE 10000U
+#define LOCK_IDX 15	/* Mutex lock for `do_net_recv_stream()` */
 
 /* Mask of the `type` byte in header */
 #define GNTP_ACK (1U << 2)
@@ -33,9 +35,20 @@ static gntp_header_t header_temp;
 /* Frame buffer */
 static uint8_t *fb = NULL;
 
+typedef struct dlist_node_t {
+	struct dlist_node_t *next;
+	uint32_t start, end;	/* Data in [.start, .end) have been received */
+} dlist_node_t;
+
+static dlist_node_t dlh;
+static dlist_node_t *dlist_head = &dlh;
+
 static void reply(unsigned int type, uint32_t seq);
 static void copy_header_to_buffer(uint8_t *fb);
 static void copy_header_from_buffer(const uint8_t *fb);
+
+static void dlist_clear(void);
+static int dlist_insert(uint32_t start, uint32_t end);
 
 /*
  * do_net_recv_stream: Receive `len` bytes through NIC using
@@ -47,20 +60,31 @@ unsigned int do_net_recv_stream(uint8_t *buf, int len)
 	/* Length of a frame */
 	int flen;
 	/* Bytes lower than `lfr` are received successfully. */
-	unsigned int lfr;
+#define lfr (dlh.end)
+	//unsigned int lfr;
 	/* The max seq of all packets received */
 	unsigned int seq_max = 0U;
 	/* Has the receiving started? */
 	char recv_started;
 	/* How long since the last time `lfr` is moved? */
 	unsigned int time;
+	int rt;
 
 	if ((uintptr_t)buf >= KVA_MIN || len <= 0)
 		return 0;
+
+	/* This function can only be used by one process */
+	do_mutex_lock_acquire(LOCK_IDX);
+	/*
+	 * Initialization is necessary as the last process
+	 * using it may be killed.
+	 */
+	dlist_clear();
 	if (fb == NULL)
 		fb = kmalloc_g(RX_FRM_SIZE + 256U);
 	if (fb == NULL)
 		return 0;
+
 	lfr = time = 0U;
 	recv_started = 0;
 	while (1)
@@ -97,11 +121,12 @@ unsigned int do_net_recv_stream(uint8_t *buf, int len)
 				(header_temp.type & GNTP_DAT) == 0U)
 				continue;
 			recv_started = 1;
+			/*
 			if (header_temp.seq == lfr)
 			{
 				memcpy(buf + lfr, fb + GNTP_HEADER_START + sizeof(gntp_header_t),
 					lfr + header_temp.length <= (unsigned int)len
-					/* To avoid buffer overflow */
+					// To avoid buffer overflow
 					? header_temp.length : (unsigned int)len - lfr);
 				lfr += header_temp.length;
 				if (lfr >= (unsigned int)len)
@@ -113,10 +138,41 @@ unsigned int do_net_recv_stream(uint8_t *buf, int len)
 				}
 				time = 0U;
 			}
+			*/
+			rt = dlist_insert(header_temp.seq, header_temp.seq + header_temp.length);
+			if (rt == 0)
+			{
+				unsigned int i, j;
+				for (i = header_temp.seq, j = GNTP_HEADER_START + sizeof(gntp_header_t);
+					i < (unsigned int)len && i < header_temp.seq + header_temp.length;
+					++i, ++j)
+					buf[i] = fb[j];
+				if (lfr >= (unsigned int)len)
+				{
+					uint32_t temp = lfr;
+					reply(GNTP_ACK, lfr);
+					dlist_clear();
+					kfree_g(fb);
+					fb = NULL;
+					do_mutex_lock_release(LOCK_IDX);
+					return temp;
+				}
+				time = 0U;
+			}
+			else if (rt == -1)
+			{
+				dlist_clear();
+				kfree_g(fb);
+				fb = NULL;
+				do_mutex_lock_release(LOCK_IDX);
+				return 0U;	/* Failed */
+			}
+
 			if (header_temp.seq > seq_max)
 				seq_max = header_temp.seq;
 		}
 	}
+#undef lfr
 }
 
 /*
@@ -169,4 +225,71 @@ static void copy_header_from_buffer(const uint8_t *fb)
 		((uint32_t)fb[6] << 8) |
 		(uint32_t)fb[7]
 	);
+}
+
+/*
+ * dlist_clear: free all nodes except the head,
+ * and initialize the list.
+ */
+static void dlist_clear()
+{
+	dlist_node_t *p, *q;
+
+	dlist_head = &dlh;
+	for (p = dlist_head->next; p != NULL; p = q)
+	{
+		q = p->next;
+		kfree_g(p);
+	}
+	dlist_head->start = dlist_head->end = 0U;
+	dlist_head->next = NULL;
+}
+
+/*
+ * dlist_insert: insert a node with `start` and `end`.
+ * Return 0 if the data packet is valid, 1 if invalid
+ * or -1 on error.
+ */
+static int dlist_insert(uint32_t start, uint32_t end)
+{
+	dlist_node_t *p, *q;
+
+	if (start >= end || end >= dlh.end + GNTP_WINSIZE)
+		return 1;
+	for (p = dlist_head; p->next != NULL && p->next->start <= start;
+		p = p->next)
+		;
+	/* Now we have p->start <= start &&
+		(p->next == NULL || p->next->start > start) */
+	if (!(p->start <= start &&
+		(p->next == NULL || p->next->start > start)))
+		panic_g("Data list operation failed!");
+	if (start < p->end || (p->next != NULL && end > p->next->start))
+		return 1;	/* Overlap is not allowed */
+	if (start == p->end)
+	{
+		p->end = end;
+		if (p->next != NULL && end == p->next->start)
+		{
+			p->end = p->next->end;
+			q = p->next->next;
+			kfree_g(p->next);
+			p->next = q;
+		}
+	}
+	else
+	{
+		if (p->next != NULL && end == p->next->start)
+			p->next->start = start;
+		else
+		{
+			if ((q = kmalloc_g(sizeof(dlist_node_t))) == NULL)
+				return -1;	/* Error! */
+			q->next = p->next;
+			q->start = start;
+			q->end = end;
+			p->next = q;
+		}
+	}
+	return 0;
 }
