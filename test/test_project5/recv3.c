@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
 		if (flag_char == 2)
 		{
 			int sc;
-			for (i = 0; i < recv_len; i += sc)
+			for (i = 0; i < recv_len; i += sc + 1)
 			{
 				for (sc = 0; rbuf[i + sc] != '\n' && rbuf[i + sc] != '\r' && rbuf[i + sc] != '\0'; ++sc)
 					;
@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
 				printf("%s\n", rbuf + i);
 			}
 		}
-		if (flag_char != 0)
+		else if (flag_char != 0)
 		{
 			for (i = j = 0; i < recv_len; ++i)
 			{
