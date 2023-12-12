@@ -9,10 +9,10 @@ int getchar(void)
 #define QFULL ((qhead - qtail) % QS == 1)
 
 /*
- * If it has been 10 sec since the user pressed a key,
+ * If it has been 90 sec since the user pressed a key,
  * lower the scanning frequency to save power.
  */
-#define WTIME 10U
+#define WTIME 90U
 
 	/* Input buffer. It's a CIRCULAR queue. */
 	static signed char ibuf[QS];

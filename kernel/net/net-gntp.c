@@ -68,7 +68,10 @@ unsigned int do_net_recv_stream(uint8_t *buf, int len)
 	char recv_started;
 	/* How long since the last time `lfr` is moved? */
 	unsigned int time;
+	
 	int rt;
+	/* Save the data about TCP before GNTP header */
+	uint8_t tcp_header[GNTP_HEADER_START];
 
 	if ((uintptr_t)buf >= KVA_MIN || len <= 0)
 		return 0;
@@ -119,26 +122,21 @@ unsigned int do_net_recv_stream(uint8_t *buf, int len)
 			copy_header_from_buffer(fb + GNTP_HEADER_START);
 			if (header_temp.magic != GNTP_MAGIC ||
 				(header_temp.type & GNTP_DAT) == 0U)
+			{	/*
+				 * Restore the data about TCP as
+				 * `fb` would be used to reply.
+				 */
+				if (recv_started != 0)
+					/* If `tcp_header[]` has been saved... */
+					memcpy(fb, tcp_header, GNTP_HEADER_START);
 				continue;
-			recv_started = 1;
-			/*
-			if (header_temp.seq == lfr)
-			{
-				memcpy(buf + lfr, fb + GNTP_HEADER_START + sizeof(gntp_header_t),
-					lfr + header_temp.length <= (unsigned int)len
-					// To avoid buffer overflow
-					? header_temp.length : (unsigned int)len - lfr);
-				lfr += header_temp.length;
-				if (lfr >= (unsigned int)len)
-				{
-					reply(GNTP_ACK, lfr);
-					kfree_g(fb);
-					fb = NULL;
-					return lfr;
-				}
-				time = 0U;
 			}
-			*/
+			if (recv_started == 0)
+			{
+				memcpy(tcp_header, fb, GNTP_HEADER_START);
+				recv_started = 1;
+			}
+
 			rt = dlist_insert(header_temp.seq, header_temp.seq + header_temp.length);
 			if (rt == 0)
 			{

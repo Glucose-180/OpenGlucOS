@@ -109,7 +109,6 @@ write_lf:
 void init_screen(void)
 {
 	vt100_hidden_cursor();
-	vt100_clear();
 	screen_clear();
 	vt100_show_cursor();	// Added by Glucose180
 }
@@ -118,11 +117,13 @@ void screen_clear(void)
 {
 	int i, j;
 
+	vt100_clear();
 	for (i = 0; i < SCREEN_HEIGHT; i++)
 	{
 		for (j = 0; j < SCREEN_WIDTH; j++)
 		{
 			new_screen[SCREEN_LOC(j, i)] = ' ';
+			old_screen[SCREEN_LOC(j, i)] = ' ';
 		}
 	}
 	cur_cpu()->cursor_x = 0;
