@@ -6,25 +6,27 @@
 int main(int argc, char *argv[])
 {
 	FILE *fp;
-	int c;
+	uint8_t c;
 	uint16_t sum1 = 0U, sum2 = 0U;
+	unsigned int fsize = 0U;
 
 	while (--argc)
 	{
 		++argv;
-		if ((fp = fopen(*argv, "r")) == NULL)
+		if ((fp = fopen(*argv, "rb")) == NULL)
 		{
 			fprintf(stderr, "**Failed to open %s.\n", *argv);
 			continue;
 		}
 		sum1 = sum2 = 0U;
-		while ((c = fgetc(fp)) != EOF)
+		while (fread(&c, sizeof(uint8_t), 1UL, fp) == 1UL)
 		{
 			sum1 = (sum1 + (uint8_t)c) % 0xffU;
 			sum2 = (sum2 + sum1) % 0xffU;
+			++fsize;
 		}
 		fclose(fp);
-		printf("%s: %u;\n", *argv, (sum2 << 8) | sum1);
+		printf("%s(%u B): %u;\n", *argv, fsize, (sum2 << 8) | sum1);
 	}
 	return 0;
 }
