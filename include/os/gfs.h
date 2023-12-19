@@ -16,9 +16,16 @@
 
 /* Units */
 #define KiB 1024U
+#ifndef MiB
 #define MiB (1024U * KiB)
+#endif
+#ifndef GiB
 #define GiB (1024U * MiB)
+#endif
 
+#ifndef SECTOR_SIZE
+#define SECTOR_SIZE 512U
+#endif
 /* Size of a disk block: 4 KiB */
 #define BLOCK_SIZE 4096U
 /* Size of GFS: 1 GiB */
@@ -34,9 +41,6 @@
 /* Number of inodes: 7S * 512B/S * 8/B */
 #define NINODE 28672U
 
-extern unsigned int GFS_base_sec;
-const uint8_t GFS_Magic[24U];
-
 /* Header in GFS super block */
 typedef struct {
 	uint8_t GFS_magic[24U];
@@ -48,13 +52,17 @@ typedef struct {
 	uint32_t data_loc;
 } GFS_superblock_t;
 
+enum Inode_type {FILE, DIR};
+
 typedef struct {
 	/*
 	 * Basic info of a file or directory.
 	 * NOTE: `mode`, `owner`, `timestamp`
 	 * are reserved for future.
 	 */
-	uint32_t mode, owner;
+	uint8_t nlink, type;
+	uint16_t mode;
+	uint32_t owner;
 	uint32_t size, timestamp;
 	/*
 	 * Direct pointer to file: the index of data block
@@ -66,5 +74,22 @@ typedef struct {
 	/* Double indirect pointer: 4 GiB max */
 	uint32_t diptr;
 } GFS_inode_t;
+
+/* An 512 B buffer whose address is 8-B aligned */
+typedef uint64_t sector_buf_t[SECTOR_SIZE / sizeof(uint64_t)];
+
+
+extern unsigned int GFS_base_sec;
+extern GFS_superblock_t GFS_superblock;
+const uint8_t GFS_Magic[24U];
+
+int GFS_read_sec(unsigned int sec_idx_in_GFS, unsigned int nsec, void* kva);
+int GFS_write_sec(unsigned int sec_idx_in_GFS, unsigned int nsec, void* kva);
+
+int GFS_check(void);
+int GFS_init(void);
+unsigned int GFS_alloc_in_bitmap(unsigned int n, unsigned int iarr[],
+	unsigned int start_sec, unsigned int end_sec);
+int GFS_read_inode(unsigned int ino, GFS_inode_t *pinode);
 
 #endif
