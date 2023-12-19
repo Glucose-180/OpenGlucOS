@@ -4,6 +4,7 @@
 #include <os/sched.h>
 #include <os/smp.h>
 #include <os/task.h>
+#include <os/gfs.h>
 
 #if DEBUG_EN != 0
 
@@ -51,6 +52,9 @@ void init_swap()
 	else
 		for (i = 0U; i < NPSWAP; ++i)
 			spg_charmap[i] = CMAP_FREE;
+
+	GFS_base_sec = ROUND(swap_start + NPSWAP * (BLOCK_SIZE / SECTOR_SIZE),
+		BLOCK_SIZE / SECTOR_SIZE);
 }
 
 /*

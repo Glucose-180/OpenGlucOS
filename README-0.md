@@ -22,5 +22,7 @@ Project 6。
 
   进一步初始化 Project 6 的仓库。初始化了测试程序，并且 GlucOS 内核支持以宏定义`NIC`来控制是否支持网卡驱动，以避免在使用 QEMU 时被迫`make run-net`导致的启动、关闭耗时长的问题。目前 QEMU 上可以运行。
 
+  初步添加了文件系统 GFS (Glucose File System) 的部分定义，正在进行磁盘 IO 操作的包装（`gfs-io.c`）。
+
 
 
