@@ -795,7 +795,6 @@ void do_exit(void)
  */
 pid_t do_waitpid(pid_t pid)
 {
-	// TODO
 	pcb_t *p;
 
 	if ((p = pcb_search(pid)) == NULL)

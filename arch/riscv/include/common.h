@@ -89,6 +89,11 @@
 	#endif
 #endif
 
+#ifndef NIC
+/* Support NIC driver or not */
+#define NIC 0
+#endif
+
 enum FDT_TYPE {
 	TIMEBASE,
 	SLCR_BADE_ADDR,

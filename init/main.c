@@ -223,12 +223,14 @@ static void init_syscall(void)
 		syscall[SYS_shm_get] = (long (*)())shm_page_get;
 		syscall[SYS_shm_dt] = (long (*)())do_shm_page_dt;
 	}
+#if NIC != 0
 	/* IO: NIC */ {
 		syscall[SYS_net_send] = (long (*)())do_net_send;
 		syscall[SYS_net_recv] = (long (*)())do_net_recv;
 		syscall[SYS_net_send_array] = (long (*)())do_net_send_array;
 		syscall[SYS_net_recv_stream] = (long (*)())do_net_recv_stream;
 	}
+#endif
 }
 
 /*
@@ -248,7 +250,7 @@ static void revoke_temp_mapping(void)
 pid_t start_glush(void)
 {
 #ifndef TERMINAL_BEGIN
-#define TERMINAL_BEGIN "17"
+#define TERMINAL_BEGIN "10"
 #endif
 #ifndef TERMINAL_END
 #define TERMINAL_END "23"
@@ -298,6 +300,7 @@ int main(reg_t a0, reg_t a1)
 	time_base = bios_read_fdt(TIMEBASE);
 	time_max_sec = UINT64_MAX / time_base;
 
+#if NIC != 0
     e1000 = (volatile uint8_t *)bios_read_fdt(ETHERNET_ADDR);
     uint64_t plic_addr = bios_read_fdt(PLIC_ADDR);
     uint32_t nr_irqs = (uint32_t)bios_read_fdt(NR_IRQS);
@@ -311,7 +314,7 @@ int main(reg_t a0, reg_t a1)
     	printk("> [INIT] IOremap initialization succeeded.\n");
 	else
 		panic_g("IOremap failed: 0x%lx, 0x%lx", plic_addr, (uint64_t)e1000);
-
+#endif
 
 	// Init lock mechanism o(´^｀)o
 	init_locks();
@@ -321,6 +324,7 @@ int main(reg_t a0, reg_t a1)
 	init_exception();
 	printk("> [INIT] Interrupt processing initialization succeeded.\n");
 
+#if NIC != 0
     // TODO: [p5-task3] Init plic
 	plic_init(plic_addr, nr_irqs);
 	printk("> [INIT] PLIC initialized successfully.\n");
@@ -328,6 +332,7 @@ int main(reg_t a0, reg_t a1)
     // Init network device
     e1000_init();
     printk("> [INIT] E1000 device initialized successfully.\n");
+#endif
 
 	// Init system call table (0_0)
 	init_syscall();

@@ -10,6 +10,7 @@ DEBUG=1
 User_seg_max="0x800000"	# 8 MiB
 #User_seg_max="0x80000000"	# 2 GiB
 UPROC_MAX=32	# Number of user processes
+NIC=0			# Support NIC driver
 
 VIEW=""
 for opt in $@
@@ -32,7 +33,7 @@ do
 	fi
 done
 
-make all DEBUG=$DEBUG NCPU=$NCPU TINTERVAL=$Timer_interval_ms MTHREAD=$Multithreading NPSWAP=$NPSWAP CFOTHER="-DNPF=$NPF -DUSEG_MAX=$User_seg_max -DUPROC_MAX=$UPROC_MAX" $VIEW
+make all DEBUG=$DEBUG NCPU=$NCPU TINTERVAL=$Timer_interval_ms MTHREAD=$Multithreading NPSWAP=$NPSWAP CFOTHER="-DNPF=$NPF -DUSEG_MAX=$User_seg_max -DUPROC_MAX=$UPROC_MAX -DNIC=$NIC" $VIEW
 
 for opt in $*
 do
