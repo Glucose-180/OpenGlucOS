@@ -50,9 +50,9 @@ int GFS_check()
 	if ((psb->data_loc - psb->inode_loc) * SECTOR_SIZE
 		!= psb->inode_num * sizeof(GFS_inode_t))
 		return 3;
-	if (((GFS_base_sec + psb->data_loc) & (BLOCK_SIZE / SECTOR_SIZE - 1U))
+	if (((GFS_base_sec + psb->data_loc) & (SEC_PER_BLOCK - 1U))
 		!= 0U)
-		/* Address of data blocks is not one block alogned */
+		/* Address of data blocks is not one block aligned */
 		return 4;
 	return 0;
 }
@@ -66,7 +66,10 @@ int GFS_init()
 {
 	sector_buf_t superblock_buf, sector_buf;
 	GFS_superblock_t *psb = (GFS_superblock_t*)superblock_buf;
-	unsigned int sidx;
+	unsigned int sidx, i;
+	/* Root dir inode and block */
+	unsigned int rdiidx = 0U, rdbidx;
+	GFS_inode_t rdinode;	/* Root dir inode */
 
 	/* Write super block */
 	strcpy((void *)psb->GFS_magic, (void *)GFS_Magic);
@@ -84,8 +87,38 @@ int GFS_init()
 	for (sidx = INODE_BITMAP_LOC; sidx < INODE_LOC; ++sidx)
 		GFS_write_sec(sidx, 1U, sector_buf);
 	
-	// TODO: allocate 0 inode for directory "/"
-
+	/* Allocate an inode for directory "/" */
+	if (GFS_alloc_in_bitmap(1U, &rdiidx, GFS_superblock.inode_bitmap_loc,
+		GFS_superblock.block_bitmap_loc) != 1U || rdiidx != 0U)
+		panic_g("failed to allocate inode for \"/\": %u", rdiidx);
+	rdinode.nlink = 1U;	/* Dir cannot be hard linked */
+	rdinode.size = 2U;	/* "." and ".." */
+	rdinode.type = DIR;
+	/* Allocate a block for it */
+	if (GFS_alloc_in_bitmap(1U, &rdbidx, GFS_superblock.block_bitmap_loc,
+		GFS_superblock.inode_loc) != 1U)
+		panic_g("failed to allocate block for \"/\"");
+	/* Write data for "." and ".." */
+	strcpy((char*)((dir_entry_t*)sector_buf)[0].fname, ".");
+	((dir_entry_t*)sector_buf)[0].ino = rdiidx;
+	strcpy((char*)((dir_entry_t*)sector_buf)[1].fname, "..");
+	((dir_entry_t*)sector_buf)[1].ino = rdiidx;
+	for (i = 2U; i < SECTOR_SIZE / sizeof(dir_entry_t); ++i)
+		((dir_entry_t*)sector_buf)[i].ino = DENTRY_INVALID_INO;
+	/* Writing the first sector of the block */
+	GFS_write_sec(GFS_superblock.data_loc + rdbidx * SEC_PER_BLOCK, 1U, sector_buf);
+	((dir_entry_t*)sector_buf)[0].ino = ((dir_entry_t*)sector_buf)[1].ino
+		= DENTRY_INVALID_INO;
+	for (i = 1U; i < SEC_PER_BLOCK; ++i)
+		GFS_write_sec(GFS_superblock.data_loc + rdbidx * SEC_PER_BLOCK + i,
+			1U, sector_buf);
+	/* Set and write inode of "/" */
+	rdinode.dptr[0] = rdbidx;
+	for (i = 1U; i < INODE_NDPTR; ++i)
+		rdinode.dptr[i] = INODE_INVALID_PTR;
+	rdinode.idptr = INODE_INVALID_PTR;
+	rdinode.diptr = INODE_INVALID_PTR;
+	GFS_write_inode(rdiidx, &rdinode);
 	return 0;
 }
 
@@ -150,5 +183,24 @@ int GFS_read_inode(unsigned int ino, GFS_inode_t *pinode)
 	GFS_read_sec(sidx, 1U, sector_buf);
 	*pinode = ((GFS_inode_t*)sector_buf)
 		[sidx % (sizeof(sector_buf) / sizeof(GFS_inode_t))];
+	return 0;
+}
+
+/*
+ * GFS_write_inode: write `ino`-th inode to GFS disk.
+ * Return 0 on success or -1 if the `ino` is illegal.
+ */
+int GFS_write_inode(unsigned int ino, const GFS_inode_t *pinode)
+{
+	unsigned int sidx;
+	sector_buf_t sector_buf;
+
+	if (ino >= GFS_superblock.inode_num)
+		return -1;
+	sidx = GFS_superblock.inode_loc + lbytes2sectors(ino * sizeof(GFS_inode_t));
+	GFS_read_sec(sidx, 1U, sector_buf);
+	((GFS_inode_t*)sector_buf)[sidx % (sizeof(sector_buf) / sizeof(GFS_inode_t))]
+		= *pinode;
+	GFS_write_sec(sidx, 1U, sector_buf);
 	return 0;
 }

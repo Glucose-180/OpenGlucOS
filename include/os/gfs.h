@@ -40,6 +40,16 @@
 #define DATA_LOC 3656U
 /* Number of inodes: 7S * 512B/S * 8/B */
 #define NINODE 28672U
+/* Max length of file name */
+#define FNLEN 59U
+/* Number of direct pointers in an inode */
+#define INODE_NDPTR 10U
+/* Invalid block pointer in inode */
+#define INODE_INVALID_PTR 0U
+/* Invalid index of inode */
+#define DENTRY_INVALID_INO ~0U
+
+#define SEC_PER_BLOCK (BLOCK_SIZE / SECTOR_SIZE)
 
 /* Header in GFS super block */
 typedef struct {
@@ -63,17 +73,29 @@ typedef struct {
 	uint8_t nlink, type;
 	uint16_t mode;
 	uint32_t owner;
+	/*
+	 * For normal file, `size` is its size (B);
+	 * for directory, `size` is the number of its files
+	 * and sub directories.
+	 */
 	uint32_t size, timestamp;
 	/*
 	 * Direct pointer to file: the index of data block
 	 * RELATIVE TO `GFS_base_sec`(/8). 4 KiB max for one.
 	 */
-	uint32_t dptr[10U];
+	uint32_t dptr[INODE_NDPTR];
 	/* Indirect pointer 4 MiB max */
 	uint32_t idptr;
 	/* Double indirect pointer: 4 GiB max */
 	uint32_t diptr;
 } GFS_inode_t;
+
+typedef struct {
+	/* The name of the file or sub directory */
+	uint8_t fname[FNLEN + 1U];
+	/* The index of its inode */
+	uint32_t ino;
+} dir_entry_t;
 
 /* An 512 B buffer whose address is 8-B aligned */
 typedef uint64_t sector_buf_t[SECTOR_SIZE / sizeof(uint64_t)];
@@ -91,5 +113,6 @@ int GFS_init(void);
 unsigned int GFS_alloc_in_bitmap(unsigned int n, unsigned int iarr[],
 	unsigned int start_sec, unsigned int end_sec);
 int GFS_read_inode(unsigned int ino, GFS_inode_t *pinode);
+int GFS_write_inode(unsigned int ino, const GFS_inode_t *pinode);
 
 #endif

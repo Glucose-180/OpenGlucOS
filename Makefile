@@ -248,4 +248,13 @@ swap:
 	dd if=/dev/zero of=build/image oflag=append conv=notrunc bs=4KiB count=$(NPSWAP)
 # Add one more page as the last page may not be complete
 	dd if=/dev/zero of=build/image oflag=append conv=notrunc bs=4KiB count=1
+
 .PHONY: swap
+
+gfs:
+	cp $(DIR_BUILD)/image $(ELF_IMAGE)
+	dd if=/dev/zero of=$(ELF_IMAGE) oflag=append conv=notrunc bs=4KiB count=$(NPSWAP)
+	dd if=/dev/zero of=$(ELF_IMAGE) oflag=append conv=notrunc bs=4KiB count=1
+	dd if=/dev/zero of=$(ELF_IMAGE) oflag=append conv=notrunc bs=4MiB count=1
+
+.PHONY: gfs

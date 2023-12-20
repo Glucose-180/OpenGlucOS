@@ -32,7 +32,7 @@ main:
 	li	s3, kernel	# mem_address
 	li	s4, 1		# block_id
 GE64:
-	blt	s1, s2, LT64
+	bge	s2, s1, LT64
 	li	a7, BIOS_SDREAD
 	mv	a0, s3		# mem_address
 	li	a1, 64		# num_of_blocks
