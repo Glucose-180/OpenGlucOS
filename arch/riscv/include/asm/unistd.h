@@ -59,6 +59,18 @@
 #define SYS_net_send_array 72
 #define SYS_net_recv_stream 73
 
-#define SYS_kprint_avail_table 90
+#define SYS_mkfs 80
+#define SYS_fsinfo 81
+#define SYS_mkdir 82
+#define SYS_rm 83
+#define SYS_open 84
+#define SYS_close 85
+#define SYS_changedir 86
+#define SYS_readdir 87
+#define SYS_read 88
+#define SYS_write 89
+#define SYS_lseek 90
+
+#define SYS_kprint_avail_table 95
 
 #endif

@@ -349,4 +349,40 @@ unsigned int sys_net_recv_stream(uint8_t *buf, int len)
 	return invoke_syscall(SYS_net_recv_stream, (long)buf, len,
 		Ignore, Ignore, Ignore);
 }
+
+int sys_mkfs(int force)
+{
+	return invoke_syscall(SYS_mkfs, force, Ignore,
+		Ignore, Ignore, Ignore);
+}
+
+int sys_fsinfo(void)
+{
+	return invoke_syscall(SYS_fsinfo, Ignore, Ignore, Ignore,
+		Ignore, Ignore);
+}
+
+long sys_open(const char* name, long flags)
+{
+	return invoke_syscall(SYS_open, (long)name, flags, Ignore,
+		Ignore, Ignore);
+}
+
+long sys_close(long fd)
+{
+	return invoke_syscall(SYS_close, fd, Ignore, Ignore,
+		Ignore, Ignore);
+}
+
+long sys_read(long fd, char *buf, long n)
+{
+	return invoke_syscall(SYS_read, fd, (long)buf, n,
+		Ignore, Ignore);
+}
+
+long sys_write(long fd, const char *buf, long n)
+{
+	return invoke_syscall(SYS_write, fd, (long)buf, n,
+		Ignore, Ignore);
+}
 /************************************************************/

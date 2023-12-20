@@ -7,6 +7,7 @@
 #include <common.h>
 #include <os/glucose.h>
 #include <os/string.h>
+#include <printk.h>
 
 /*
  * The index of the first sector for GFS.
@@ -28,7 +29,7 @@ const uint8_t GFS_Magic[24U] = "Z53/4 Beijingxi-Kunming";
 /*
  * GFS_check: check GFS on the disk.
  * Return: 0 if there is already a valid GFS,
- * 1, 2, 3 if there is an invalid GFS,
+ * 1, 2, 3, 4 if there is an invalid GFS,
  * or -1 if there is no GFS at all.
  */
 int GFS_check()
@@ -119,6 +120,9 @@ int GFS_init()
 	rdinode.idptr = INODE_INVALID_PTR;
 	rdinode.diptr = INODE_INVALID_PTR;
 	GFS_write_inode(rdiidx, &rdinode);
+#if DEBUG_EN != 0
+	writelog("GFS is initialized starting on sector %u", GFS_base_sec);
+#endif
 	return 0;
 }
 
@@ -144,11 +148,11 @@ unsigned int GFS_alloc_in_bitmap(unsigned int n, unsigned int iarr[],
 	{	/* Scan a sector (`sidx`) in bitmap */
 		GFS_read_sec(sidx, 1U, sector_buf);
 		flag_modified = 0;
-		for (i = 0U; i < SECTOR_SIZE / sizeof(uint64_t); ++i)
+		for (i = 0U; i < SECTOR_SIZE / sizeof(uint64_t) && a_ymr < n; ++i)
 		{
 			if (sector_buf[i] != ~0UL)
 			{
-				for (j = 0U; j < 64U; ++j)
+				for (j = 0U; j < 64U && a_ymr < n; ++j)
 				{
 					mask = ((uint64_t)1UL << 63) >> j;
 					if ((sector_buf[i] & mask) == 0UL)
@@ -203,4 +207,121 @@ int GFS_write_inode(unsigned int ino, const GFS_inode_t *pinode)
 		= *pinode;
 	GFS_write_sec(sidx, 1U, sector_buf);
 	return 0;
+}
+
+/*
+ * GFS_count_in_bitmap: count occupied bits in a bitmap (inode or block),
+ * whose range (sector index relative to `GFS_base_Sec`) is
+ * [`start_sec`, `end_sec`).
+ * Return the number of `1` bits.
+ */
+unsigned int GFS_count_in_bitmap(unsigned int start_sec, unsigned int end_sec)
+{
+	unsigned int sidx;
+	unsigned int o_ymr = 0U;	/* Number of ones */
+	unsigned int i;
+	uint64_t l;
+	sector_buf_t sector_buf;
+
+	for (sidx = start_sec; sidx < end_sec; ++sidx)
+	{
+		GFS_read_sec(sidx, 1U, sector_buf);
+		for (i = 0U; i < sizeof(sector_buf_t) / sizeof(uint64_t); ++i)
+		{
+			l = sector_buf[i];
+			while (l > 0UL)
+			{
+				l &= (l - 1UL);	/* Clear the lowest `1` bit */
+				++o_ymr;
+			}
+		}
+	}
+	return o_ymr;
+}
+
+/*
+ * do_mkfs: initialize GFS on the disk.
+ * If `force` is not zero, initialze GFS even if there is already
+ * a file system. Otherwise, initialization will fail if there is
+ * already a file system, no matter valid or not.
+ * Return: 0 on success, -1 if there is already a valid GFS,
+ * or 1, 2, 3, 4 if there is already an invalid GFS.
+ */
+int do_mkfs(int force)
+{
+	int crt;
+
+	if (force != 0 || (crt = GFS_check()) < 0)
+	{
+		printk("Initializing Glucose File System...\n");
+		GFS_init();
+		printk(
+			"GFS base sector : %u\n"
+			"GFS magic       : \"%s\"\n"
+			"GFS size        : %u MiB\n"
+			"Number of inodes: %u\n"
+			"inode bitmap loc: %u Sec\n"
+			"Block bitmap loc: %u Sec\n"
+			"inode loc       : %u Sec\n"
+			"Data blocks loc : %u Sec\n",
+			GFS_base_sec, GFS_superblock.GFS_magic,
+			GFS_superblock.GFS_size >> 20,
+			GFS_superblock.inode_num,
+			GFS_superblock.inode_bitmap_loc,
+			GFS_superblock.block_bitmap_loc,
+			GFS_superblock.inode_loc,
+			GFS_superblock.data_loc
+		);
+		return 0;
+	}
+	else if (crt == 0)
+		/* Already a valid GFS */
+		return -1;
+	else
+		/* Already an invalid GFS */
+		return crt;
+}
+
+/*
+ * do_fsinfo: read information of GFS on the disk.
+ * Return value is the same as `GFS_check()`.
+ */
+int do_fsinfo()
+{
+	int crt;
+	/* Number of used inodes and blocks */
+	unsigned int nui, nub;
+
+	crt = GFS_check();
+	if (crt == 0)
+	{
+		nui = GFS_count_in_bitmap(GFS_superblock.inode_bitmap_loc,
+			GFS_superblock.block_bitmap_loc);
+		nub = GFS_count_in_bitmap(GFS_superblock.block_bitmap_loc,
+			GFS_superblock.inode_loc);
+		printk(
+			"GFS base sector : %u\n"
+			"GFS magic       : \"%s\"\n"
+			"GFS size        : %u MiB\n"
+			//"Number of inodes: %u\n"
+			"inode bitmap loc: %u Sec\n"
+			"Block bitmap loc: %u Sec\n"
+			"inode loc       : %u Sec\n"
+			"Data blocks loc : %u Sec\n",
+			GFS_base_sec, GFS_superblock.GFS_magic,
+			GFS_superblock.GFS_size >> 20,
+			//GFS_superblock.inode_num,
+			GFS_superblock.inode_bitmap_loc,
+			GFS_superblock.block_bitmap_loc,
+			GFS_superblock.inode_loc,
+			GFS_superblock.data_loc
+		);
+		printk(
+			"Used inodes     : %u / %u (%u B)\n"
+			"Used data blocks: %u / %u (%u B)\n",
+			nui, GFS_superblock.inode_num, sizeof(GFS_inode_t),
+			nub, GFS_superblock.GFS_size / BLOCK_SIZE, BLOCK_SIZE
+		);
+	}
+	return crt;
 }

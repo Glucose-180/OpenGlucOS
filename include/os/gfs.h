@@ -114,5 +114,9 @@ unsigned int GFS_alloc_in_bitmap(unsigned int n, unsigned int iarr[],
 	unsigned int start_sec, unsigned int end_sec);
 int GFS_read_inode(unsigned int ino, GFS_inode_t *pinode);
 int GFS_write_inode(unsigned int ino, const GFS_inode_t *pinode);
+unsigned int GFS_count_in_bitmap(unsigned int start_sec, unsigned int end_sec);
+
+int do_mkfs(int force);
+int do_fsinfo(void);
 
 #endif

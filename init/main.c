@@ -51,6 +51,7 @@
 #include <os/smp.h>
 #include <plic.h>
 #include <os/net.h>
+#include <os/gfs.h>
 
 extern void ret_from_exception();
 
@@ -231,6 +232,10 @@ static void init_syscall(void)
 		syscall[SYS_net_recv_stream] = (long (*)())do_net_recv_stream;
 	}
 #endif
+	/* File system */ {
+		syscall[SYS_mkfs] = (long (*)())do_mkfs;
+		syscall[SYS_fsinfo] = (long (*)())do_fsinfo;
+	}
 }
 
 /*

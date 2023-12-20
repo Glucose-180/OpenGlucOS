@@ -100,6 +100,16 @@ int sys_semaphore_up(int sidx);
 int sys_semaphore_down(int sidx);
 int sys_semaphore_destroy(int sidx);
 
+/* Open file: Read and write */
+#define O_RDWR (1L << 0)
+
+int sys_mkfs(int force);
+int sys_fsinfo(void);
+long sys_open(const char* name, long flags);
+long sys_close(long fd);
+long sys_read(long fd, char *buf, long n);
+long sys_write(long fd, const char *buf, long n);
+
 void sys_kprint_avail_table(void);
 
 #endif

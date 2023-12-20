@@ -279,6 +279,31 @@ int try_syscall(char **cmds)
 				}
 				continue;
 			}
+			else if (strcmp(cmds[0], "mkfs") == 0)
+			{
+				int rt;
+				if (cmds[1] != NULL && strncmp(cmds[1], "-f", 2U) == 0)
+					rt = sys_mkfs(1);
+				else
+					rt = sys_mkfs(0);
+				if (rt != 0)
+				{
+					printf("**glush: failed to initialize GFS: %d\n", rt);
+					printf("There is already %svalid GFS. Try using \"-f\".\n",
+						rt < 0 ? "a " : "an in");
+				}
+				continue;
+			}
+			else if (strcmp(cmds[0], "statfs") == 0)
+			{
+				int rt;
+				rt = sys_fsinfo();
+				if (rt < 0)
+					printf("**glush: there is no GFS at all.\n");
+				else if (rt > 0)
+					printf("**glush: the GFS is invalid: %d\n", rt);
+				continue;
+			}
 			else
 				return 1;
 		}
