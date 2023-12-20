@@ -49,6 +49,14 @@
 /* Invalid index of inode */
 #define DENTRY_INVALID_INO ~0U
 
+#ifndef PATH_LEN
+/*
+ * Max length of path.
+ * also defined in `sched.h`.
+ */
+#define PATH_LEN 71
+#endif
+
 #define SEC_PER_BLOCK (BLOCK_SIZE / SECTOR_SIZE)
 
 /* Header in GFS super block */
@@ -86,20 +94,36 @@ typedef struct {
 	uint32_t dptr[INODE_NDPTR];
 	/* Indirect pointer 4 MiB max */
 	uint32_t idptr;
-	/* Double indirect pointer: 4 GiB max */
+	/*
+	 * Double indirect pointer: 4 GiB max.
+	 * It is not used in a directory inode.
+	 */
 	uint32_t diptr;
 } GFS_inode_t;
 
+/* Directory entry */
 typedef struct {
 	/* The name of the file or sub directory */
 	uint8_t fname[FNLEN + 1U];
 	/* The index of its inode */
 	uint32_t ino;
-} dir_entry_t;
+} GFS_dentry_t;
 
-/* An 512 B buffer whose address is 8-B aligned */
+/*
+ * How many entries can a directory hold (including "." and "..").
+ * Typically it is (10+1024)*64=66176.
+ */
+#define NDENTRIES ((INODE_NDPTR + BLOCK_SIZE / sizeof(uint32_t)) * \
+	(BLOCK_SIZE / sizeof(GFS_dentry_t)))
+
+/* Number of dir entries in a data block */
+#define DENT_PER_BLOCK (BLOCK_SIZE / sizeof(GFS_dentry_t))
+
+/* A 512 B buffer whose address is 8-B aligned */
 typedef uint64_t sector_buf_t[SECTOR_SIZE / sizeof(uint64_t)];
 
+/* A 4 KiB buffer of a indirect block */
+typedef uint32_t indblock_buf_t[BLOCK_SIZE / sizeof(uint32_t)];
 
 extern unsigned int GFS_base_sec;
 extern GFS_superblock_t GFS_superblock;
@@ -118,5 +142,19 @@ unsigned int GFS_count_in_bitmap(unsigned int start_sec, unsigned int end_sec);
 
 int do_mkfs(int force);
 int do_fsinfo(void);
+
+unsigned int path_anal(const char *spath);
+
+int GFS_add_dentry(GFS_inode_t *pinode, const char *fname, unsigned int ino);
+
+static inline int GFS_write_block(unsigned int bidx_in_GFS, void *kva)
+{
+	return GFS_write_sec(bidx_in_GFS * SEC_PER_BLOCK, SEC_PER_BLOCK, kva);
+}
+
+static inline int GFS_read_block(unsigned int bidx_in_GFS, void *kva)
+{
+	return GFS_read_sec(bidx_in_GFS * SEC_PER_BLOCK, SEC_PER_BLOCK, kva);
+}
 
 #endif

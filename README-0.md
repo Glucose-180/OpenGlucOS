@@ -30,20 +30,34 @@ Project 6。
 
 #### [2023-12-20]
 
-  原神，继续！新增目录相关数据结构`dir_entry_t`，继续填补初始化相关的函数（`gfs0.c`），还未完成 mkfs 相关的系统调用。修改了`Makefile`和自动编译脚本，支持在编译脚本中自定义镜像文件的位置以减少对 SSD 的磨损。修复了`bootblock.S`中加载内核的小 bug（当内核所占扇区数恰好为 64 的整数倍可能导致读 0 个扇区的请求）。目前可以编译并且启动。
+  原神，继续！新增目录相关数据结构`GFS_dentry_t`，继续填补初始化相关的函数（`gfs0.c`），还未完成 mkfs 相关的系统调用。修改了`Makefile`和自动编译脚本，支持在编译脚本中自定义镜像文件的位置以减少对 SSD 的磨损。修复了`bootblock.S`中加载内核的小 bug（当内核所占扇区数恰好为 64 的整数倍可能导致读 0 个扇区的请求）。目前可以编译并且启动。
 
   新增了glush `mkfs`和`statfs`命令以及相关的系统调用，临时修复了`rwfile.c`中系统调用函数不存在导致的编译错误问题。目前 -O2 上板能够正常进行`mkfs`、`mkfs -f`以及`statfs`命令，但是 -O2 编译时喜提一个内存别名警告，有待解决：
 
 ```c
 ./kernel/fs/gfs0.c: In function 'GFS_init':
 ./kernel/fs/gfs0.c:103:42: warning: dereferencing type-punned pointer will break strict-aliasing rules [-Wstrict-aliasing]
-  103 |  strcpy((char*)((dir_entry_t*)sector_buf)[0].fname, ".");
+  103 |  strcpy((char*)((GFS_dentry_t*)sector_buf)[0].fname, ".");
       |                                          ^
 ./kernel/fs/gfs0.c:104:28: warning: dereferencing type-punned pointer will break strict-aliasing rules [-Wstrict-aliasing]
-  104 |  ((dir_entry_t*)sector_buf)[0].ino = rdiidx;
+  104 |  ((GFS_dentry_t*)sector_buf)[0].ino = rdiidx;
       |                            ^
 ./kernel/fs/gfs0.c:111:28: warning: dereferencing type-punned pointer will break strict-aliasing rules [-Wstrict-aliasing]
-  111 |  ((dir_entry_t*)sector_buf)[0].ino = ((dir_entry_t*)sector_buf)[1].ino
+  111 |  ((GFS_dentry_t*)sector_buf)[0].ino = ((GFS_dentry_t*)sector_buf)[1].ino
       |                            ^
 ```
+
+
+
+  在 Linux 上做实验，得到了如下结论：
+
+  (1) `rmdir`命令默认只能移除空文件夹，可用`rm -r`来递归移除非空文件夹；
+
+  (2) 对于文件夹，路径字符串最后一个字符是否带`/`没有区别，但对于普通文件则不能带`/`；
+
+  (3) 移除`.`和`..`是不允许的。
+
+  通过`__attribute__((__may_alias__))`尝试解决上一次的编译警告问题，但没有成功，最后更改了`GFS_init()`中`sector_buf`的类型。新增路径解析、目录项添加相关函数（参见`gfs-dir.c`、`gfs-path.c`），准备支持`mkdir`以及`rm`等操作。目前 -O2 上板正常，但新增的功能都没有测试过。
+
+
 

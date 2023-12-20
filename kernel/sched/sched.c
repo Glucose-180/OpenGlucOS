@@ -60,7 +60,8 @@ pcb_t pid0_pcb = {
 	.tid = 0,
 //#endif
 	.cpu_mask = 1U << 0,
-	.pgdir_kva = (PTE*)PGDIR_VA
+	.pgdir_kva = (PTE*)PGDIR_VA,
+	.cpath = "/"
 };
 
 #if NCPU == 2
@@ -84,7 +85,8 @@ pcb_t pid1_pcb = {
 	.tid = 0,
 //#endif
 	.cpu_mask = 1U << 1,
-	.pgdir_kva = (PTE*)PGDIR_VA
+	.pgdir_kva = (PTE*)PGDIR_VA,
+	.cpath = "/"
 };
 #endif
 
@@ -182,6 +184,8 @@ pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 	pnew->cursor_x = pnew->cursor_y = 0;
 	pnew->cylim_h = pnew->cylim_l = -1;
 	pnew->cpu_mask = cpu_mask;
+	pnew->cpath[0] = '/';
+	pnew->cpath[1] = '\0';
 #if MULTITHREADING != 0
 	/* 0 TID is the main thread */
 	pnew->tid = 0;

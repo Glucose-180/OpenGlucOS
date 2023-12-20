@@ -65,7 +65,8 @@ int GFS_check()
  */
 int GFS_init()
 {
-	sector_buf_t superblock_buf, sector_buf;
+	sector_buf_t superblock_buf;
+	GFS_dentry_t sector_buf[SECTOR_SIZE / sizeof(GFS_dentry_t)];
 	GFS_superblock_t *psb = (GFS_superblock_t*)superblock_buf;
 	unsigned int sidx, i;
 	/* Root dir inode and block */
@@ -100,16 +101,15 @@ int GFS_init()
 		GFS_superblock.inode_loc) != 1U)
 		panic_g("failed to allocate block for \"/\"");
 	/* Write data for "." and ".." */
-	strcpy((char*)((dir_entry_t*)sector_buf)[0].fname, ".");
-	((dir_entry_t*)sector_buf)[0].ino = rdiidx;
-	strcpy((char*)((dir_entry_t*)sector_buf)[1].fname, "..");
-	((dir_entry_t*)sector_buf)[1].ino = rdiidx;
-	for (i = 2U; i < SECTOR_SIZE / sizeof(dir_entry_t); ++i)
-		((dir_entry_t*)sector_buf)[i].ino = DENTRY_INVALID_INO;
+	strcpy((char*)(sector_buf[0].fname), ".");
+	sector_buf[0].ino = rdiidx;
+	strcpy((char*)(sector_buf[1].fname), "..");
+	((GFS_dentry_t*)sector_buf)[1].ino = rdiidx;
+	for (i = 2U; i < SECTOR_SIZE / sizeof(GFS_dentry_t); ++i)
+		sector_buf[i].ino = DENTRY_INVALID_INO;
 	/* Writing the first sector of the block */
 	GFS_write_sec(GFS_superblock.data_loc + rdbidx * SEC_PER_BLOCK, 1U, sector_buf);
-	((dir_entry_t*)sector_buf)[0].ino = ((dir_entry_t*)sector_buf)[1].ino
-		= DENTRY_INVALID_INO;
+	sector_buf[0].ino = sector_buf[1].ino = DENTRY_INVALID_INO;
 	for (i = 1U; i < SEC_PER_BLOCK; ++i)
 		GFS_write_sec(GFS_superblock.data_loc + rdbidx * SEC_PER_BLOCK + i,
 			1U, sector_buf);

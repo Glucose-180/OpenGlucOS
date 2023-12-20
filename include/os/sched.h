@@ -64,6 +64,15 @@
 #define MULTITHREADING 1
 #endif
 
+
+#ifndef PATH_LEN
+/*
+ * Max length of path.
+ * also defined in `gfs.h`.
+ */
+#define PATH_LEN 71
+#endif
+
 /*
  * used to save register infomation:
  * NOTE: this order must be preserved,
@@ -191,6 +200,8 @@ typedef struct pcb
 	 * this process can run on it if and only if (1<<i)&cpu_mask is not zero.
 	 */
 	unsigned int cpu_mask;	/* TP */
+	/* The current path of a process */
+	char cpath[PATH_LEN + 1];
 } pcb_t;
 
 extern const uintptr_t User_sp;

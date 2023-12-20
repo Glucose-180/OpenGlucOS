@@ -125,13 +125,14 @@ char *getcmd()
 }
 
 /*
- * Split the string src using Sep as seperator and
+ * Split the string `src` using `Sep` as seperator and
  * return an array of pointers with end NULL.
- * NOTE: src may be modified!
+ * NOTE: `src` may be modified!
  */
+/*
 char **split(char *src, const char Sep)
 {
-#define CM 10U
+#define CM 15U
 	unsigned int i;
 	static char *rt[CM + 1];
 	char *p;
@@ -151,6 +152,33 @@ char **split(char *src, const char Sep)
 	rt[i] = NULL;
 	return rt;
 #undef CM
+}*/
+
+/*
+ * new version: Split the string `src` using `Sep` as seperator,
+ * write the pointers in `parr[]` and return the number of pointers.
+ * `pmax` is the max number of pointers, so the remaining part
+ * of the string will be ignored.
+ * NOTE: `src` may be modified, and ensure that `parr[]` has enough space!
+ */
+unsigned int split(char *src, const char Sep, char *parr[], unsigned int pmax)
+{
+	unsigned int i;
+	char *p;
+	char flag_new = 1;
+
+	for (i = 0U, p = src; *p != '\0'; ++p)
+	{
+		if (flag_new != 0)
+			parr[i++] = p, flag_new = 0;
+		if (*p == Sep)
+		{
+			*p = '\0', flag_new = 1;
+			if (i >= pmax)
+				break;
+		}
+	}
+	return i;
 }
 
 /*

@@ -46,7 +46,7 @@ static inline int isspace(int ch)
 int getchar(void);
 int getline(char* str, const int Len);
 char *getcmd(void);
-char **split(char *src, const char Sep);
+unsigned int split(char *src, const char Sep, char *parr[], unsigned int pmax);
 void glucos_brake(void);
 void panic(const char *file, const char *func, int line, const char *fmt, ...);
 void writelog(const char *fmt, ...);

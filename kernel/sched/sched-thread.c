@@ -66,6 +66,7 @@ pthread_t do_thread_create(uintptr_t entry, uintptr_t arg, uintptr_t sp, uintptr
 	pnew->seg_end = ccpu->seg_end;
 	strncpy(pnew->name, ccpu->name, TASK_NAMELEN);
 	pnew->name[TASK_NAMELEN] = '\0';
+	strcpy(pnew->cpath, ccpu->cpath);
 	init_pcb_stack(kernel_stack, entry, pnew);
 	pnew->trapframe->regs[OFFSET_REG_A0 / sizeof(reg_t)] = arg;
 	/*
