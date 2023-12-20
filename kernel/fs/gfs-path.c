@@ -9,11 +9,11 @@
 #include <os/smp.h>
 
 /*
- * scan_dentry_on_ptr_arr: Scan data blocks holding dir entries
+ * search_dentry_on_ptr_arr: Scan data blocks holding dir entries
  * pointed by `parr[0]` to `parr[n-1]` for `fname`.
  * Return the `ino` of dir entry if found or `DENTRY_INVALID_INO` if not found.
  */
-static unsigned int scan_dentry_on_ptr_arr
+static unsigned int search_dentry_on_ptr_arr
 	(const uint32_t *parr, unsigned int n, const char *fname)
 {
 	unsigned int i, j;
@@ -33,7 +33,29 @@ static unsigned int scan_dentry_on_ptr_arr
 }
 
 /*
- * path_anal: analize the string `spath` and find the inode
+ * search_dentry_in_dir_inode: search an entry in a directory inode.
+ * Return the `ino` of dir entry if found or `DENTRY_INVALID_INO` if not found.
+ */
+unsigned int search_dentry_in_dir_inode
+	(const GFS_inode_t *pinode, const char *fname)
+{
+	indblock_buf_t idbbuf;
+	unsigned int ino;
+
+	if (pinode->type != DIR)
+		return DENTRY_INVALID_INO;
+	if ((ino = search_dentry_on_ptr_arr(pinode->dptr, INODE_NDPTR, fname))
+		== DENTRY_INVALID_INO)
+	{
+		GFS_read_block(pinode->idptr, idbbuf);
+		ino = search_dentry_on_ptr_arr(idbbuf, BLOCK_SIZE / sizeof(uint32_t),
+			fname);
+	}
+	return ino;
+}
+
+/*
+ * path_anal: analize the string `spath` and find the inode.
  * If it starts with `/`, it is absolute path;
  * otherwise it is considered as relative path.
  * Return the index of inode found (`ino` in dir entry)
@@ -44,7 +66,6 @@ static unsigned int scan_dentry_on_ptr_arr
 unsigned int path_anal(const char *spath)
 {
 	char path[PATH_LEN + 1];
-	indblock_buf_t idbbuf;
 	/* inode index that is just found */
 	unsigned int cur_ino;
 	char *fnames[16];
@@ -57,11 +78,9 @@ unsigned int path_anal(const char *spath)
 		return DENTRY_INVALID_INO;
 	strcpy(path, spath);
 	if (path[0] == '/')
-		cur_ino = 0U;	/* starting from "/" */
-	else
-		if (ccpu->cpath[0] != '/' ||
-			(cur_ino = path_anal(ccpu->cpath)) == DENTRY_INVALID_INO)
-			panic_g("cpath is %s", ccpu->cpath);
+		cur_ino = 0U;	/* Start from "/" */
+	else	/* Start from the current path */
+		cur_ino = ccpu->cur_ino;
 	nfnames = split(path[0] == '/' ? path + 1 : path, '/', fnames, 16U);
 	for (i = 0U; i < nfnames; ++i)
 	{
@@ -69,21 +88,60 @@ unsigned int path_anal(const char *spath)
 			panic_g("cannot find %u-th inode while anal %s at %u",
 				cur_ino, spath, i);
 		if (inode.type != DIR)
-		{
 			/* Not a directory */
-			if (i + 1U != nfnames)
-				return DENTRY_INVALID_INO;
-		}
-		/* Try direct pointers */
-		if ((cur_ino = scan_dentry_on_ptr_arr(inode.dptr, INODE_NDPTR, fnames[i]))
-			== DENTRY_INVALID_INO)
-		{
-			GFS_read_block(inode.idptr, idbbuf);
-			cur_ino = scan_dentry_on_ptr_arr(idbbuf, BLOCK_SIZE / sizeof(uint32_t),
-				fnames[i]);
-		}
+			return DENTRY_INVALID_INO;
+		cur_ino = search_dentry_in_dir_inode(&inode, fnames[i]);
 		if (cur_ino == DENTRY_INVALID_INO)
 			return DENTRY_INVALID_INO;
 	}
 	return cur_ino;
+}
+
+/*
+ * do_changedir: change the process's current path.
+ * Return 0 on success, 1 if the directory is not found,
+ * or 2 if the path is too long.
+ */
+int do_changedir(const char *tpath)
+{
+	unsigned int target_ino;
+	GFS_inode_t inode;
+	pcb_t *ccpu = cur_cpu();
+	/* current path len and target path len */
+	int cplen = strlen(ccpu->cpath);
+	int tplen = strlen(tpath);
+
+	if (tplen > PATH_LEN || (tpath[0] != '/' && cplen + tplen + 1 > PATH_LEN))
+		return 2;
+	target_ino = path_anal(tpath);
+	if (target_ino == DENTRY_INVALID_INO)
+		return 1;
+	if (GFS_read_inode(target_ino, &inode) != 0)
+		panic_g("path_anal(\"%s\") returned invalid %u", tpath, target_ino);
+	if (inode.type != DIR)
+		return 1;
+	if (tpath[0] == '/')
+		/* Absolute path */
+		strcpy(ccpu->cpath, tpath);
+	else
+	{	/* Relative path */
+		ccpu->cpath[cplen++] = '/';
+		ccpu->cpath[cplen] = '\0';
+		strcat(ccpu->cpath, tpath);
+	}
+	ccpu->cur_ino = target_ino;
+	return 0;
+}
+
+/*
+ * do_getpath: get the process's current path and write it to `path`.
+ * Return the index of the current directory or `DENTRY_INVALID_INO`
+ * if the `path` address is illegal.
+ */
+unsigned int do_getpath(char *path)
+{
+	if ((uintptr_t)path >= KVA_MIN)
+		return DENTRY_INVALID_INO;
+	strcpy(path, cur_cpu()->cpath);
+	return cur_cpu()->cur_ino;
 }

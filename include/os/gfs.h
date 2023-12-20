@@ -143,7 +143,11 @@ unsigned int GFS_count_in_bitmap(unsigned int start_sec, unsigned int end_sec);
 int do_mkfs(int force);
 int do_fsinfo(void);
 
+unsigned int search_dentry_in_dir_inode
+	(const GFS_inode_t *pinode, const char *fname);
 unsigned int path_anal(const char *spath);
+int do_changedir(const char *tpath);
+unsigned int do_getpath(char *path);
 
 int GFS_add_dentry(GFS_inode_t *pinode, const char *fname, unsigned int ino);
 

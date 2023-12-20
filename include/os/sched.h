@@ -200,8 +200,14 @@ typedef struct pcb
 	 * this process can run on it if and only if (1<<i)&cpu_mask is not zero.
 	 */
 	unsigned int cpu_mask;	/* TP */
-	/* The current path of a process */
+	/*
+	 * The current path of a process.
+	 * NOTE: Either it is "/", or it doesn't end with '/'.
+	 * That is, path such as "/glucose180/" is illegal.
+	 */
 	char cpath[PATH_LEN + 1];
+	/* The index of inode of current directory */
+	unsigned cur_ino;
 } pcb_t;
 
 extern const uintptr_t User_sp;

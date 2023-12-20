@@ -13,8 +13,8 @@
  * GFS_add_dentry: Add an entry in the directory whose inode is pointed
  * by `pinode`. The entry is specified by `fname` and `ino`.
  * Return: 0 on success, 1 if the directory is full, 2 if no free block,
- * -1 if the args are error (such as `pinode` pointing to a file),
- * and -2 on error (severe error of file system).
+ * -1 if `pinode` points to a file, -2 if `fname` already exists,
+ * and -3 on error (severe error of file system).
  * NOTE: this function do not write inode to disk!
  */
 int GFS_add_dentry(GFS_inode_t *pinode, const char *fname, unsigned int ino)
@@ -32,6 +32,14 @@ int GFS_add_dentry(GFS_inode_t *pinode, const char *fname, unsigned int ino)
 		return -1;
 	if (pinode->size >= NDENTRIES)
 		return 1;
+	/*
+	 * NOTE: Searching and then scanning makes many repeated
+	 * reading operations of disk. This is not efficient.
+	 * After cache is implemented, it might be alleviated.
+	 */
+	if (search_dentry_in_dir_inode(pinode, fname) != DENTRY_INVALID_INO)
+		/* already exists */
+		return -2;
 	/* Scan all director pointers */
 	for (i = 0U; i < INODE_NDPTR; ++i)
 	{
@@ -125,7 +133,7 @@ int GFS_add_dentry(GFS_inode_t *pinode, const char *fname, unsigned int ino)
 		}
 		else
 			/* `pinode->size` is not large, but there's no free space! */
-			return -2;
+			return -3;
 	}
 }
 

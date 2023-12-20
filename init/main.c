@@ -235,6 +235,8 @@ static void init_syscall(void)
 	/* File system */ {
 		syscall[SYS_mkfs] = (long (*)())do_mkfs;
 		syscall[SYS_fsinfo] = (long (*)())do_fsinfo;
+		syscall[SYS_changedir] = (long (*)())do_changedir;
+		syscall[SYS_getpath] = (long (*)())do_getpath;
 	}
 }
 

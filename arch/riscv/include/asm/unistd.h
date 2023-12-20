@@ -70,6 +70,7 @@
 #define SYS_read 88
 #define SYS_write 89
 #define SYS_lseek 90
+#define SYS_getpath 91
 
 #define SYS_kprint_avail_table 95
 

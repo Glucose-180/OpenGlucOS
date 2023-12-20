@@ -59,5 +59,5 @@ Project 6。
 
   通过`__attribute__((__may_alias__))`尝试解决上一次的编译警告问题，但没有成功，最后更改了`GFS_init()`中`sector_buf`的类型。新增路径解析、目录项添加相关函数（参见`gfs-dir.c`、`gfs-path.c`），准备支持`mkdir`以及`rm`等操作。目前 -O2 上板正常，但新增的功能都没有测试过。
 
-
+  新增实现`cd`、`pwd`相关命令的系统调用内核函数（`do_changedir()`和`do_getpath()`），完善了`GFS_add_dentry()`，并且新增搜索目录项的轮子函数`unsigned int search_dentry_in_dir_inode()`。但以上功能仍然未经过测试。目前编译大概是没问题。
 

@@ -26,11 +26,10 @@ const ptr_t pid0_stack = 0xffffffc051000000,
 const uintptr_t User_sp = USER_STACK_ADDR;
 
 /*
- * The default size for a user stack and kernel stack.
- * 4 KiB, 16 KiB.
+ * The default kernel size for a process:
+ * 32 KiB.
  */
-const uint32_t //Ustack_size = USTACK_NPG * PAGE_SIZE,
-	Kstack_size = 16 * 1024;
+const uint32_t Kstack_size = 32U * 1024U;
 
 pid_t pid_glush = INVALID_PID;
 
@@ -61,7 +60,8 @@ pcb_t pid0_pcb = {
 //#endif
 	.cpu_mask = 1U << 0,
 	.pgdir_kva = (PTE*)PGDIR_VA,
-	.cpath = "/"
+	.cpath = "/",
+	.cur_ino = 0U
 };
 
 #if NCPU == 2
@@ -86,7 +86,8 @@ pcb_t pid1_pcb = {
 //#endif
 	.cpu_mask = 1U << 1,
 	.pgdir_kva = (PTE*)PGDIR_VA,
-	.cpath = "/"
+	.cpath = "/",
+	.cur_ino = 0U
 };
 #endif
 
@@ -186,6 +187,7 @@ pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 	pnew->cpu_mask = cpu_mask;
 	pnew->cpath[0] = '/';
 	pnew->cpath[1] = '\0';
+	pnew->cur_ino = 0U;
 #if MULTITHREADING != 0
 	/* 0 TID is the main thread */
 	pnew->tid = 0;

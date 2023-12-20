@@ -73,6 +73,7 @@ pid_t do_fork(void)
 	strncpy(pnew->name, ccpu->name, TASK_NAMELEN);
 	pnew->name[TASK_NAMELEN] = '\0';
 	strcpy(pnew->cpath, ccpu->cpath);
+	pnew->cur_ino = ccpu->cur_ino;
 
 	if (pcb_table_add(pnew) < 0)
 		panic_g("Failed to add proc %d to pcb_table[]", pid);
