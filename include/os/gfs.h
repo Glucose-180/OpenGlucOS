@@ -148,6 +148,7 @@ unsigned int search_dentry_in_dir_inode
 unsigned int path_anal(const char *spath);
 int do_changedir(const char *tpath);
 unsigned int do_getpath(char *path);
+unsigned int path_squeeze(char *path);
 
 int GFS_add_dentry(GFS_inode_t *pinode, const char *fname, unsigned int ino);
 

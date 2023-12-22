@@ -111,6 +111,8 @@ int do_changedir(const char *tpath)
 	int cplen = strlen(ccpu->cpath);
 	int tplen = strlen(tpath);
 
+	// TODO: use `path_squeeze()` to connect the path.
+
 	if (tplen > PATH_LEN || (tpath[0] != '/' && cplen + tplen + 1 > PATH_LEN))
 		return 2;
 	target_ino = path_anal(tpath);
@@ -144,4 +146,58 @@ unsigned int do_getpath(char *path)
 		return DENTRY_INVALID_INO;
 	strcpy(path, cur_cpu()->cpath);
 	return cur_cpu()->cur_ino;
+}
+
+/*
+ * path_squeeze: squeeze a path string with "." and "..".
+ * For example, "/home/glucoes/./../tiepi" will become "/home/tiepi".
+ * NOTE: `path` should be an absolute path (starting with '/').
+ * Return the actual length of the path after squeezed
+ * or 0 if `path[0]` is not '/'.
+ */
+unsigned int path_squeeze(char *path)
+{
+	unsigned int n;
+	char *fnames[20U];
+	unsigned int i, l;
+	int j;
+
+	if (path[0] != '/')
+		return 0U;
+	++path;	/* Skip '/' */
+	n = split(path, '/', fnames, 20U);
+	/*
+	 * Ignore `.`, `..` and the name before it by setting the
+	 * pointers in `fnames[]` to them to `NULL`.
+	 */
+	for (j = -1, i = 0U; i < n; ++i)
+	{	/* Scan every file name */
+	/* `j` points to the last valid name before `i` */
+		if (strcmp(fnames[i], "..") == 0)
+		{
+			fnames[i] = NULL;
+			if (j >= 0)
+				fnames[j--] = NULL;
+		}
+		else if (strcmp(fnames[i], ".") == 0)
+			fnames[i] = NULL;
+		else
+			j = (int)i;
+	}
+	/*
+	 * Connect the remaining names and calculate the
+	 * total length.
+	 */
+	for (l = 0U, i = 0U; i < n; ++i)
+	{
+		if (fnames[i] == NULL)
+			continue;
+		while (*(fnames[i]) != '\0')
+			path[l++] = *(fnames[i]++);
+		path[l++] = '/';
+	}
+	if (l > 0U)
+		--l;
+	path[l] = '\0';
+	return l + 1U;
 }

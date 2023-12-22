@@ -61,3 +61,6 @@ Project 6。
 
   新增实现`cd`、`pwd`相关命令的系统调用内核函数（`do_changedir()`和`do_getpath()`），完善了`GFS_add_dentry()`，并且新增搜索目录项的轮子函数`unsigned int search_dentry_in_dir_inode()`。但以上功能仍然未经过测试。目前编译大概是没问题。
 
+#### [2023-12-22]
+
+  原……原神，启……动！新增路径压缩（去除`.`和`..`）函数`path_squeeze()`并完成了单独的测试`tools/path_squeeze.c`，准备应用到`do_changedir()`系统调用函数中，在连接路径时做压缩。
