@@ -45,7 +45,7 @@ unsigned int search_dentry_in_dir_inode
 	if (pinode->type != DIR)
 		return DENTRY_INVALID_INO;
 	if ((ino = search_dentry_on_ptr_arr(pinode->dptr, INODE_NDPTR, fname))
-		== DENTRY_INVALID_INO)
+		== DENTRY_INVALID_INO && pinode->idptr != INODE_INVALID_PTR)
 	{
 		GFS_read_block(pinode->idptr, idbbuf);
 		ino = search_dentry_on_ptr_arr(idbbuf, BLOCK_SIZE / sizeof(uint32_t),
@@ -125,8 +125,11 @@ int do_changedir(const char *tpath)
 		strcpy(ccpu->cpath, tpath);
 	else
 	{	/* Relative path */
-		ccpu->cpath[cplen++] = '/';
-		ccpu->cpath[cplen] = '\0';
+		if (ccpu->cpath[cplen - 1] != '/')
+		{
+			ccpu->cpath[cplen++] = '/';
+			ccpu->cpath[cplen] = '\0';
+		}
 		strcat(ccpu->cpath, tpath);
 	}
 	ccpu->cur_ino = target_ino;

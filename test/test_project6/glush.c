@@ -337,8 +337,8 @@ int try_syscall(char **cmds)
 					printf("**glush: dir is full\n");
 				else if (rt == 4)
 					printf("**glush: file already exists\n");
-				else
-					printf("**glush: GFS fault...");
+				else if (rt != 0)
+					printf("**glush: GFS fault: %d\n", rt);
 				continue;
 			}
 			else

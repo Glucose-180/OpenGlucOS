@@ -115,7 +115,7 @@ int GFS_init()
 		GFS_write_sec(GFS_superblock.data_loc + rdbidx * SEC_PER_BLOCK + i,
 			1U, sector_buf);
 	/* Set and write inode of "/" */
-	rdinode.dptr[0] = rdbidx + GFS_superblock.data_loc / SEC_PER_BLOCK;
+	rdinode.dptr[0] = rdbidx + GFS_DATALOC_BLOCK;
 	for (i = 1U; i < INODE_NDPTR; ++i)
 		rdinode.dptr[i] = INODE_INVALID_PTR;
 	rdinode.idptr = INODE_INVALID_PTR;
@@ -214,7 +214,7 @@ int GFS_read_inode(unsigned int ino, GFS_inode_t *pinode)
 	sidx = GFS_superblock.inode_loc + lbytes2sectors(ino * sizeof(GFS_inode_t));
 	GFS_read_sec(sidx, 1U, sector_buf);
 	*pinode = ((GFS_inode_t*)sector_buf)
-		[sidx % (sizeof(sector_buf) / sizeof(GFS_inode_t))];
+		[ino % (sizeof(sector_buf) / sizeof(GFS_inode_t))];
 	return 0;
 }
 
@@ -231,7 +231,7 @@ int GFS_write_inode(unsigned int ino, const GFS_inode_t *pinode)
 		return -1;
 	sidx = GFS_superblock.inode_loc + lbytes2sectors(ino * sizeof(GFS_inode_t));
 	GFS_read_sec(sidx, 1U, sector_buf);
-	((GFS_inode_t*)sector_buf)[sidx % (sizeof(sector_buf) / sizeof(GFS_inode_t))]
+	((GFS_inode_t*)sector_buf)[ino % (sizeof(sector_buf) / sizeof(GFS_inode_t))]
 		= *pinode;
 	GFS_write_sec(sidx, 1U, sector_buf);
 	return 0;

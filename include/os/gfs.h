@@ -129,6 +129,12 @@ extern unsigned int GFS_base_sec;
 extern GFS_superblock_t GFS_superblock;
 const uint8_t GFS_Magic[24U];
 
+/*
+ * The offset of data blocks in GFS (unit: blocks).
+ * It is used to convert block index in GFS between index in data blocks.
+ */
+#define GFS_DATALOC_BLOCK (GFS_superblock.data_loc / SEC_PER_BLOCK)
+
 int GFS_read_sec(unsigned int sec_idx_in_GFS, unsigned int nsec, void* kva);
 int GFS_write_sec(unsigned int sec_idx_in_GFS, unsigned int nsec, void* kva);
 
@@ -157,6 +163,9 @@ int GFS_add_dentry(GFS_inode_t *pinode, const char *fname, unsigned int ino);
 int do_mkdir(const char *stpath);
 unsigned int do_readdir(const char *stpath, int det);
 
+/*
+ * GFS_write/read_block: `bidx_in_GFS` is the block index in GFS.
+ */
 static inline int GFS_write_block(unsigned int bidx_in_GFS, void *kva)
 {
 	return GFS_write_sec(bidx_in_GFS * SEC_PER_BLOCK, SEC_PER_BLOCK, kva);
@@ -165,6 +174,20 @@ static inline int GFS_write_block(unsigned int bidx_in_GFS, void *kva)
 static inline int GFS_read_block(unsigned int bidx_in_GFS, void *kva)
 {
 	return GFS_read_sec(bidx_in_GFS * SEC_PER_BLOCK, SEC_PER_BLOCK, kva);
+}
+
+/*
+ * GFS_write/read_data_block: `dbidx` is the block index
+ * in data block.
+ */
+static inline int GFS_write_data_block(unsigned int dbidx, void *kva)
+{
+	return GFS_write_block(dbidx + GFS_superblock.data_loc / SEC_PER_BLOCK, kva);
+}
+
+static inline int GFS_read_data_block(unsigned int dbidx, void *kva)
+{
+	return GFS_read_block(dbidx + GFS_superblock.data_loc / SEC_PER_BLOCK, kva);
 }
 
 #endif

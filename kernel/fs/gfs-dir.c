@@ -61,12 +61,13 @@ int GFS_add_dentry(GFS_inode_t *pinode, const char *fname, unsigned int ino)
 				GFS_superblock.inode_loc) != 1U)
 				/* No free data block */
 				return 2;
+			bidx += GFS_DATALOC_BLOCK;
 			strncpy((char*)debbuf[0].fname, fname, FNLEN);
 			debbuf[0].fname[FNLEN] = 0U;
 			debbuf[0].ino = ino;
 			for (j = 1U; j < DENT_PER_BLOCK; ++j)
 				debbuf[j].ino = DENTRY_INVALID_INO;
-			pinode->dptr[i] = bidx + GFS_superblock.data_loc / SEC_PER_BLOCK;
+			pinode->dptr[i] = bidx;
 		}
 		else
 		{	/* There is a space in an existing data block */
@@ -86,10 +87,11 @@ int GFS_add_dentry(GFS_inode_t *pinode, const char *fname, unsigned int ino)
 			if (GFS_alloc_in_bitmap(1U, &idbidx, GFS_superblock.block_bitmap_loc,
 				GFS_superblock.inode_loc) != 1U)
 				return 2;
+			idbidx += GFS_DATALOC_BLOCK;
 			for (i = 0U; i < BLOCK_SIZE / sizeof(uint32_t); ++i)
 				idbbuf[i] = INODE_INVALID_PTR;
 			GFS_write_block(idbidx, idbbuf);
-			pinode->idptr = idbidx + GFS_superblock.data_loc / SEC_PER_BLOCK;
+			pinode->idptr = idbidx;
 		}
 		else
 			GFS_read_block((idbidx = pinode->idptr), idbbuf);
@@ -115,12 +117,13 @@ int GFS_add_dentry(GFS_inode_t *pinode, const char *fname, unsigned int ino)
 					GFS_superblock.inode_loc) != 1U)
 					/* No free data block */
 					return 2;
+				bidx += GFS_DATALOC_BLOCK;
 				strncpy((char*)debbuf[0].fname, fname, FNLEN);
 				debbuf[0].fname[FNLEN] = 0U;
 				debbuf[0].ino = ino;
 				for (j = 1U; j < DENT_PER_BLOCK; ++j)
 					debbuf[j].ino = DENTRY_INVALID_INO;
-				idbbuf[i] = bidx + GFS_superblock.data_loc / SEC_PER_BLOCK;
+				idbbuf[i] = bidx;
 			}
 			else
 			{	/* There is a space in an existing data block */
@@ -314,7 +317,7 @@ unsigned int do_readdir(const char *stpath, int det)
 	indblock_buf_t idbbuf;
 
 	if (stpath == NULL)
-		tino = 0U;
+		tino = cur_cpu()->cur_ino;
 	else if ((tino = path_anal(stpath)) == DENTRY_INVALID_INO)
 		return 0U;
 	if (GFS_read_inode(tino, &tinode) != 0)
