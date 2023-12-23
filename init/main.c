@@ -235,8 +235,16 @@ static void init_syscall(void)
 	/* File system */ {
 		syscall[SYS_mkfs] = (long (*)())do_mkfs;
 		syscall[SYS_fsinfo] = (long (*)())do_fsinfo;
+		//syscall[SYS_open] = (long (*)())do_open;
+		//syscall[SYS_close] = (long (*)())do_close;
 		syscall[SYS_changedir] = (long (*)())do_changedir;
+		//syscall[SYS_read] = (long (*)())do_read;
+		//syscall[SYS_write] = (long (*)())do_write;
+		//syscall[SYS_write] = (long (*)())do_lseek;
 		syscall[SYS_getpath] = (long (*)())do_getpath;
+		syscall[SYS_readdir] = (long (*)())do_readdir;
+		syscall[SYS_mkdir] = (long (*)())do_mkdir;
+
 	}
 }
 

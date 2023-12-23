@@ -107,8 +107,14 @@ int sys_mkfs(int force);
 int sys_fsinfo(void);
 long sys_open(const char* name, long flags);
 long sys_close(long fd);
+long sys_changedir(const char *path);
 long sys_read(long fd, char *buf, long n);
 long sys_write(long fd, const char *buf, long n);
+long sys_lseek(long fd, long offset, long whence);
+long sys_getpath(char *path);
+unsigned int sys_readdir(const char *path, int det);
+long sys_mkdir(const char *path);
+// TODO: sys_rm, ...
 
 void sys_kprint_avail_table(void);
 

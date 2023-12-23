@@ -136,12 +136,15 @@ int GFS_check(void);
 int GFS_init(void);
 unsigned int GFS_alloc_in_bitmap(unsigned int n, unsigned int iarr[],
 	unsigned int start_sec, unsigned int end_sec);
+int GFS_free_in_bitmap(unsigned int bidx,
+	unsigned int start_sec, unsigned int end_sec);
 int GFS_read_inode(unsigned int ino, GFS_inode_t *pinode);
 int GFS_write_inode(unsigned int ino, const GFS_inode_t *pinode);
 unsigned int GFS_count_in_bitmap(unsigned int start_sec, unsigned int end_sec);
 
 int do_mkfs(int force);
 int do_fsinfo(void);
+void GFS_panic(const char *fmt, ...);
 
 unsigned int search_dentry_in_dir_inode
 	(const GFS_inode_t *pinode, const char *fname);
@@ -151,6 +154,8 @@ unsigned int do_getpath(char *path);
 unsigned int path_squeeze(char *path);
 
 int GFS_add_dentry(GFS_inode_t *pinode, const char *fname, unsigned int ino);
+int do_mkdir(const char *stpath);
+unsigned int do_readdir(const char *stpath, int det);
 
 static inline int GFS_write_block(unsigned int bidx_in_GFS, void *kva)
 {

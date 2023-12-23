@@ -111,8 +111,6 @@ int do_changedir(const char *tpath)
 	int cplen = strlen(ccpu->cpath);
 	int tplen = strlen(tpath);
 
-	// TODO: use `path_squeeze()` to connect the path.
-
 	if (tplen > PATH_LEN || (tpath[0] != '/' && cplen + tplen + 1 > PATH_LEN))
 		return 2;
 	target_ino = path_anal(tpath);
@@ -132,6 +130,8 @@ int do_changedir(const char *tpath)
 		strcat(ccpu->cpath, tpath);
 	}
 	ccpu->cur_ino = target_ino;
+	if (path_squeeze(ccpu->cpath) == 0U)
+		panic_g("invalid abs path: %s", ccpu->cpath);
 	return 0;
 }
 

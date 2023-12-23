@@ -61,16 +61,16 @@
 
 #define SYS_mkfs 80
 #define SYS_fsinfo 81
-#define SYS_mkdir 82
-#define SYS_rm 83
-#define SYS_open 84
-#define SYS_close 85
-#define SYS_changedir 86
-#define SYS_readdir 87
-#define SYS_read 88
-#define SYS_write 89
-#define SYS_lseek 90
-#define SYS_getpath 91
+#define SYS_open 82
+#define SYS_close 83
+#define SYS_changedir 84
+#define SYS_read 85
+#define SYS_write 86
+#define SYS_lseek 87
+#define SYS_getpath 88
+#define SYS_readdir 89
+#define SYS_mkdir 90
+#define SYS_rm 91
 
 #define SYS_kprint_avail_table 95
 

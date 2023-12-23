@@ -8,6 +8,7 @@
 #include <os/glucose.h>
 #include <os/string.h>
 #include <printk.h>
+#include <os/time.h>
 
 /*
  * The index of the first sector for GFS.
@@ -104,7 +105,7 @@ int GFS_init()
 	strcpy((char*)(sector_buf[0].fname), ".");
 	sector_buf[0].ino = rdiidx;
 	strcpy((char*)(sector_buf[1].fname), "..");
-	((GFS_dentry_t*)sector_buf)[1].ino = rdiidx;
+	sector_buf[1].ino = rdiidx;
 	for (i = 2U; i < SECTOR_SIZE / sizeof(GFS_dentry_t); ++i)
 		sector_buf[i].ino = DENTRY_INVALID_INO;
 	/* Writing the first sector of the block */
@@ -114,7 +115,7 @@ int GFS_init()
 		GFS_write_sec(GFS_superblock.data_loc + rdbidx * SEC_PER_BLOCK + i,
 			1U, sector_buf);
 	/* Set and write inode of "/" */
-	rdinode.dptr[0] = rdbidx;
+	rdinode.dptr[0] = rdbidx + GFS_superblock.data_loc / SEC_PER_BLOCK;
 	for (i = 1U; i < INODE_NDPTR; ++i)
 		rdinode.dptr[i] = INODE_INVALID_PTR;
 	rdinode.idptr = INODE_INVALID_PTR;
@@ -169,6 +170,33 @@ unsigned int GFS_alloc_in_bitmap(unsigned int n, unsigned int iarr[],
 			GFS_write_sec(sidx, 1U, sector_buf);
 	}
 	return a_ymr;
+}
+
+/*
+ * GFS_free_in_bitmap: clear the `bidx`-th bit in the bitmap
+ * whose range (sector index relative to `GFS_base_Sec`) is
+ * [`start_sec`, `end_sec`).
+ * Return 0 on success or 1 if the `idx` is out of range.
+ */
+int GFS_free_in_bitmap(unsigned int bidx,
+	unsigned int start_sec, unsigned int end_sec)
+{
+	unsigned int sidx;
+	sector_buf_t sector_buf;
+	uint64_t mask;
+
+	if (end_sec <= start_sec ||
+		bidx >= (end_sec - start_sec) * SECTOR_SIZE * 8U)
+		return 1;
+	sidx = start_sec + (bidx / (SECTOR_SIZE * 8U));
+	bidx = bidx % (SECTOR_SIZE * 8U);
+	GFS_read_sec(sidx, 1U, sector_buf);
+
+	mask = ((uint64_t)1UL << 63) >> (bidx % 64U);
+	sector_buf[bidx / 64U] &= ~mask;
+
+	GFS_write_sec(sidx, 1U, sector_buf);
+	return 0;
 }
 
 /*
@@ -324,4 +352,33 @@ int do_fsinfo()
 		);
 	}
 	return crt;
+}
+
+/*
+ * GFS_panic: print error information and suggest the user
+ * reset the file system.
+ * It is called when severe error is detected in GFS.
+ */
+void GFS_panic(const char *fmt, ...)
+{
+	va_list va;
+	uint64_t time;
+	extern int _vprint(const char *fmt, va_list _va, void (*output)(char*));
+	extern int vprintk(const char *fmt, va_list _va);
+
+	printk("\n**Severe error is detected in GFS:\n");
+
+	time = get_timer();
+	printl("[t=%04lus] Severe error is detected in GFS: ", time);
+
+	va_start(va, fmt);
+	vprintk(fmt, va);
+//#if DEBUG_EN != 0
+	_vprint(fmt, va, qemu_logging);
+	printl("\n");
+//#endif
+	va_end(va);
+
+	printk("\nTry \"mkfs -f\" to reset GFS or \"statfs\""
+		"to show basic information...\n");
 }

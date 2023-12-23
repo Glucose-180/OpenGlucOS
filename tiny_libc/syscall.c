@@ -374,6 +374,12 @@ long sys_close(long fd)
 		Ignore, Ignore);
 }
 
+long sys_changedir(const char *path)
+{
+	return invoke_syscall(SYS_changedir, (long)path, Ignore,
+		Ignore, Ignore, Ignore);
+}
+
 long sys_read(long fd, char *buf, long n)
 {
 	return invoke_syscall(SYS_read, fd, (long)buf, n,
@@ -384,5 +390,29 @@ long sys_write(long fd, const char *buf, long n)
 {
 	return invoke_syscall(SYS_write, fd, (long)buf, n,
 		Ignore, Ignore);
+}
+
+long sys_lseek(long fd, long offset, long whence)
+{
+	return invoke_syscall(SYS_lseek, fd, offset, whence,
+		Ignore, Ignore);
+}
+
+long sys_getpath(char *path)
+{
+	return invoke_syscall(SYS_getpath, (long)path, Ignore,
+		Ignore, Ignore, Ignore);
+}
+
+unsigned int sys_readdir(const char *path, int det)
+{
+	return invoke_syscall(SYS_readdir, (long)path, det,
+		Ignore, Ignore, Ignore);
+}
+
+long sys_mkdir(const char *path)
+{
+	return invoke_syscall(SYS_mkdir, (long)path, Ignore,
+		Ignore, Ignore, Ignore);
 }
 /************************************************************/

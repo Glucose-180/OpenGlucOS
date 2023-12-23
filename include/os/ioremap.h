@@ -5,6 +5,6 @@
 #define IO_ADDR_START 0xffffffe000000000lu
 
 extern void * ioremap(unsigned long phys_addr, unsigned long size);
-extern void iounmap(void *io_addr);
+//extern void iounmap(void *io_addr);
 
 #endif // IOREMAP_H

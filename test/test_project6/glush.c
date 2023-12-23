@@ -304,6 +304,43 @@ int try_syscall(char **cmds)
 					printf("**glush: the GFS is invalid: %d\n", rt);
 				continue;
 			}
+			else if (strcmp(cmds[0], "cd") == 0)
+			{
+				int rt;
+				if (cmds[1] == NULL)
+					printf("**glush: too few args for cd\n");
+				else if ((rt = sys_changedir(cmds[1])) == 1)
+					printf("**glush: No such directory\n");
+				else if (rt == 2)
+					printf("**glush: path is too long\n");
+				continue;
+			}
+			else if (strcmp(cmds[0], "ls") == 0)
+			{
+				int rt;
+				if (cmds[1] != NULL && strcmp(cmds[1], "-l") == 0)
+					rt = sys_readdir(cmds[2], 1);
+				else
+					rt = sys_readdir(cmds[1], 0);
+				if (rt == 0)
+					printf("**glush: No such directory\n");
+				continue;
+			}
+			else if (strcmp(cmds[0], "mkdir") == 0)
+			{
+				int rt;
+				if (cmds[1] == NULL)
+					printf("**glush: too few args for mkdir\n");
+				else if ((rt = sys_mkdir(cmds[1])) == 1 || rt == 2)
+					printf("**glush: No such directory\n");
+				else if (rt == 3)
+					printf("**glush: dir is full\n");
+				else if (rt == 4)
+					printf("**glush: file already exists\n");
+				else
+					printf("**glush: GFS fault...");
+				continue;
+			}
 			else
 				return 1;
 		}
@@ -358,8 +395,10 @@ int try_builtin(char **cmds)
 char *getcmd()
 {
 	static char cbuf[CS];
+	char cpath[100];
 
-	printf("%s@%s:~$ ", USER_NAME, OS_NAME);
+	sys_getpath(cpath);
+	printf("%s@%s:%s$ ", USER_NAME, OS_NAME, cpath);
 
 	getline(cbuf, CS);
 	trim(cbuf);

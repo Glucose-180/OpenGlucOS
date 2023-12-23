@@ -64,3 +64,8 @@ Project 6。
 #### [2023-12-22]
 
   原……原神，启……动！新增路径压缩（去除`.`和`..`）函数`path_squeeze()`并完成了单独的测试`tools/path_squeeze.c`，准备应用到`do_changedir()`系统调用函数中，在连接路径时做压缩。
+
+#### [2023-12-23]
+
+  新增`do_mkdir()`以及`do_readdir()`系统调用函数以支持`mkdir`、`ls`命令。新增`GFS_panic()`函数用于在 GFS 发生严重错误时报错并提醒用户重置。目前`ls`似乎正常，但`mkdir`和`cd`仍然不行，会出现“blocks read error!”的错误。等待修复。
+

@@ -33,8 +33,10 @@ void *ioremap(unsigned long phys_addr, unsigned long size)
 	return (void *)(io_base + phys_addr);
 }
 
+/*
 void iounmap(void *io_addr)
 {
 	// TODO: [p5-task1] a very naive iounmap() is OK
 	// maybe no one would call this function?
 }
+*/
