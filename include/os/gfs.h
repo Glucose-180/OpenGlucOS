@@ -109,6 +109,20 @@ typedef struct {
 	uint32_t ino;
 } GFS_dentry_t;
 
+
+/* File linked list */
+typedef struct flist_node_t {
+	/* Index of inode */
+	uint32_t ino;
+	/* Being written or not */
+	int16_t bewr;
+	/* Number of processes using it */
+	int16_t nproc;
+	/* inode */
+	GFS_inode_t inode;
+	struct flist_node_t *next;
+} flist_node_t;
+
 /*
  * How many entries can a directory hold (including "." and "..").
  * Typically it is (10+1024)*64=66176.
@@ -162,6 +176,11 @@ unsigned int path_squeeze(char *path);
 int GFS_add_dentry(GFS_inode_t *pinode, const char *fname, unsigned int ino);
 int do_mkdir(const char *stpath);
 unsigned int do_readdir(const char *stpath, int det);
+
+void flist_init(void);
+int flist_inc_fnode(uint32_t ino, int wr);
+int flist_dec_fnode(uint32_t ino, int cwr);
+flist_node_t *flist_search(uint32_t ino);
 
 /*
  * GFS_write/read_block: `bidx_in_GFS` is the block index in GFS.
