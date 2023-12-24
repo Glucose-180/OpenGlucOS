@@ -98,3 +98,5 @@ Project 6。
 ```
 
   新封装路径解析函数`path_anal_2()`，用于拆分父目录和子文件名，并找到父目录的 inode 号。例如，`/home/glucose/tiepi`将被拆分为`/home/glucose`和`tiepi`，返回`/home/glucose`的 inode 号。目前 -O2 上板正常，仍然没有高强度测试。
+
+  新增测试程序 mkdir-test，用于进行高强度创建目录的测试，并且修复了一些小问题（`GFS_init()`时考虑正在打开的文件，`do_readdir()`时考虑目标不是目录要报错的情况）。创建两千个子目录再递归删除，测试通过（-O2 上板）。

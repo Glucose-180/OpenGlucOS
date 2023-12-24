@@ -14,7 +14,7 @@
  * `bewr`, `nproc` are meaningless for it.
  */
 static flist_node_t flh;
-static flist_node_t *flist_head = &flh;
+flist_node_t *flist_head = &flh;
 
 /*
  * flist_init: initialize the linked list.

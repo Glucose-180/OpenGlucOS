@@ -255,6 +255,6 @@ gfs:
 	cp $(DIR_BUILD)/image $(ELF_IMAGE)
 	dd if=/dev/zero of=$(ELF_IMAGE) oflag=append conv=notrunc bs=4KiB count=$(NPSWAP)
 	dd if=/dev/zero of=$(ELF_IMAGE) oflag=append conv=notrunc bs=4KiB count=1
-	dd if=/dev/zero of=$(ELF_IMAGE) oflag=append conv=notrunc bs=4MiB count=1
+	dd if=/dev/zero of=$(ELF_IMAGE) oflag=append conv=notrunc bs=4MiB count=10
 
 .PHONY: gfs

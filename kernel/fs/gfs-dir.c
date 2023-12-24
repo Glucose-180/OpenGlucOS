@@ -315,6 +315,8 @@ unsigned int do_readdir(const char *stpath, int det)
 			stpath != NULL ? stpath : cur_cpu()->cpath, tino);
 		return 0U;
 	}
+	if (tinode.type != DIR)
+		return 0U;
 	e_ymr = scan_dentries_on_ptr_arr(tinode.dptr, INODE_NDPTR, det);
 	if (tinode.idptr != INODE_INVALID_PTR)
 	{

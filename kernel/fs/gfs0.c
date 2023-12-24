@@ -62,7 +62,8 @@ int GFS_check()
 /*
  * GFS_init: create a GFS on the disk NO MATTER there is
  * a GFS or not.
- * Return: 0 (reserved).
+ * Return: 0 on success, 1 on error (if some files or directories
+ * except `/` are opened).
  */
 int GFS_init()
 {
@@ -73,6 +74,9 @@ int GFS_init()
 	/* Root dir inode and block */
 	unsigned int rdiidx = 0U, rdbidx;
 	GFS_inode_t rdinode;	/* Root dir inode */
+
+	if (flist_head->next != NULL)
+		return 1;
 
 	/* Write super block */
 	strcpy((void *)psb->GFS_magic, (void *)GFS_Magic);
@@ -274,6 +278,7 @@ unsigned int GFS_count_in_bitmap(unsigned int start_sec, unsigned int end_sec)
  * a file system. Otherwise, initialization will fail if there is
  * already a file system, no matter valid or not.
  * Return: 0 on success, -1 if there is already a valid GFS,
+ * -2 if some files or directories except `/` are opened,
  * or 1, 2, 3, 4 if there is already an invalid GFS.
  */
 int do_mkfs(int force)
@@ -283,7 +288,8 @@ int do_mkfs(int force)
 	if (force != 0 || (crt = GFS_check()) < 0)
 	{
 		printk("Initializing Glucose File System...\n");
-		GFS_init();
+		if (GFS_init() != 0)
+			return -2;
 		printk(
 			"GFS base sector : %u\n"
 			"GFS magic       : \"%s\"\n"

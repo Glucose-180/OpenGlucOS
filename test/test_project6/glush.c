@@ -289,8 +289,11 @@ int try_syscall(char **cmds)
 				if (rt != 0)
 				{
 					printf("**glush: failed to initialize GFS: %d\n", rt);
-					printf("There is already %svalid GFS. Try using \"-f\".\n",
-						rt < 0 ? "a " : "an in");
+					if (rt != -2)
+						printf("There is already %svalid GFS. Try using \"-f\".\n",
+							rt < 0 ? "a " : "an in");
+					else
+						printf("Some files or directories are opened by processes.\n");
 				}
 				continue;
 			}

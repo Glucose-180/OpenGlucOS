@@ -143,6 +143,8 @@ extern unsigned int GFS_base_sec;
 extern GFS_superblock_t GFS_superblock;
 const uint8_t GFS_Magic[24U];
 
+extern flist_node_t *flist_head;
+
 /*
  * The offset of data blocks in GFS (unit: blocks).
  * It is used to convert block index in GFS between index in data blocks.
