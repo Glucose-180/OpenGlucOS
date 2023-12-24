@@ -360,8 +360,14 @@ int main(reg_t a0, reg_t a1)
 		GFS_init();
 		printk("> [INIT] GFS initialized successfully.\n");
 	}
-	else if (GFS_check() > 0)
+	else if (cgfs_rt > 0)
 		printk("> [INIT] An invalid GFS (%d) is found.\n", cgfs_rt);
+	if (cgfs_rt >= 0)
+		/*
+		 * `flist_init()` is called in `GFS_init()`, so if
+		 * `cgfs_rt < 0`, calling it again is unnecessary.
+		 */
+		flist_init();
 
 	// Init system call table (0_0)
 	init_syscall();

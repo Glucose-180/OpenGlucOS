@@ -23,9 +23,9 @@ flist_node_t *flist_head = &flh;
 void flist_init(void)
 {
 	flist_node_t *p, *q;
+	GFS_inode_t inode0;
 
 	flist_head = &flh;
-	flist_head->ino = 0U;
 
 	p = flist_head->next;
 	while (p != NULL)
@@ -35,6 +35,16 @@ void flist_init(void)
 		p = q;
 	}
 	flist_head->next = NULL;
+
+	/*
+	 * Set the `ino` invalid so that
+	 * `GFS_read_inode()` would cause the 0 inode read
+	 * from disk.
+	 */
+	flist_head->ino = DENTRY_INVALID_INO;
+	GFS_read_inode(0U, &inode0);
+	flist_head->inode = inode0;
+	flist_head->ino = 0U;
 }
 
 /*
@@ -64,11 +74,12 @@ int flist_inc_fnode(uint32_t ino, int wr)
 			GFS_panic("flist_inc_fnode: no enough memory for list");
 			return -1;
 		}
+		p->next->ino = DENTRY_INVALID_INO;
+		p->next->next = NULL;
+		GFS_read_inode(ino, &(p->next->inode));
 		p->next->ino = ino;
 		p->next->bewr |= wr;
-		p->next->next = NULL;
 		p->next->nproc = 1U;
-		GFS_read_inode(ino, &(p->next->inode));
 	}
 	else
 	{

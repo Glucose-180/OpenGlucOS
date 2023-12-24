@@ -223,8 +223,15 @@ int do_mkdir(const char *stpath)
 	case 0:
 		break;
 	case 2:
+		GFS_free_in_bitmap(tino, GFS_superblock.inode_bitmap_loc,
+			GFS_superblock.block_bitmap_loc);
 		GFS_panic("do_mkdir: No free block in GFS!");
-		// TODO: remove the new dir
+		/*
+		 * As the parent inode has not been wriiten to disk,
+		 * just free the target dir inode in bitmap.
+		 * NOTE: this situation may not be dealt properly,
+		 * as I do not have enough time and energy...
+		 */
 		return -1;
 		break;
 	default:
@@ -238,8 +245,15 @@ int do_mkdir(const char *stpath)
 	case 0:
 		break;
 	case 2:
+		GFS_free_in_bitmap(tino, GFS_superblock.inode_bitmap_loc,
+			GFS_superblock.block_bitmap_loc);
 		GFS_panic("do_mkdir: No free block in GFS!");
-		// TODO: remove the new dir
+		/*
+		 * As the parent inode has not been wriiten to disk,
+		 * just free the target dir inode in bitmap.
+		 * NOTE: this situation may not be dealt properly,
+		 * as I do not have enough time and energy...
+		 */
 		return -1;
 		break;
 	default:

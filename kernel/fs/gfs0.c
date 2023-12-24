@@ -213,13 +213,20 @@ int GFS_read_inode(unsigned int ino, GFS_inode_t *pinode)
 {
 	unsigned int sidx;
 	sector_buf_t sector_buf;
+	flist_node_t *pfn;
 
 	if (ino >= GFS_superblock.inode_num)
 		return -1;
-	sidx = GFS_superblock.inode_loc + lbytes2sectors(ino * sizeof(GFS_inode_t));
-	GFS_read_sec(sidx, 1U, sector_buf);
-	*pinode = ((GFS_inode_t*)sector_buf)
-		[ino % (sizeof(sector_buf) / sizeof(GFS_inode_t))];
+
+	if ((pfn = flist_search(ino)) != NULL)
+		*pinode = pfn->inode;
+	else
+	{
+		sidx = GFS_superblock.inode_loc + lbytes2sectors(ino * sizeof(GFS_inode_t));
+		GFS_read_sec(sidx, 1U, sector_buf);
+		*pinode = ((GFS_inode_t*)sector_buf)
+			[ino % (sizeof(sector_buf) / sizeof(GFS_inode_t))];
+	}
 	return 0;
 }
 
@@ -231,9 +238,14 @@ int GFS_write_inode(unsigned int ino, const GFS_inode_t *pinode)
 {
 	unsigned int sidx;
 	sector_buf_t sector_buf;
+	flist_node_t *pfn;
 
 	if (ino >= GFS_superblock.inode_num)
 		return -1;
+
+	if ((pfn = flist_search(ino)) != NULL)
+		pfn->inode = *pinode;
+
 	sidx = GFS_superblock.inode_loc + lbytes2sectors(ino * sizeof(GFS_inode_t));
 	GFS_read_sec(sidx, 1U, sector_buf);
 	((GFS_inode_t*)sector_buf)[ino % (sizeof(sector_buf) / sizeof(GFS_inode_t))]
