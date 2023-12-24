@@ -53,6 +53,8 @@ int GFS_add_dentry(GFS_inode_t *pinode, const char *fname, unsigned int ino)
 		for (j = 0U; j < DENT_PER_BLOCK; ++j)
 			if (debbuf[j].ino == DENTRY_INVALID_INO)
 				break;
+		if (j < DENT_PER_BLOCK)
+			break;
 	}
 	if (i < INODE_NDPTR)
 	{	/* There is free space in direct pointers */
@@ -109,6 +111,8 @@ int GFS_add_dentry(GFS_inode_t *pinode, const char *fname, unsigned int ino)
 			for (j = 0U; j < DENT_PER_BLOCK; ++j)
 				if (debbuf[j].ino == DENTRY_INVALID_INO)
 					break;
+			if (j < DENT_PER_BLOCK)
+				break;
 		}
 		if (i < BLOCK_SIZE / sizeof(uint32_t))
 		{	/* There is free space */
@@ -158,10 +162,8 @@ int do_mkdir(const char *stpath)
 {
 	GFS_inode_t inode, tinode;
 	char tpath[PATH_LEN + 1];
-	/* target name and parent path */
-	char *tname, *ppath;
-	/* index of last slash ('/') */
-	int ils;
+	/* target name */
+	char *tname;
 	/* parent path inode index */
 	unsigned int ppino;
 	/* target dir inode index */
@@ -169,25 +171,11 @@ int do_mkdir(const char *stpath)
 	int adrt;
 	unsigned int i;
 
-	strncpy(tpath, stpath, PATH_LEN);
-	tpath[PATH_LEN] = '\0';
-	for (ils = strlen(tpath); ils >= 0; --ils)
-		if (tpath[ils] == '/')
-		{
-			tpath[ils] = '\0';
-			break;
-		}
-	tname = tpath + (ils + 1);
-	if (tname[0] == '\0')
-		return 2;	/* invalid name */
-	ppath = tpath;
-	if (ils == 0)
-		ppino = 0U;	/* "/" */
-	else if (ils < 0)
-		/* `stpath` is just a name */
-		ppino = cur_cpu()->cur_ino;
-	else if ((ppino = path_anal(ppath)) == DENTRY_INVALID_INO)
+	ppino = path_anal_2(stpath, tpath, &tname);
+	if (ppino == DENTRY_INVALID_INO)
 		return 1;
+	if (tname[0] == '\0')
+		return 2;
 
 	if (GFS_read_inode(ppino, &inode) != 0)
 	{
@@ -654,35 +642,20 @@ int do_remove(const char *stpath)
 	int rmdrt;
 	unsigned int rmert;
 	char tpath[PATH_LEN + 1];
-	/* target name and parent path */
-	char *tname, *ppath;
-	/* index of last slash ('/') */
-	int ils;
+	/* target name */
+	char *tname;
 	/* parent path inode index */
 	unsigned int ppino;
 	/* target file ino */
 	unsigned int tino;
 
-	strncpy(tpath, stpath, PATH_LEN);
-	tpath[PATH_LEN] = '\0';
-	for (ils = strlen(tpath); ils >= 0; --ils)
-		if (tpath[ils] == '/')
-		{
-			tpath[ils] = '\0';
-			break;
-		}
-	tname = tpath + (ils + 1);
+	ppino = path_anal_2(stpath, tpath, &tname);
+	if (ppino == DENTRY_INVALID_INO)
+		/* Parent dir is not found */
+		return 1;
 	if (tname[0] == '\0' || strcmp(tname, ".") == 0
 		|| strcmp(tname, "..") == 0)
 		return 1;	/* invalid name */
-	ppath = tpath;
-	if (ils == 0)
-		ppino = 0U;	/* "/" */
-	else if (ils < 0)
-		/* `stpath` is just a name */
-		ppino = cur_cpu()->cur_ino;
-	else if ((ppino = path_anal(ppath)) == DENTRY_INVALID_INO)
-		return 1;
 	/*
 	 * Now `ppino` is the parent dir ino,
 	 * and `tname` is the target file name.
@@ -713,7 +686,7 @@ int do_remove(const char *stpath)
 	if ((rmert = remove_dentry_in_dir_inode(&pinode, tino)) != 1U)
 	{
 		GFS_panic("do_remove: %u entries (%u) are removed in %s",
-			rmert, tino, ppath);
+			rmert, tino, tpath);
 		return -1;
 	}
 	GFS_write_inode(ppino, &pinode);

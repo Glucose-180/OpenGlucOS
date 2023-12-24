@@ -172,6 +172,7 @@ unsigned int path_anal(const char *spath);
 int do_changedir(const char *tpath);
 unsigned int do_getpath(char *path);
 unsigned int path_squeeze(char *path);
+unsigned int path_anal_2(const char *spath, char *tpath, char **ptname);
 
 int GFS_add_dentry(GFS_inode_t *pinode, const char *fname, unsigned int ino);
 int do_mkdir(const char *stpath);

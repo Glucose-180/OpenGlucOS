@@ -79,3 +79,22 @@ Project 6。
 
   首次实现了文件和目录的递归删除`do_remove()`，但存在 bug （会有数据块未释放），并且没有经过高强度测试。等待修复。
 
+  修复了上一个问题，错在扫描 inode 的直接指针和间接指针时漏掉了一种情况的`break`，如下第 10、11 行：
+
+```c
+...
+	for (i = 0U; i < INODE_NDPTR; ++i)
+    {
+        if (pinode->dptr[i] == INODE_INVALID_PTR)
+            break;
+        GFS_read_block(pinode->dptr[i], debbuf);
+        for (j = 0U; j < DENT_PER_BLOCK; ++j)
+            if (debbuf[j].ino == DENTRY_INVALID_INO)
+                break;
+        if (j < DENT_PER_BLOCK)
+            break;
+    }
+...
+```
+
+  新封装路径解析函数`path_anal_2()`，用于拆分父目录和子文件名，并找到父目录的 inode 号。例如，`/home/glucose/tiepi`将被拆分为`/home/glucose`和`tiepi`，返回`/home/glucose`的 inode 号。目前 -O2 上板正常，仍然没有高强度测试。

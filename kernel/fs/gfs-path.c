@@ -220,3 +220,42 @@ unsigned int path_squeeze(char *path)
 	path[l] = '\0';
 	return l + 1U;
 }
+
+/*
+ * path_anal_2: copy (to `tpath`) and analyse the path in `spath`
+ * to get its parent dir path, parent dir inode index (ino) and its target name.
+ * Return the parent inode index and write the target name pointer in `*ptname`.
+ * In other word, `tpath` will keep the parent dir path and
+ * `*ptname` will point to the targnet name.
+ * If the parent dir is not found, `DENTRY_INVALID_INO` will be returned.
+ * If `spath` only has a slash '/' at the beginning or doesn't has '/',
+ * `tpath` will be meaningless!
+ * For example, if `spath` is "/home/tiepi", then `tpath` will be
+ * "/home", `*ptname` will be "tiepi" and the return value is inode index
+ * of "/home".
+ */
+unsigned int path_anal_2(const char *spath, char *tpath, char **ptname)
+{
+	/* index of last slash ('/') */
+	int ils;
+	/* parent path inode index */
+	unsigned int ppino;
+
+	strncpy(tpath, spath, PATH_LEN);
+	tpath[PATH_LEN] = '\0';
+	for (ils = strlen(tpath); ils >= 0; --ils)
+		if (tpath[ils] == '/')
+		{
+			tpath[ils] = '\0';
+			break;
+		}
+	*ptname = tpath + (ils + 1);
+	if (ils == 0)
+		ppino = 0U;	/* "/" */
+	else if (ils < 0)
+		/* `stpath` is just a name */
+		ppino = cur_cpu()->cur_ino;
+	else
+		ppino = path_anal(tpath);
+	return ppino;
+}
