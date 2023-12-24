@@ -341,6 +341,19 @@ int try_syscall(char **cmds)
 					printf("**glush: GFS fault: %d\n", rt);
 				continue;
 			}
+			else if (strcmp(cmds[0], "rm") == 0)
+			{
+				int rt;
+				if (cmds[1] == NULL)
+					printf("**glush: too few args for rm\n");
+				else if ((rt = sys_rm(cmds[1])) == 1)
+					printf("**glush: No such file or directory\n");
+				else if (rt == 2)
+					printf("**glush: the file directory is occupied\n");
+				else if (rt < 0)
+					printf("**glush: GFS fault: %d\n", rt);
+				continue;
+			}
 			else
 				return 1;
 		}

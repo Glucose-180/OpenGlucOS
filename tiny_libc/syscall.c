@@ -415,4 +415,10 @@ long sys_mkdir(const char *path)
 	return invoke_syscall(SYS_mkdir, (long)path, Ignore,
 		Ignore, Ignore, Ignore);
 }
+
+long sys_rm(const char *stpath)
+{
+	return invoke_syscall(SYS_rm, (long)stpath, Ignore,
+		Ignore, Ignore, Ignore);
+}
 /************************************************************/

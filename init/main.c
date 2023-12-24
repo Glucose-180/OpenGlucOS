@@ -244,7 +244,7 @@ static void init_syscall(void)
 		syscall[SYS_getpath] = (long (*)())do_getpath;
 		syscall[SYS_readdir] = (long (*)())do_readdir;
 		syscall[SYS_mkdir] = (long (*)())do_mkdir;
-
+		syscall[SYS_rm] = (long (*)())do_remove;
 	}
 }
 
@@ -294,6 +294,8 @@ pid_t start_glush(void)
 #pragma GCC diagnostic ignored "-Wmain"
 int main(reg_t a0, reg_t a1)
 {
+	int cgfs_rt;
+
 	// Init jump table provided by kernel and bios(ΦωΦ)
 	init_jmptab();
 
@@ -316,9 +318,12 @@ int main(reg_t a0, reg_t a1)
 	time_max_sec = UINT64_MAX / time_base;
 
 #if NIC != 0
+	uint64_t plic_addr;
+	uint32_t nr_irqs;
+
     e1000 = (volatile uint8_t *)bios_read_fdt(ETHERNET_ADDR);
-    uint64_t plic_addr = bios_read_fdt(PLIC_ADDR);
-    uint32_t nr_irqs = (uint32_t)bios_read_fdt(NR_IRQS);
+    plic_addr = bios_read_fdt(PLIC_ADDR);
+    nr_irqs = (uint32_t)bios_read_fdt(NR_IRQS);
     printk("> [INIT] e1000: 0x%lx, plic_addr: 0x%lx, nr_irqs: 0x%lx.\n",
 		e1000, plic_addr, nr_irqs);
 
@@ -348,6 +353,15 @@ int main(reg_t a0, reg_t a1)
     e1000_init();
     printk("> [INIT] E1000 device initialized successfully.\n");
 #endif
+
+	// Init Glucose file system
+	if ((cgfs_rt = GFS_check()) < 0)
+	{
+		GFS_init();
+		printk("> [INIT] GFS initialized successfully.\n");
+	}
+	else if (GFS_check() > 0)
+		printk("> [INIT] An invalid GFS (%d) is found.\n", cgfs_rt);
 
 	// Init system call table (0_0)
 	init_syscall();

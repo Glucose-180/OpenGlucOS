@@ -7,6 +7,7 @@
 #include <os/smp.h>
 #include <os/string.h>
 #include <asm/regs.h>
+#include <os/gfs.h>
 
 /*
  * `alloc_tid`: allocate a free TID for the current process.
@@ -68,6 +69,9 @@ pthread_t do_thread_create(uintptr_t entry, uintptr_t arg, uintptr_t sp, uintptr
 	pnew->name[TASK_NAMELEN] = '\0';
 	strcpy(pnew->cpath, ccpu->cpath);
 	pnew->cur_ino = ccpu->cur_ino;
+	if (flist_inc_fnode(ccpu->cur_ino, 0) > 0)
+		GFS_panic("do_thread_create: proc %d has illegal ino %u",
+			ccpu->pid, ccpu->cur_ino);
 	init_pcb_stack(kernel_stack, entry, pnew);
 	pnew->trapframe->regs[OFFSET_REG_A0 / sizeof(reg_t)] = arg;
 	/*
@@ -133,6 +137,8 @@ void do_thread_exit()
 void thread_kill(tcb_t *p)
 {
 	pcb_t **phead, *pdel;
+	pid_t pid, tid;
+	unsigned int ino;
 
 	if (p->status == TASK_RUNNING)
 		panic_g("thread %d of process %d is running",
@@ -152,10 +158,13 @@ void thread_kill(tcb_t *p)
 	if (pdel == NULL)
 		panic_g("Failed to del pcb %d, %d in queue 0x%lx",
 		p->tid, p->pid, (uint64_t)*phead);
+
+	pid = p->pid, tid = p->tid, ino = p->cur_ino;
 	kfree_g((void *)pdel);
 	if (pcb_table_del(pdel) < 0)
 		panic_g("Failed to remove pcb %d, %d from pcb_table[]",
-		p->tid, p->pid);
+		tid, pid);
+	flist_dec_fnode(ino, 0);
 #if DEBUG_EN != 0
 	writelog("Thread %d of process %d is terminated", p->tid, p->pid);
 #endif

@@ -124,6 +124,7 @@ int GFS_init()
 #if DEBUG_EN != 0
 	writelog("GFS is initialized starting on sector %u", GFS_base_sec);
 #endif
+	flist_init();
 	return 0;
 }
 

@@ -16,6 +16,7 @@
 #include <csr.h>
 #include <os/irq.h>
 #include <os/smp.h>
+#include <os/gfs.h>
 
 /*
  * do_fork: fork a child process and return the
@@ -74,7 +75,9 @@ pid_t do_fork(void)
 	pnew->name[TASK_NAMELEN] = '\0';
 	strcpy(pnew->cpath, ccpu->cpath);
 	pnew->cur_ino = ccpu->cur_ino;
-
+	if (flist_inc_fnode(ccpu->cur_ino, 0) > 0)
+		GFS_panic("do_fork: proc %d has illegal ino %u",
+			ccpu->pid, ccpu->cur_ino);
 	if (pcb_table_add(pnew) < 0)
 		panic_g("Failed to add proc %d to pcb_table[]", pid);
 

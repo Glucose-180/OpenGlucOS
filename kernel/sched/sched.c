@@ -16,6 +16,7 @@
 #include <csr.h>
 #include <os/irq.h>
 #include <os/smp.h>
+#include <os/gfs.h>
 
 /*
  * Has been modified by Glucose180
@@ -721,10 +722,10 @@ pid_t do_kill(pid_t pid)
 		writelog("Process %d is terminated and %u page frames are freed",
 			pid, pgfreed_ymr);
 #endif
+		if (pid == pid_glush)
+			/* If glush is killed, restart it. */
+			pid_glush = start_glush();
 	}
-	if (pid == pid_glush)
-		/* If glush is killed, restart it. */
-		pid_glush = start_glush();
 	return pid;
 #else
 	pcb_t *p, **phead, *pdel;
@@ -770,6 +771,8 @@ pid_t do_kill(pid_t pid)
 	/* Free stacks of it */
 	kfree_g((void *)p->kernel_stack);
 	pgfreed_ymr = free_pages_of_proc(p->pgdir_kva, pid);
+
+	flist_dec_fnode(p->cur_ino, 0);
 
 	*phead = lpcb_del_node(*phead, p, &pdel);
 	if (pdel == NULL)

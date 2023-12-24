@@ -205,9 +205,9 @@ typedef struct pcb
 	 * NOTE: Either it is "/", or it doesn't end with '/'.
 	 * That is, path such as "/glucose180/" is illegal.
 	 */
-	char cpath[PATH_LEN + 1];
+	char cpath[PATH_LEN + 1];	/* TP */
 	/* The index of inode of current directory */
-	unsigned cur_ino;
+	unsigned cur_ino;	/* TP */
 } pcb_t;
 
 extern const uintptr_t User_sp;

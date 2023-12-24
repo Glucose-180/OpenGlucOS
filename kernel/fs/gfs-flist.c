@@ -43,7 +43,8 @@ void flist_init(void)
  * a new node is created and added in the list.
  * If `wr` is not 0, `bewr` will be set.
  * NOTE: if `ino` is 0 ("/"), nothing will be done.
- * Return 0 on success, or 1 on error.
+ * Return 0 on success, 1 if `ino` is illegal,
+ * or -1 on error (no free memory).
  */
 int flist_inc_fnode(uint32_t ino, int wr)
 {
@@ -61,7 +62,7 @@ int flist_inc_fnode(uint32_t ino, int wr)
 		if ((p->next = kmalloc_g(sizeof(flist_node_t))) == NULL)
 		{
 			GFS_panic("flist_inc_fnode: no enough memory for list");
-			return 1;
+			return -1;
 		}
 		p->next->ino = ino;
 		p->next->bewr |= wr;

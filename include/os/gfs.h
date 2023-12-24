@@ -116,7 +116,7 @@ typedef struct flist_node_t {
 	uint32_t ino;
 	/* Being written or not */
 	int16_t bewr;
-	/* Number of processes using it */
+	/* Number of processes (threads) using it */
 	int16_t nproc;
 	/* inode */
 	GFS_inode_t inode;
@@ -176,6 +176,10 @@ unsigned int path_squeeze(char *path);
 int GFS_add_dentry(GFS_inode_t *pinode, const char *fname, unsigned int ino);
 int do_mkdir(const char *stpath);
 unsigned int do_readdir(const char *stpath, int det);
+int GFS_remove_file_or_dir(unsigned int ino);
+unsigned int remove_dentry_in_dir_inode
+	(GFS_inode_t *pinode, unsigned int ino);
+int do_remove(const char *stpath);
 
 void flist_init(void);
 int flist_inc_fnode(uint32_t ino, int wr);

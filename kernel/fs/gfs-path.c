@@ -85,14 +85,22 @@ unsigned int path_anal(const char *spath)
 	for (i = 0U; i < nfnames; ++i)
 	{
 		if (GFS_read_inode(cur_ino, &inode) != 0)
-			panic_g("cannot find %u-th inode while anal %s at %u",
+		{
+			GFS_panic("cannot find %u-th inode while anal %s at %u",
 				cur_ino, spath, i);
+			return DENTRY_INVALID_INO;
+		}
 		if (inode.type != DIR)
 			/* Not a directory */
 			return DENTRY_INVALID_INO;
 		cur_ino = search_dentry_in_dir_inode(&inode, fnames[i]);
 		if (cur_ino == DENTRY_INVALID_INO)
 			return DENTRY_INVALID_INO;
+	}
+	if (cur_ino >= GFS_superblock.inode_num)
+	{
+		GFS_panic("path_anal: %s got illegal ino %u", spath, cur_ino);
+		return DENTRY_INVALID_INO;
 	}
 	return cur_ino;
 }
@@ -116,8 +124,10 @@ int do_changedir(const char *tpath)
 	target_ino = path_anal(tpath);
 	if (target_ino == DENTRY_INVALID_INO)
 		return 1;
-	if (GFS_read_inode(target_ino, &inode) != 0)
-		panic_g("path_anal(\"%s\") returned invalid %u", tpath, target_ino);
+	GFS_read_inode(target_ino, &inode);
+	/* check of `target_ino` has been done in `path_anal()`. */
+	//if (GFS_read_inode(target_ino, &inode) != 0)
+	//	panic_g("path_anal(\"%s\") returned invalid %u", tpath, target_ino);
 	if (inode.type != DIR)
 		return 1;
 	if (tpath[0] == '/')
@@ -132,7 +142,13 @@ int do_changedir(const char *tpath)
 		}
 		strcat(ccpu->cpath, tpath);
 	}
-	ccpu->cur_ino = target_ino;
+	if (target_ino != ccpu->cur_ino)
+	{
+		if (flist_dec_fnode(ccpu->cur_ino, 0) != 0)
+			GFS_panic("do_changedir: failed to dec %u in file list", ccpu->cur_ino);
+		flist_inc_fnode(target_ino, 0);
+		ccpu->cur_ino = target_ino;
+	}
 	if (path_squeeze(ccpu->cpath) == 0U)
 		panic_g("invalid abs path: %s", ccpu->cpath);
 	return 0;

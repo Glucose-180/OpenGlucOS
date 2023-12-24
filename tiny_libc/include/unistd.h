@@ -114,6 +114,7 @@ long sys_lseek(long fd, long offset, long whence);
 long sys_getpath(char *path);
 unsigned int sys_readdir(const char *path, int det);
 long sys_mkdir(const char *path);
+long sys_rm(const char *stpath);
 // TODO: sys_rm, ...
 
 void sys_kprint_avail_table(void);
