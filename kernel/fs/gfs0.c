@@ -276,9 +276,10 @@ unsigned int GFS_count_in_bitmap(unsigned int start_sec, unsigned int end_sec)
 			l = sector_buf[i];
 			while (l > 0UL)
 			{
-				l &= (l - 1UL);	/* Clear the lowest `1` bit */
+				l &= (l - 1UL);	// Clear the lowest `1` bit
 				++o_ymr;
 			}
+			//o_ymr += (unsigned int)__builtin_popcountl(sector_buf[i]);
 		}
 	}
 	return o_ymr;

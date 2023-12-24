@@ -103,5 +103,7 @@ Project 6。
 
   修复小问题：当调用`GFS_read/write_inode()`时应先扫描打开文件链表，因为里面有 inode。如果读 inode 时发现链表里有，则直接从链表中读，这样快；如果写时发现链表里有，则应当同步改写链表里的 inode。理论上讲这种命中的情况只能是要写某目录的 inode，而有某个进程恰好位于此目录，因为如果有文件在链表中的话，系统应拒绝进程打开并改写文件的请求。目前 -O2 上板测试成功。
 
+  尝试优化`GFS_count_in_bitmap()`，使用`__builtin_popcountl()`来进行字中`1`的计数，但是失败了，大概是因为有`-fno-builtin`编译选项；修改了 Makefile，新增`floppy0`，可以用来擦除 SD 卡中的 super block，以避免上次的干扰。
+
 
 

@@ -161,6 +161,11 @@ dirs:
 clean:
 	rm -rf $(DIR_BUILD)
 
+# Glucose180: Wipe data in the SD card
+floppy0:
+	sudo fdisk -l $(DISK)
+	sudo dd if=/dev/zero of=$(DISK)3 conv=notrunc bs=4MiB count=2
+
 floppy:
 	sudo fdisk -l $(DISK)
 	sudo dd if=$(DIR_BUILD)/image of=$(DISK)3 conv=notrunc
@@ -200,7 +205,7 @@ minicom:
 	sleep $(MC_DELAY)
 	sudo $(MINICOM) -D $(TTYUSB1) -X $(FPGA_LOG_FILE)
 
-.PHONY: all dirs clean floppy asm gdb run debug viewlog minicom run-net debug-net
+.PHONY: all dirs clean floppy0 floppy asm gdb run debug viewlog minicom run-net debug-net
 
 # -----------------------------------------------------------------------
 # UCAS-OS Rules
