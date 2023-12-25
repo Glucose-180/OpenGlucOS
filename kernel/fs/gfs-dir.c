@@ -2,7 +2,6 @@
  * gfs-dir.c:
  * Operations on directories
  */
-#include <os/gfs.h>
 #include <os/sched.h>
 #include <common.h>
 #include <os/glucose.h>
@@ -30,7 +29,7 @@ int GFS_add_dentry(GFS_inode_t *pinode, const char *fname, unsigned int ino)
 	indblock_buf_t idbbuf;
 	unsigned int idbidx, bidx;
 
-	if (pinode->type != DIR)
+	if (pinode->type != IT_DIR)
 		return -1;
 	if (pinode->size >= NDENTRIES)
 		return 1;
@@ -183,7 +182,7 @@ int do_mkdir(const char *stpath)
 			stpath, ppino);
 		return -1;
 	}
-	if (inode.type != DIR)
+	if (inode.type != IT_DIR)
 		return 1;
 	if (inode.size >= NDENTRIES)
 		return 3;
@@ -213,7 +212,7 @@ int do_mkdir(const char *stpath)
 	}
 	/* Init `tinode` */
 	tinode.nlink = 1U;
-	tinode.type = DIR;
+	tinode.type = IT_DIR;
 	tinode.size = 0U;
 	for (i = 0U; i < INODE_NDPTR; ++i)
 		tinode.dptr[i] = INODE_INVALID_PTR;
@@ -329,7 +328,7 @@ unsigned int do_readdir(const char *stpath, int det)
 			stpath != NULL ? stpath : cur_cpu()->cpath, tino);
 		return 0U;
 	}
-	if (tinode.type != DIR)
+	if (tinode.type != IT_DIR)
 		return 0U;
 	e_ymr = scan_dentries_on_ptr_arr(tinode.dptr, INODE_NDPTR, det);
 	if (tinode.idptr != INODE_INVALID_PTR)
@@ -429,7 +428,7 @@ int GFS_remove_file_or_dir(unsigned int ino)
 		return 2;
 	if (GFS_read_inode(ino, &inode) != 0)
 		return -1;
-	if (inode.type == DIR)
+	if (inode.type == IT_DIR)
 	{	/* Recursively */
 		rdprt1 = rm_dentries_on_ptr_arr(inode.dptr, INODE_NDPTR);
 		if (inode.idptr != INODE_INVALID_PTR)
@@ -629,7 +628,7 @@ unsigned int remove_dentry_in_dir_inode
 	indblock_buf_t idbbuf;
 	unsigned int r_ymr = 0U;
 
-	if (pinode->type != DIR)
+	if (pinode->type != IT_DIR)
 		return 0U;
 	r_ymr += remove_dentry_on_ptr_arr(pinode->dptr, INODE_NDPTR, ino);
 	if (pinode->idptr != INODE_INVALID_PTR)

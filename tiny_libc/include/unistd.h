@@ -100,9 +100,6 @@ int sys_semaphore_up(int sidx);
 int sys_semaphore_down(int sidx);
 int sys_semaphore_destroy(int sidx);
 
-/* Open file: Read and write */
-#define O_RDWR (1L << 0)
-
 int sys_mkfs(int force);
 int sys_fsinfo(void);
 long sys_open(const char* name, long flags);
@@ -115,7 +112,14 @@ long sys_getpath(char *path);
 unsigned int sys_readdir(const char *path, int det);
 long sys_mkdir(const char *path);
 long sys_rm(const char *stpath);
-// TODO: sys_rm, ...
+
+
+enum Ofile_flag {
+	O_RDONLY = 1, O_WRONLY = (1 << 1),
+	O_RDWR = O_RDONLY | O_WRONLY,
+	O_CREATE = (1 << 2),
+	// TODO: other flags if possible...
+};
 
 void sys_kprint_avail_table(void);
 

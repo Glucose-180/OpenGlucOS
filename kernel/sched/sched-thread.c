@@ -69,9 +69,10 @@ pthread_t do_thread_create(uintptr_t entry, uintptr_t arg, uintptr_t sp, uintptr
 	pnew->name[TASK_NAMELEN] = '\0';
 	strcpy(pnew->cpath, ccpu->cpath);
 	pnew->cur_ino = ccpu->cur_ino;
-	if (flist_inc_fnode(ccpu->cur_ino, 0) > 0)
-		GFS_panic("do_thread_create: proc %d has illegal ino %u",
-			ccpu->pid, ccpu->cur_ino);
+	fd_init(pnew, ccpu);
+	if (flist_inc_fnode(ccpu->cur_ino, 0) == NULL)
+		GFS_panic("do_thread_create: illegal ino %u or no free mem",
+			ccpu->cur_ino);
 	init_pcb_stack(kernel_stack, entry, pnew);
 	pnew->trapframe->regs[OFFSET_REG_A0 / sizeof(reg_t)] = arg;
 	/*

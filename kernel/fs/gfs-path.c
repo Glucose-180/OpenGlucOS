@@ -2,7 +2,6 @@
  * gfs-path.c:
  * Operations on path string.
  */
-#include <os/gfs.h>
 #include <os/glucose.h>
 #include <os/string.h>
 #include <os/sched.h>
@@ -42,7 +41,7 @@ unsigned int search_dentry_in_dir_inode
 	indblock_buf_t idbbuf;
 	unsigned int ino;
 
-	if (pinode->type != DIR)
+	if (pinode->type != IT_DIR)
 		return DENTRY_INVALID_INO;
 	if ((ino = search_dentry_on_ptr_arr(pinode->dptr, INODE_NDPTR, fname))
 		== DENTRY_INVALID_INO && pinode->idptr != INODE_INVALID_PTR)
@@ -90,7 +89,7 @@ unsigned int path_anal(const char *spath)
 				cur_ino, spath, i);
 			return DENTRY_INVALID_INO;
 		}
-		if (inode.type != DIR)
+		if (inode.type != IT_DIR)
 			/* Not a directory */
 			return DENTRY_INVALID_INO;
 		cur_ino = search_dentry_in_dir_inode(&inode, fnames[i]);
@@ -128,7 +127,7 @@ int do_changedir(const char *tpath)
 	/* check of `target_ino` has been done in `path_anal()`. */
 	//if (GFS_read_inode(target_ino, &inode) != 0)
 	//	panic_g("path_anal(\"%s\") returned invalid %u", tpath, target_ino);
-	if (inode.type != DIR)
+	if (inode.type != IT_DIR)
 		return 1;
 	if (tpath[0] == '/')
 		/* Absolute path */
@@ -226,7 +225,7 @@ unsigned int path_squeeze(char *path)
  * to get its parent dir path, parent dir inode index (ino) and its target name.
  * Return the parent inode index and write the target name pointer in `*ptname`.
  * In other word, `tpath` will keep the parent dir path and
- * `*ptname` will point to the targnet name.
+ * `*ptname` will point to the target name.
  * If the parent dir is not found, `DENTRY_INVALID_INO` will be returned.
  * If `spath` only has a slash '/' at the beginning or doesn't has '/',
  * `tpath` will be meaningless!

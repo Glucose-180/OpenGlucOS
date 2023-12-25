@@ -100,7 +100,7 @@ int GFS_init()
 		panic_g("failed to allocate inode for \"/\": %u", rdiidx);
 	rdinode.nlink = 1U;	/* Dir cannot be hard linked */
 	rdinode.size = 2U;	/* "." and ".." */
-	rdinode.type = DIR;
+	rdinode.type = IT_DIR;
 	/* Allocate a block for it */
 	if (GFS_alloc_in_bitmap(1U, &rdbidx, GFS_superblock.block_bitmap_loc,
 		GFS_superblock.inode_loc) != 1U)

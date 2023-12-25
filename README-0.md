@@ -105,5 +105,9 @@ Project 6。
 
   尝试优化`GFS_count_in_bitmap()`，使用`__builtin_popcountl()`来进行字中`1`的计数，但是失败了，大概是因为有`-fno-builtin`编译选项；修改了 Makefile，新增`floppy0`，可以用来擦除 SD 卡中的 super block，以避免上次的干扰。
 
+#### [2023-12-25]
+
+  初步实现`do_open()`、`do_close()`，并在 glush 中支持`touch`命令。
+
 
 

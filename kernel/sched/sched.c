@@ -16,7 +16,6 @@
 #include <csr.h>
 #include <os/irq.h>
 #include <os/smp.h>
-#include <os/gfs.h>
 
 /*
  * Has been modified by Glucose180
@@ -189,6 +188,7 @@ pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 	pnew->cpath[0] = '/';
 	pnew->cpath[1] = '\0';
 	pnew->cur_ino = 0U;
+	fd_init(pnew, NULL);
 #if MULTITHREADING != 0
 	/* 0 TID is the main thread */
 	pnew->tid = 0;

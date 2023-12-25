@@ -357,6 +357,22 @@ int try_syscall(char **cmds)
 					printf("**glush: GFS fault: %d\n", rt);
 				continue;
 			}
+			else if (strcmp(cmds[0], "touch") == 0)
+			{
+				int rt;
+				if (cmds[1] == NULL)
+					printf("**glush: too few args for touch\n");
+				else if ((rt = sys_open(cmds[1], O_CREATE)) == -2)
+					printf("**glush: No such directory\n");
+				else if (rt == -1)
+					printf("**glush: %s is a directory\n", cmds[1]);
+				else if (rt < 0)
+					printf("**glush: GFS fault: %d\n", rt);
+				else
+					if (sys_close(rt) != 0)
+						printf("**glush: failed to close the file\n");
+				continue;
+			}
 			else
 				return 1;
 		}

@@ -75,9 +75,10 @@ pid_t do_fork(void)
 	pnew->name[TASK_NAMELEN] = '\0';
 	strcpy(pnew->cpath, ccpu->cpath);
 	pnew->cur_ino = ccpu->cur_ino;
-	if (flist_inc_fnode(ccpu->cur_ino, 0) > 0)
-		GFS_panic("do_fork: proc %d has illegal ino %u",
-			ccpu->pid, ccpu->cur_ino);
+	fd_init(pnew, ccpu);
+	if (flist_inc_fnode(ccpu->cur_ino, 0) == NULL)
+		GFS_panic("do_fork: illegal ino %u or no free mem",
+			ccpu->cur_ino);
 	if (pcb_table_add(pnew) < 0)
 		panic_g("Failed to add proc %d to pcb_table[]", pid);
 

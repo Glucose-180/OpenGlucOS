@@ -32,6 +32,7 @@
 #include <type.h>
 //#include <os/lock.h>
 #include <pgtable.h>
+#include <os/gfs.h>
 
 #ifndef UPROC_MAX
 /*
@@ -62,15 +63,6 @@
  * It appears in many header files!
  */
 #define MULTITHREADING 1
-#endif
-
-
-#ifndef PATH_LEN
-/*
- * Max length of path.
- * also defined in `gfs.h`.
- */
-#define PATH_LEN 71
 #endif
 
 /*
@@ -133,10 +125,11 @@ typedef struct pcb
 	// NOTE: this order must be preserved, which is defined in regs.h!!
 	/* --- order preserved starts --- */
 	/*
+	 * T.P.
 	 * kernel_sp is KVA while user_sp is UVA.
-	 * "TP" means this elem is private for every thread.
+	 * "T.P." means this elem is private for every thread.
 	 */
-	reg_t kernel_sp, user_sp;	/* TP */
+	reg_t kernel_sp, user_sp;
 	regs_context_t *trapframe;	/* TP */
 	/*
 	 * pgdir_kva is the kernel virtual address of page
@@ -150,10 +143,11 @@ typedef struct pcb
 //#endif
 	/* --- order preserved ends --- */
 	/*
+	 * T.P.
 	 * `kernel_stack` is the base address of kernel stack.
 	 * It is KVA.
 	 */
-	uintptr_t kernel_stack;	/* TP */
+	uintptr_t kernel_stack;
 	/*
 	 * `seg_start` is the start of valid user virtual address.
 	 * `seg_end` is the end address of valid segment, and it
@@ -162,52 +156,64 @@ typedef struct pcb
 	 */
 	uintptr_t seg_start, seg_end;
 	/*
+	 * T.P.
 	 * Processes waiting for this proc.
 	 */
-	struct pcb *wait_queue;	/* TP */
-	/* next pointer */
-	struct pcb *next;	/* TP */
-	/* SLEEPING | READY | RUNNING */
-	task_status_t status;	/* TP */
-	/* cursor position */
-	int cursor_x, cursor_y;	/* TP */
+	struct pcb *wait_queue;
+	/* next pointer. T.P. */
+	struct pcb *next;
+	/* SLEEPING | READY | RUNNING. T.P. */
+	task_status_t status;
+	/* cursor position. T.P. */
+	int cursor_x, cursor_y;
 	/*
+	 * T.P.
 	 * limit of cursor_y, used for auto scroll.
 	 * < 0 means  invalid.
 	 */
-	int cylim_l, cylim_h;	/* TP */
-	/* time(seconds) to wake up sleeping PCB */
-	uint64_t wakeup_time;	/* TP */
-	/* Saved regs */
-	switchto_context_t context;	/* TP */
+	int cylim_l, cylim_h;
+	/* time(seconds) to wake up sleeping PCB. T.P. */
+	uint64_t wakeup_time;
+	/* Saved regs. T.P. */
+	switchto_context_t context;
 	/* Name of this process */
 	char name[TASK_NAMELEN + 1];
 	/*
+	 * T.P.
 	 * phead: points to the head pointer of the queue
 	 * to which this PCB is belonging. This is used to
 	 * find the queue.
 	 */
-	struct pcb ** phead;	/* TP */
+	struct pcb ** phead;
 	/*
+	 * T.P.
 	 * `req_len` is used to store the length of mailbox
 	 * request when blocked in queue of mailbox.
 	 * Since Project 5, it is also used to store the
 	 * length of NIC receiving request.
 	 */
-	unsigned int req_len;	/* TP */
+	unsigned int req_len;
 	/*
+	 * T.P.
 	 * `cpu_mask` is used to set CPU affinity. If a CPU has ID i,
 	 * this process can run on it if and only if (1<<i)&cpu_mask is not zero.
 	 */
-	unsigned int cpu_mask;	/* TP */
+	unsigned int cpu_mask;
 	/*
+	 * T.P.
 	 * The current path of a process.
 	 * NOTE: Either it is "/", or it doesn't end with '/'.
 	 * That is, path such as "/glucose180/" is illegal.
 	 */
-	char cpath[PATH_LEN + 1];	/* TP */
-	/* The index of inode of current directory */
-	unsigned cur_ino;	/* TP */
+	char cpath[PATH_LEN + 1];
+	/* The index of inode of current directory. TP. */
+	unsigned cur_ino;
+	/*
+	 * T.P.
+	 * Open file descriptors.
+	 * If a fd is not in use, it's `fnode` should be `NULL`.
+	 */
+	file_desc_t fds[OFILE_MAX];
 } pcb_t;
 
 extern const uintptr_t User_sp;
@@ -285,6 +291,9 @@ pcb_t *pcb_search(pid_t pid);
 pcb_t *pcb_search_name(const char *name);
 
 pid_t do_fork(void);
+
+/* Moved from `gfs.h` */
+void fd_init(pcb_t *p, pcb_t *s);
 
 #if MULTITHREADING != 0
 #include <os/sched-thread.h>

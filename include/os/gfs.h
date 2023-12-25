@@ -51,10 +51,18 @@
 
 #ifndef PATH_LEN
 /*
- * Max length of path.
- * also defined in `sched.h`.
+ * Max length of path for a
+ * process/thread.
  */
 #define PATH_LEN 71
+#endif
+
+#ifndef OFILE_MAX
+/*
+ * The max number of open files
+ * for a process/thread.
+ */
+#define OFILE_MAX 4U
 #endif
 
 #define SEC_PER_BLOCK (BLOCK_SIZE / SECTOR_SIZE)
@@ -70,7 +78,7 @@ typedef struct {
 	uint32_t data_loc;
 } GFS_superblock_t;
 
-enum Inode_type {FILE, DIR};
+enum Inode_type {IT_FILE, IT_DIR};
 
 typedef struct {
 	/*
@@ -114,8 +122,8 @@ typedef struct {
 typedef struct flist_node_t {
 	/* Index of inode */
 	uint32_t ino;
-	/* Being written or not */
-	int16_t bewr;
+	/* Number of proc having writting flag */
+	int16_t nwr;
 	/* Number of processes (threads) using it */
 	int16_t nproc;
 	/* inode */
@@ -138,6 +146,20 @@ typedef uint64_t sector_buf_t[SECTOR_SIZE / sizeof(uint64_t)];
 
 /* A 4 KiB buffer of a indirect block */
 typedef uint32_t indblock_buf_t[BLOCK_SIZE / sizeof(uint32_t)];
+
+enum Ofile_flag {
+	O_RDONLY = 1, O_WRONLY = (1 << 1),
+	O_RDWR = O_RDONLY | O_WRONLY,
+	O_CREATE = (1 << 2),
+	// TODO: other flags if possible...
+};
+
+typedef struct {
+	flist_node_t *fnode;
+	int32_t oflags;
+	/* The max size of a file is 4 GiB */
+	uint32_t pos;
+} file_desc_t;
 
 extern unsigned int GFS_base_sec;
 extern GFS_superblock_t GFS_superblock;
@@ -185,9 +207,14 @@ unsigned int remove_dentry_in_dir_inode
 int do_remove(const char *stpath);
 
 void flist_init(void);
-int flist_inc_fnode(uint32_t ino, int wr);
+flist_node_t *flist_inc_fnode(uint32_t ino, int wr);
 int flist_dec_fnode(uint32_t ino, int cwr);
 flist_node_t *flist_search(uint32_t ino);
+
+/* Moved to `sched.h` */
+//void fd_init(pcb_t *p, pcb_t *s);
+long do_open(const char *fpath, int oflags);
+long do_close(long fd);
 
 /*
  * GFS_write/read_block: `bidx_in_GFS` is the block index in GFS.

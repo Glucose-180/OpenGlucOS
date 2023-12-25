@@ -11,7 +11,7 @@
 
 /*
  * list node for "/".
- * `bewr`, `nproc` are meaningless for it.
+ * `nwr`, `nproc` are meaningless for it.
  */
 static flist_node_t flh;
 flist_node_t *flist_head = &flh;
@@ -51,19 +51,19 @@ void flist_init(void)
  * flist_inc_fnode: if `ino` is found in the list,
  * the node's `ino` is increased; otherwise,
  * a new node is created and added in the list.
- * If `wr` is not 0, `bewr` will be set.
+ * If `wr` is not 0, `.nwr` will be increased.
  * NOTE: if `ino` is 0 ("/"), nothing will be done.
- * Return 0 on success, 1 if `ino` is illegal,
- * or -1 on error (no free memory).
+ * Return pointer to the new node on success,
+ * or NULL on error (invalid `ino` or no free memory).
  */
-int flist_inc_fnode(uint32_t ino, int wr)
+flist_node_t *flist_inc_fnode(uint32_t ino, int wr)
 {
 	flist_node_t *p;
 
 	if (ino == 0U)
-		return 0;
+		return flist_head = &flh;
 	if (ino >= GFS_superblock.inode_num)
-		return 1;
+		return NULL;
 	for (p = flist_head; p->next != NULL; p = p->next)
 		if (p->next->ino == ino)
 			break;
@@ -72,28 +72,28 @@ int flist_inc_fnode(uint32_t ino, int wr)
 		if ((p->next = kmalloc_g(sizeof(flist_node_t))) == NULL)
 		{
 			GFS_panic("flist_inc_fnode: no enough memory for list");
-			return -1;
+			return NULL;
 		}
 		p->next->ino = DENTRY_INVALID_INO;
 		p->next->next = NULL;
 		GFS_read_inode(ino, &(p->next->inode));
 		p->next->ino = ino;
-		p->next->bewr |= wr;
+		p->next->nwr = (wr ? 1 : 0);
 		p->next->nproc = 1U;
 	}
 	else
 	{
-		p->next->bewr |= wr;
+		p->next->nwr += (wr ? 1 : 0);
 		++(p->next->nproc);
 	}
-	return 0;
+	return p->next;
 }
 
 /*
  * flist_dec_fnode: search `ino` in the list.
  * `.nproc` is decreased by 1. If it becomes 0,
  * the node will be deleted.
- * If `cwr` is not zero, `.bewr` will be cleared.
+ * If `cwr` is not zero, `.nwr` will be decreased.
  * NOTE: if `ino` is 0 ("/"), nothing will be done.
  * Return 0 on success, or 1 if `ino` not found.
  */
@@ -110,7 +110,7 @@ int flist_dec_fnode(uint32_t ino, int cwr)
 			break;
 	if (p->next == NULL)
 		return 1;
-	p->next->bewr &= (cwr ? 0 : ~0);
+	p->next->nwr -= (cwr ? 1 : 0);
 	if (--(p->next->nproc) <= 0)
 	{
 		q = p->next->next;
