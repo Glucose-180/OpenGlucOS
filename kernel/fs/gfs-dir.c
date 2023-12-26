@@ -273,6 +273,8 @@ int do_mkdir(const char *stpath)
 /*
  * scan_dentries_on_ptr_arr: Scan `parr[0]` to `parr[n-1]`
  * and print all dir entries. If `det`, details will be printed.
+ * If `det` is greater than 2, the size will be displayed in
+ * unit that is easy to read.
  * Return the number of entries printed.
  */
 static unsigned int scan_dentries_on_ptr_arr
@@ -280,6 +282,7 @@ static unsigned int scan_dentries_on_ptr_arr
 {
 	unsigned int i, j, e_ymr;
 	GFS_dentry_t debbuf[DENT_PER_BLOCK];
+	GFS_inode_t inode;
 
 	for (i = 0U, e_ymr = 0U; i < n; ++i)
 	{
@@ -289,14 +292,27 @@ static unsigned int scan_dentries_on_ptr_arr
 		for (j = 0U; j < DENT_PER_BLOCK; ++j)
 			if (debbuf[j].ino != DENTRY_INVALID_INO)
 			{
-				printk("%s   ", debbuf[j].fname);
 				++e_ymr;
 				if (det != 0)
 				{
 					// TODO: print details
+					GFS_read_inode(debbuf[j].ino, &inode);
+					printk("%u   %s   ", debbuf[j].ino, debbuf[j].fname);
+					if (inode.type == IT_DIR)
+						printk("%u entries\n", inode.size);
+					else
+					{
+						if (inode.size >= 10U * MiB && det > 2)
+							printk("%u MiB\n", inode.size / MiB);
+						else if (inode.size >= 10U * KiB && det > 2)
+							printk("%u KiB\n", inode.size / KiB);
+						else
+							printk("%u B\n", inode.size);
+					}
 				}
 				else
 				{
+					printk("%s   ", debbuf[j].fname);
 					if (e_ymr % 4U == 0U)
 						printk("\n");
 				}

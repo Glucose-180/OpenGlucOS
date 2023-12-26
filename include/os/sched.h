@@ -294,6 +294,7 @@ pid_t do_fork(void);
 
 /* Moved from `gfs.h` */
 void fd_init(pcb_t *p, pcb_t *s);
+void close_all_files(pcb_t *p);
 
 #if MULTITHREADING != 0
 #include <os/sched-thread.h>

@@ -3,32 +3,64 @@
 #include <unistd.h>
 
 static char buff[64];
+const char *fname = "1.txt";
+const char *wdata = "Hello world!\n";
 
-int main(void)
+int main(int argc, char *argv[])
 {
-    //int fd = sys_fopen("1.txt", O_RDWR);
-    int fd = sys_open("1.txt", O_RDWR);
+	int len;
+	int rwrt;
+	int fd;
 
-    // write 'hello world!' * 10
-    for (int i = 0; i < 10; i++)
-    {
-        //sys_fwrite(fd, "hello world!\n", 13);
-        sys_write(fd, "hello world!\n", 13);
-    }
+	if (argc >= 2)
+		fname = argv[1];
+	if (argc >= 3)
+		wdata = argv[2];
+	len = strlen(wdata);
+	//int fd = sys_fopen("1.txt", O_RDWR);
+	fd = sys_open(fname, O_RDWR);
 
-    // read
-    for (int i = 0; i < 10; i++)
-    {
-        //sys_fread(fd, buff, 13);
-        sys_read(fd, buff, 13);
-        for (int j = 0; j < 13; j++)
-        {
-            printf("%c", buff[j]);
-        }
-    }
+	printf("sys_open(\"%s\") returns %d\n", fname, fd);
+	if (fd < 0)
+		return 1;
 
-    //sys_fclose(fd);
-    sys_close(fd);
+	// write 'hello world!' * 10
+	for (int i = 0; i < 10; i++)
+	{
+		//sys_fwrite(fd, "hello world!\n", 13);
+		rwrt = sys_write(fd, wdata, len);
+		if (rwrt != len)
+		{
+			printf("%d: sys_write(\"%s\") returns %d\n", i, wdata, rwrt);
+			return 2;
+		}
+	}
+	rwrt = sys_close(fd);
+	if (rwrt != fd)
+		printf("sys_close(%d) returns %d\n", rwrt);
 
-    return 0;
+	fd = sys_open(fname, O_RDWR);
+
+	printf("sys_open(\"%s\") returns %d\n", fname, fd);
+	if (fd < 0)
+		return 1;
+	// read
+	for (int i = 0; i < 10; i++)
+	{
+		//sys_fread(fd, buff, 13);
+		rwrt = sys_read(fd, buff, len);
+		if (rwrt != len)
+		{
+			printf("%d: sys_read() returns %d\n", i, rwrt);
+			return 3;
+		}
+		buff[len] = '\0';
+		printf("%s", buff);
+	}
+
+	//sys_fclose(fd);
+	rwrt = sys_close(fd);
+	if (rwrt != fd)
+		printf("sys_close(%d) returns %d\n", rwrt);
+	return 0;
 }

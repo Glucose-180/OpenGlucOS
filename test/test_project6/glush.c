@@ -321,8 +321,9 @@ int try_syscall(char **cmds)
 			else if (strcmp(cmds[0], "ls") == 0)
 			{
 				int rt;
-				if (cmds[1] != NULL && strcmp(cmds[1], "-l") == 0)
-					rt = sys_readdir(cmds[2], 1);
+				if (cmds[1] != NULL && strncmp(cmds[1], "-l", 2) == 0)
+					/* To support "-lh" */
+					rt = sys_readdir(cmds[2], cmds[1][2] == 'h' ? 3 : 1);
 				else
 					rt = sys_readdir(cmds[1], 0);
 				if (rt == 0)
@@ -352,7 +353,7 @@ int try_syscall(char **cmds)
 				else if ((rt = sys_rm(cmds[1])) == 1)
 					printf("**glush: No such file or directory\n");
 				else if (rt == 2)
-					printf("**glush: the file directory is occupied\n");
+					printf("**glush: the file or directory is occupied\n");
 				else if (rt < 0)
 					printf("**glush: GFS fault: %d\n", rt);
 				continue;

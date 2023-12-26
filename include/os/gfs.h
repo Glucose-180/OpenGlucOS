@@ -216,6 +216,7 @@ flist_node_t *flist_search(uint32_t ino);
 long do_open(const char *fpath, int oflags);
 long do_close(long fd);
 long do_read(long fd, uint8_t *buf, uint32_t len);
+long do_write(long fd, const uint8_t *buf, uint32_t len);
 
 /*
  * GFS_write/read_block: `bidx_in_GFS` is the block index in GFS.

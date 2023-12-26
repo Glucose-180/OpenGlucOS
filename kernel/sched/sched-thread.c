@@ -161,6 +161,7 @@ void thread_kill(tcb_t *p)
 		p->tid, p->pid, (uint64_t)*phead);
 
 	pid = p->pid, tid = p->tid, ino = p->cur_ino;
+	close_all_files(p);
 	kfree_g((void *)pdel);
 	if (pcb_table_del(pdel) < 0)
 		panic_g("Failed to remove pcb %d, %d from pcb_table[]",
