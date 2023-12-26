@@ -112,11 +112,10 @@ int main(int argc, char *argv[])
 
 			if (words[0] == NULL)
 				continue;
-			if (try_syscall(words) == 1 && try_builtin(words) == 1)
+			if (try_builtin(words) == 1 && try_syscall(words) == 1)
 			{	/* 
 				 * Not a syscall. Nor a builtin command.
-				 * Try to execute a user program directly.
-				 * But now, consider it as an error first.
+				 * Consider it as an error.
 				 */
 				printf("%s%s\n", NotFound, words[0]);
 			}
@@ -375,7 +374,24 @@ int try_syscall(char **cmds)
 				continue;
 			}
 			else
-				return 1;
+			{	/* Try exec again */
+				pid_t pid;
+
+				pid = sys_exec(cmds[0], -1, cmds);
+				if (pid == INVALID_PID)
+				{	/* Failed */
+					return 1;
+				}
+				if (cmds_next == NULL)
+				{	/* "&" is not found */
+					/* Call sys_waitpid() to wait the new process */
+					if (sys_waitpid(pid) != pid)
+						printf("**glush: failed to wait for %d\n", pid);
+				}
+				else
+					printf("%s: PID is %d\n", cmds[0], pid);
+				continue;
+			}
 		}
 	} while (cmds_next != NULL && *(cmds = cmds_next) != NULL);
 	/*

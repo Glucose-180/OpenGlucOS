@@ -121,6 +121,10 @@ enum Ofile_flag {
 	// TODO: other flags if possible...
 };
 
+enum Lseek_whence {
+	SEEK_SET, SEEK_CUR, SEEK_END
+};
+
 void sys_kprint_avail_table(void);
 
 #endif

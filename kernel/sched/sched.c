@@ -185,9 +185,15 @@ pid_t create_proc(const char *taskname, unsigned int cpu_mask)
 	pnew->cursor_x = pnew->cursor_y = 0;
 	pnew->cylim_h = pnew->cylim_l = -1;
 	pnew->cpu_mask = cpu_mask;
-	pnew->cpath[0] = '/';
+	/*pnew->cpath[0] = '/';
 	pnew->cpath[1] = '\0';
-	pnew->cur_ino = 0U;
+	pnew->cur_ino = 0U;*/
+	strncpy(pnew->cpath, cur_cpu()->cpath, PATH_LEN);
+	pnew->cpath[PATH_LEN] = '\0';
+	pnew->cur_ino = cur_cpu()->cur_ino;
+	if (flist_inc_fnode(pnew->cur_ino, 0) == NULL)
+		GFS_panic("create_proc: illegal ino %u or no free mem",
+			pnew->cur_ino);
 	fd_init(pnew, NULL);
 #if MULTITHREADING != 0
 	/* 0 TID is the main thread */

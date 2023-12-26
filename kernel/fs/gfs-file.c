@@ -565,5 +565,54 @@ void close_all_files(pcb_t *p)
 
 	for (i = 0U; i < OFILE_MAX; ++i)
 		if (p->fds[i].fnode != NULL)
-			do_close((long)i);
+			if (flist_dec_fnode(p->fds[i].fnode->ino,
+				p->fds[i].oflags & O_WRONLY) != 0)
+				GFS_panic("close_all_files: proc %d has invalid .fds[%u].fnode->ino %u",
+					p->pid, i, p->fds[i].fnode->ino);
+
+}
+
+/*
+ * do_lseek: move the current file pointer (`.pos`)
+ * by `offset` relative to `whence`.
+ * `whence` can be: `SEEK_SET`, `SEEK_CUR` or `SEEK_END`.
+ * Return the new location or negative number on error.
+ * -1: invalid `fd`;
+ * -2: invalid `offset`;
+ * -3: invalid `whence`.
+ */
+long do_lseek(long fd, long offset, int whence)
+{
+	pcb_t *ccpu = cur_cpu();
+
+	if ((unsigned long)fd >= OFILE_MAX || ccpu->fds[fd].fnode == NULL)
+		return -1L;
+	if (offset > (long)UINT32_MAX || offset < INT32_MIN)
+		return -2L;
+	if (whence == SEEK_SET)
+	{
+		if (offset >= 0L)
+			return (ccpu->fds[fd].pos = (uint32_t)offset);
+		else
+			return -2L;
+	}
+	else if (whence == SEEK_CUR)
+	{
+		if ((unsigned long)((long)ccpu->fds[fd].pos + offset)
+			>= UINT32_MAX)
+			return -2L;
+		ccpu->fds[fd].pos = (uint32_t)((long)ccpu->fds[fd].pos + offset);
+		return (long)ccpu->fds[fd].pos;
+	}
+	else if (whence == SEEK_END)
+	{
+		if ((unsigned long)((long)(ccpu->fds[fd].fnode->inode.size) + offset)
+			>= UINT32_MAX)
+			return -2L;
+		ccpu->fds[fd].pos = (uint32_t)
+			((long)ccpu->fds[fd].fnode->inode.size + offset);
+		return (long)ccpu->fds[fd].pos;
+	}
+	else
+		return -3L;
 }

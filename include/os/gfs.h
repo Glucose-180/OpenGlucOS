@@ -154,6 +154,10 @@ enum Ofile_flag {
 	// TODO: other flags if possible...
 };
 
+enum Lseek_whence {
+	SEEK_SET, SEEK_CUR, SEEK_END
+};
+
 typedef struct {
 	flist_node_t *fnode;
 	int32_t oflags;
@@ -217,6 +221,7 @@ long do_open(const char *fpath, int oflags);
 long do_close(long fd);
 long do_read(long fd, uint8_t *buf, uint32_t len);
 long do_write(long fd, const uint8_t *buf, uint32_t len);
+long do_lseek(long fd, long offset, int whence);
 
 /*
  * GFS_write/read_block: `bidx_in_GFS` is the block index in GFS.
