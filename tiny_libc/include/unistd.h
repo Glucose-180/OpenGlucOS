@@ -117,7 +117,7 @@ long sys_rm(const char *stpath);
 enum Ofile_flag {
 	O_RDONLY = 1, O_WRONLY = (1 << 1),
 	O_RDWR = O_RDONLY | O_WRONLY,
-	O_CREATE = (1 << 2),
+	O_CREAT = (1 << 2),
 	// TODO: other flags if possible...
 };
 

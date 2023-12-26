@@ -362,7 +362,7 @@ int try_syscall(char **cmds)
 				int rt;
 				if (cmds[1] == NULL)
 					printf("**glush: too few args for touch\n");
-				else if ((rt = sys_open(cmds[1], O_CREATE)) == -2)
+				else if ((rt = sys_open(cmds[1], O_CREAT)) == -2)
 					printf("**glush: No such directory\n");
 				else if (rt == -1)
 					printf("**glush: %s is a directory\n", cmds[1]);

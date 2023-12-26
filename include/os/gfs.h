@@ -150,7 +150,7 @@ typedef uint32_t indblock_buf_t[BLOCK_SIZE / sizeof(uint32_t)];
 enum Ofile_flag {
 	O_RDONLY = 1, O_WRONLY = (1 << 1),
 	O_RDWR = O_RDONLY | O_WRONLY,
-	O_CREATE = (1 << 2),
+	O_CREAT = (1 << 2),
 	// TODO: other flags if possible...
 };
 
@@ -215,6 +215,7 @@ flist_node_t *flist_search(uint32_t ino);
 //void fd_init(pcb_t *p, pcb_t *s);
 long do_open(const char *fpath, int oflags);
 long do_close(long fd);
+long do_read(long fd, uint8_t *buf, uint32_t len);
 
 /*
  * GFS_write/read_block: `bidx_in_GFS` is the block index in GFS.
