@@ -109,6 +109,9 @@ typedef struct {
 	uint32_t diptr;
 } GFS_inode_t;
 
+/* Max number of hard links */
+#define NLINK_MAX 8U
+
 /* Directory entry */
 typedef struct {
 	/* The name of the file or sub directory */
@@ -222,6 +225,7 @@ long do_close(long fd);
 long do_read(long fd, uint8_t *buf, uint32_t len);
 long do_write(long fd, const uint8_t *buf, uint32_t len);
 long do_lseek(long fd, long offset, int whence);
+long do_hlink(const char *sfpath, const char *tfpath);
 
 /*
  * GFS_write/read_block: `bidx_in_GFS` is the block index in GFS.

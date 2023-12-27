@@ -245,6 +245,7 @@ static void init_syscall(void)
 		syscall[SYS_readdir] = (long (*)())do_readdir;
 		syscall[SYS_mkdir] = (long (*)())do_mkdir;
 		syscall[SYS_rm] = (long (*)())do_remove;
+		syscall[SYS_hlink] = (long (*)())do_hlink;
 	}
 }
 

@@ -71,6 +71,7 @@
 #define SYS_readdir 89
 #define SYS_mkdir 90
 #define SYS_rm 91
+#define SYS_hlink 92
 
 #define SYS_kprint_avail_table 95
 

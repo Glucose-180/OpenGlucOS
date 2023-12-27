@@ -14,9 +14,10 @@
  * GFS_add_dentry: Add an entry in the directory whose inode is pointed
  * by `pinode`. The entry is specified by `fname` and `ino`.
  * Return: 0 on success, 1 if the directory is full, 2 if no free block,
- * -1 if `pinode` points to a file, -2 if `fname` already exists,
+ * -1 if `pinode` points to a file, //////-2 if `fname` already exists,
  * and -3 on error (severe error of file system).
- * NOTE: this function do not write inode to disk!
+ * NOTE: This function do not write inode to disk! It doesn't check
+ * whether `fname` is valid (not empty, and doesn't exist) neither.
  */
 int GFS_add_dentry(GFS_inode_t *pinode, const char *fname, unsigned int ino)
 {
@@ -496,6 +497,7 @@ int GFS_remove_file_or_dir(unsigned int ino)
 		if (inode.nlink >= 2U)
 		{
 			--inode.nlink;
+			GFS_write_inode(ino, &inode);
 			return 1;
 		}
 		/* Free all blocks in director pointers */

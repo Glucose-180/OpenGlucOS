@@ -373,6 +373,24 @@ int try_syscall(char **cmds)
 						printf("**glush: failed to close the file\n");
 				continue;
 			}
+			else if (strcmp(cmds[0], "ln") == 0)
+			{
+				int rt;
+				if (cmds[1] == NULL || cmds[2] == NULL)
+					printf("**glush: too few args for ln\n");
+				else if ((rt = sys_hlink(cmds[1], cmds[2])) == -1)
+					printf("**glush: No such file %s\n", cmds[1]);
+				else if (rt == -2)
+					printf("**glush: hard link not allowed for directory\n");
+				else if (rt == -3)
+					printf("**glush: links of file %s are full\n", cmds[1]);
+				else if (rt == -4 || rt == -5)
+					printf("**glush: cannot create link %s: %d\n", cmds[2], rt);
+				else if (rt == -6)
+					printf("**glush: %s already exists\n", cmds[2]);
+				else if (rt < 0)
+					printf("**glush: GFS fault: %d\n", rt);
+			}
 			else
 			{	/* Try exec again */
 				pid_t pid;

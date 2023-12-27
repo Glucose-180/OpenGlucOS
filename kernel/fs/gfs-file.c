@@ -616,3 +616,65 @@ long do_lseek(long fd, long offset, int whence)
 	else
 		return -3L;
 }
+
+/*
+ * do_hlink: link source file at `sfpath` to `tfpath`.
+ * Return 0 on success or negative number on error:
+ * -1: source file doesn't exist;
+ * -2: source file is a directory;
+ * -3: links are full;
+ * -4: target directory doesn't exist;
+ * -5: invalid target name;
+ * -6: target file already exists;
+ * -7: dir is full;
+ * -8, -9, ...: error in GFS.
+ */
+long do_hlink(const char *sfpath, const char *tfpath)
+{
+	unsigned int sino, pino;
+	/* Souce file inode. Parent dir of target file inode. */
+	GFS_inode_t sinode, pinode;
+	char tppath[PATH_LEN];
+	char *tname;
+	int adrt;
+
+	sino = path_anal(sfpath);
+	if (sino == INODE_INVALID_PTR)
+		return -1L;
+	GFS_read_inode(sino, &sinode);
+	if (sinode.type == IT_DIR)
+		return -2L;
+	if (sinode.nlink >= NLINK_MAX)
+		return -3L;
+	++sinode.nlink;
+
+	pino = path_anal_2(tfpath, tppath, &tname);
+	if (pino == DENTRY_INVALID_INO)
+		return -4L;
+	if (GFS_read_inode(pino, &pinode) != 0)
+	{
+		GFS_panic("do_hlink: invalid pino %u for %s", pino, tfpath);
+		return -8L;
+	}
+	if (tname[0] == '\0')
+		return -5L;
+	if (search_dentry_in_dir_inode(&pinode, tname) != DENTRY_INVALID_INO)
+		return -6L;
+	switch (adrt = GFS_add_dentry(&pinode, tname, sino))
+	{
+	case 0:
+		break;
+	case 1:	/* Dir is full */
+		return -7L;
+		break;
+	default:
+		/* error: -10: no free block; -13, -14: other... */
+		GFS_panic("do_open: GFS_add_dentry(., %s, %u) returns %d",
+			tname, sino, adrt);
+		return -12L + adrt;
+		break;
+	}
+	GFS_write_inode(sino, &sinode);
+	GFS_write_inode(pino, &pinode);
+	return 0L;
+}

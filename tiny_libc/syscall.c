@@ -421,4 +421,10 @@ long sys_rm(const char *stpath)
 	return invoke_syscall(SYS_rm, (long)stpath, Ignore,
 		Ignore, Ignore, Ignore);
 }
+
+long sys_hlink(const char *sfpath, const char *tfpath)
+{
+	return invoke_syscall(SYS_hlink, (long)sfpath, (long)tfpath,
+		Ignore, Ignore, Ignore);
+}
 /************************************************************/

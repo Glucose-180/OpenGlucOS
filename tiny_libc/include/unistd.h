@@ -112,6 +112,7 @@ long sys_getpath(char *path);
 unsigned int sys_readdir(const char *path, int det);
 long sys_mkdir(const char *path);
 long sys_rm(const char *stpath);
+long sys_hlink(const char *sfpath, const char *tfpath);
 
 
 enum Ofile_flag {
