@@ -296,25 +296,27 @@ static unsigned int scan_dentries_on_ptr_arr
 				++e_ymr;
 				if (det != 0)
 				{
-					// TODO: print details
+					/* print details */
 					GFS_read_inode(debbuf[j].ino, &inode);
-					printk("%u   %s   ", debbuf[j].ino, debbuf[j].fname);
+					printk("%3u  %8s  ", debbuf[j].ino, debbuf[j].fname);
 					if (inode.type == IT_DIR)
-						printk("%u entries\n", inode.size);
+						/* dir: number of entries */
+						printk("%4u Ent\n", inode.size);
 					else
-					{
+					{	/* normal file: size and link number */
 						if (inode.size >= 10U * MiB && det > 2)
-							printk("%u MiB\n", inode.size / MiB);
+							printk("%4u MiB", inode.size / MiB);
 						else if (inode.size >= 10U * KiB && det > 2)
-							printk("%u KiB\n", inode.size / KiB);
+							printk("%4u KiB", inode.size / KiB);
 						else
-							printk("%u B\n", inode.size);
+							printk("%4u B  ", inode.size);
+						printk("  %2u Lnk\n", inode.nlink);
 					}
 				}
 				else
 				{
-					printk("%s   ", debbuf[j].fname);
-					if (e_ymr % 4U == 0U)
+					printk("  %s ", debbuf[j].fname);
+					if (e_ymr % 5U == 0U)
 						printk("\n");
 				}
 			}
@@ -353,7 +355,8 @@ unsigned int do_readdir(const char *stpath, int det)
 		GFS_read_block(tinode.idptr, idbbuf);
 		e_ymr += scan_dentries_on_ptr_arr(idbbuf, BLOCK_SIZE / sizeof(uint32_t), det);
 	}
-	printk("\n");
+	if (det == 0)
+		printk("\n");
 	return e_ymr;
 }
 
@@ -598,14 +601,14 @@ rm_f_d_end:
 
 /*
  * remove_dentry_on_ptr_arr: Scan `parr[0]` to `parr[n-1]` and
- * remove the entry that has `ino`.
+ * remove the entry that has name `fname`.
  * Return the number of entries removed.
  * NOTE: normally there cannot be two or more entries that have
  * the same `ino`. So if the return value is greater than 1,
  * error might have happened!
  */
 static unsigned int remove_dentry_on_ptr_arr
-	(const uint32_t *parr, unsigned int n, unsigned int ino)
+	(const uint32_t *parr, unsigned int n, const char *fname)
 {
 	unsigned int i, j, r_ymr;
 	GFS_dentry_t debbuf[BLOCK_SIZE / sizeof(GFS_dentry_t)];
@@ -619,7 +622,8 @@ static unsigned int remove_dentry_on_ptr_arr
 		flag_removed = 0;
 		for (j = 0U; j < DENT_PER_BLOCK; ++j)
 		{
-			if (debbuf[j].ino == ino)
+			if (debbuf[j].ino != DENTRY_INVALID_INO &&
+				strncmp((const char *)debbuf[j].fname, fname, FNLEN) == 0)
 			{
 				debbuf[j].ino = DENTRY_INVALID_INO;
 				++r_ymr;
@@ -634,26 +638,26 @@ static unsigned int remove_dentry_on_ptr_arr
 
 /*
  * remove_dentry_in_dir_inode: Remove the dir entry in the inode
- * that has `ino` and decrease its size.
+ * that has name `fname` and decrease its size.
  * Return the number of entries removed.
  * NOTE: normally there cannot be two or more entries that have
- * the same `ino`. So if the return value is greater than 1,
+ * the same name. So if the return value is greater than 1,
  * error might have happened!
  */
 unsigned int remove_dentry_in_dir_inode
-	(GFS_inode_t *pinode, unsigned int ino)
+	(GFS_inode_t *pinode, const char *fname)
 {
 	indblock_buf_t idbbuf;
 	unsigned int r_ymr = 0U;
 
 	if (pinode->type != IT_DIR)
 		return 0U;
-	r_ymr += remove_dentry_on_ptr_arr(pinode->dptr, INODE_NDPTR, ino);
+	r_ymr += remove_dentry_on_ptr_arr(pinode->dptr, INODE_NDPTR, fname);
 	if (pinode->idptr != INODE_INVALID_PTR)
 	{
 		GFS_read_block(pinode->idptr, idbbuf);
 		r_ymr += remove_dentry_on_ptr_arr(idbbuf,
-			BLOCK_SIZE / sizeof(uint32_t), ino);
+			BLOCK_SIZE / sizeof(uint32_t), fname);
 	}
 	if (pinode->size < r_ymr + 2U)
 		GFS_panic("remove_dentry_in_dir_inode: "
@@ -715,11 +719,11 @@ int do_remove(const char *stpath)
 		return -1;
 		break;
 	}
-	/* Removed */
-	if ((rmert = remove_dentry_in_dir_inode(&pinode, tino)) != 1U)
+	/* If it is removed, then remove it in its parent dir */
+	if ((rmert = remove_dentry_in_dir_inode(&pinode, tname)) != 1U)
 	{
-		GFS_panic("do_remove: %u entries (%u) are removed in %s",
-			rmert, tino, tpath);
+		GFS_panic("do_remove: %u entries with name %s, ino %u "
+			"are removed in %s", rmert, tname, tino, tpath);
 		return -1;
 	}
 	GFS_write_inode(ppino, &pinode);

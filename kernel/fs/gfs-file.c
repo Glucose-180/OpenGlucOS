@@ -639,7 +639,7 @@ long do_hlink(const char *sfpath, const char *tfpath)
 	int adrt;
 
 	sino = path_anal(sfpath);
-	if (sino == INODE_INVALID_PTR)
+	if (sino == DENTRY_INVALID_INO)
 		return -1L;
 	GFS_read_inode(sino, &sinode);
 	if (sinode.type == IT_DIR)

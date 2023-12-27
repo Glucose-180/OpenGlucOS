@@ -45,6 +45,7 @@
 #include <os/sched.h>
 #include <os/irq.h>
 #include <os/kernel.h>
+#include <os/ctype.h>
 
 static unsigned int mini_strlen(const char *s)
 {
@@ -55,8 +56,12 @@ static unsigned int mini_strlen(const char *s)
 
 static unsigned int mini_itoa(
 	long value, unsigned int radix, unsigned int uppercase,
-	unsigned int unsig, char *buffer, unsigned int zero_pad)
+	unsigned int unsig, char *buffer, unsigned int n_pad, char cpad)
 {
+	/*
+	 * Glucose180 modified: add `n_pad` and `cpad` to support
+	 * padding with different chars ('0' or ' ', etc).
+	 */
 	char *pbuffer = buffer;
 	int negative  = 0;
 	unsigned int i, len;
@@ -87,8 +92,8 @@ static unsigned int mini_itoa(
 		}
 	} while (value != 0);
 
-	for (i = (pbuffer - buffer); i < zero_pad; i++)
-		*(pbuffer++) = '0';
+	for (i = (pbuffer - buffer); i < n_pad; i++)
+		*(pbuffer++) = cpad;//'0';
 
 	if (negative) *(pbuffer++) = '-';
 
@@ -130,7 +135,16 @@ static int _puts(char *s, unsigned int len, struct mini_buff *b)
 		len = b->buffer_len - (b->pbuffer - b->buffer) - 1;
 
 	/* Copy to buffer */
-	for (i = 0; i < len; i++) *(b->pbuffer++) = s[i];
+	if (s == NULL)
+		/*
+		 * Added by Glucose180: if `s` is `NULL`,
+		 * pad the buffer with space ' '.
+		 */
+		for (i = 0U; i < len; ++i)
+			*(b->pbuffer++) = ' ';
+	else
+		for (i = 0U; i < len; ++i)
+			*(b->pbuffer++) = s[i];
 	*(b->pbuffer) = '\0';
 
 	return len;
@@ -155,19 +169,25 @@ static int mini_vsnprintf(
 		if (ch != '%')
 			_putc(ch, &b);
 		else {
-			char zero_pad = 0;
-			int longflag = 0;
+			unsigned int n_pad = 0U;
+			char c_pad;
+			char longflag = 0;
 			char *ptr;
 			unsigned int len;
 
 			ch = *(fmt++);
 
-			/* Zero padding requested */
-			if (ch == '0') {
+			/*
+			 * Zero or space padding requested:
+			 * space padding is added by Glucose180.
+			 */
+			if (isdigit(ch)) {
+				c_pad = (ch == '0' ? '0' : ' ');
+				--fmt;
 				while ((ch = *(fmt++))) {
 					if (ch == '\0') goto end;
 					if (ch >= '0' && ch <= '9') {
-						zero_pad = zero_pad * 10 + ch - '0';
+						n_pad = n_pad * 10 + ch - '0';
 					} else {
 						break;
 					}
@@ -191,7 +211,7 @@ static int mini_vsnprintf(
 						longflag == 0 ? (unsigned long)va_arg(
 											va, unsigned int) :
 										va_arg(va, unsigned long),
-						10, 0, (ch == 'u'), bf, zero_pad);
+						10, 0, (ch == 'u'), bf, n_pad, c_pad);
 					_puts(bf, len, &b);
 					longflag = 0;
 					break;
@@ -200,7 +220,7 @@ static int mini_vsnprintf(
 						longflag == 0 ? (long)va_arg(
 											va, int) :
 										va_arg(va, unsigned long),
-						10, 0, (ch == 'u'), bf, zero_pad);
+						10, 0, (ch == 'u'), bf, n_pad, c_pad);
 					_puts(bf, len, &b);
 					longflag = 0;
 					break;
@@ -210,7 +230,7 @@ static int mini_vsnprintf(
 						longflag == 0 ? (unsigned long)va_arg(
 											va, unsigned int) :
 										va_arg(va, unsigned long),
-						16, (ch == 'X'), 1, bf, zero_pad);
+						16, (ch == 'X'), 1, bf, n_pad, c_pad);
 					_puts(bf, len, &b);
 					longflag = 0;
 					break;
@@ -221,7 +241,10 @@ static int mini_vsnprintf(
 
 				case 's':
 					ptr = va_arg(va, char *);
-					_puts(ptr, mini_strlen(ptr), &b);
+					_puts(ptr, len = mini_strlen(ptr), &b);
+					if (len < n_pad)
+						/* Space padding */
+						_puts(NULL, n_pad - len, &b);
 					break;
 
 				default:

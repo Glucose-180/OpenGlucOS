@@ -30,6 +30,6 @@ int main(int argc, char **argv)
 			return 3;
 		}
 	}
-	printf("Test pass!\n");
+	printf("\nTest pass!\n");
 	return 0;
 }

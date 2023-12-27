@@ -210,7 +210,7 @@ int do_mkdir(const char *stpath);
 unsigned int do_readdir(const char *stpath, int det);
 int GFS_remove_file_or_dir(unsigned int ino);
 unsigned int remove_dentry_in_dir_inode
-	(GFS_inode_t *pinode, unsigned int ino);
+	(GFS_inode_t *pinode, const char *fname);
 int do_remove(const char *stpath);
 
 void flist_init(void);
