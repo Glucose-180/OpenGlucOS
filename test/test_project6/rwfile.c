@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 static char buff[64];
-const char *fname = "1.txt";
+const char *fname = NULL;
 const char *wdata = "Hello world!\n";
 
 int main(int argc, char *argv[])
@@ -16,9 +17,16 @@ int main(int argc, char *argv[])
 		fname = argv[1];
 	if (argc >= 3)
 		wdata = argv[2];
+
+	if (fname == NULL)
+	{
+		printf("Usage: rwfile [file_name] [writedata]");
+		return 2;
+	}
+
 	len = strlen(wdata);
 	//int fd = sys_fopen("1.txt", O_RDWR);
-	fd = sys_open(fname, O_RDWR);
+	fd = sys_open(fname, O_RDWR | O_CREAT);
 
 	printf("sys_open(\"%s\") returns %d\n", fname, fd);
 	if (fd < 0)

@@ -1,6 +1,6 @@
 /*
  * cat: read a file and print it.
- * Usage: cat [file_name] -p[PLOC] -n[MAX] -s[STL] -x
+ * Usage: cat [file_name] -p[PLOC] -n[MAX] -l[STL] -x
  * [PLOC] is the bottom of printing area;
  * [MAX] is the max number to read;
  * [STL] is the start location;
@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
 			r_max = atol(*argv + 2);
 		else if (strcmp(*argv, "-x") == 0)
 			flag_hex = 1;
-		else if (strncmp(*argv, "-s", 2) == 0)
+		else if (strncmp(*argv, "-l", 2) == 0)
 			start_loc = atoi(*argv + 2);
 		else
 			fname = *argv;
@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
 	sys_set_cylim(0, ploc);
 	if (fname == NULL)
 	{
-		printf("Usage: cat [file_name] -p[PLOC] -n[MAX] -s[STL] -x\n"
+		printf("Usage: cat [file_name] -p[PLOC] -n[MAX] -l[STL] -x\n"
  			"[PLOC] is the bottom of printing area;\n"
  			"[MAX] is the max number to read;\n"
  			"-x means that display the content in hex.\n");

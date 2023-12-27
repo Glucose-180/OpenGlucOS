@@ -1,5 +1,5 @@
 /*
- * rwfile2 -w/-r -f[file_name] -s[size_in_KiB]
+ * rwfile2 -w/-r [file_name] -n[size_in_KiB]
  */
 #include <stdio.h>
 #include <string.h>
@@ -10,8 +10,8 @@
 #define BS 1024
 
 char junk = 0x5;
-const char *fname = "tp.txt";
-char flag_r = 0, flag_w = 1;
+const char *fname;
+char flag_r = 1, flag_w = 0;
 int32_t size = 1024;	/* KiB */
 char buf[BS];
 
@@ -26,10 +26,15 @@ int main(int argc, char *argv[])
 			flag_w = 1, flag_r = 0;
 		else if (strcmp(*argv, "-r") == 0)
 			flag_r = 1, flag_w = 0;
-		else if (strncmp(*argv, "-f", 2) == 0)
-			fname = *argv + 2;
-		else if (strncmp(*argv, "-s", 2) == 0)
+		else if (strncmp(*argv, "-n", 2) == 0)
 			size = atoi(*argv + 2);
+		else
+			fname = *argv;
+	}
+	if (fname == NULL)
+	{
+		printf("Usage: rwfile2 -w/-r [file_name] -n[size_in_KiB]\n");
+		return 2;
 	}
 	if ((fd = sys_open(fname, O_RDWR | O_CREAT)) < 0)
 	{

@@ -170,7 +170,7 @@ static int mini_vsnprintf(
 			_putc(ch, &b);
 		else {
 			unsigned int n_pad = 0U;
-			char c_pad;
+			char c_pad = ' ';
 			char longflag = 0;
 			char *ptr;
 			unsigned int len;
