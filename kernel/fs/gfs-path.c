@@ -96,7 +96,7 @@ unsigned int path_anal(const char *spath)
 		if (cur_ino == DENTRY_INVALID_INO)
 			return DENTRY_INVALID_INO;
 	}
-	if (cur_ino >= GFS_superblock.inode_num)
+	if (cur_ino >= GFS_superblock->inode_num)
 	{
 		GFS_panic("path_anal: %s got illegal ino %u", spath, cur_ino);
 		return DENTRY_INVALID_INO;

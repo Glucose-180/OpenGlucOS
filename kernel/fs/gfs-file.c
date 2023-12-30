@@ -4,11 +4,11 @@
  */
 #include <os/sched.h>
 #include <common.h>
-#include <os/glucose.h>
-#include <os/string.h>
-#include <printk.h>
-#include <os/smp.h>
 #include <os/malloc-g.h>
+#include <os/smp.h>
+#include <os/string.h>
+	//#include <os/glucose.h>
+	//#include <printk.h>
 
 static uint8_t data_block_buf[BLOCK_SIZE];
 
@@ -109,8 +109,8 @@ long do_open(const char *fpath, int oflags)
 	{
 		if ((oflags & O_CREAT) != 0)
 		{	/* Create the target file */
-			if (GFS_alloc_in_bitmap(1U, &tino, GFS_superblock.inode_bitmap_loc,
-				GFS_superblock.block_bitmap_loc) != 1U)
+			if (GFS_alloc_in_bitmap(1U, &tino, GFS_superblock->inode_bitmap_loc,
+				GFS_superblock->block_bitmap_loc) != 1U)
 				/* Allocate an inode for the new file */
 				return -4;
 			/* Init the inode */
@@ -126,8 +126,8 @@ long do_open(const char *fpath, int oflags)
 				break;
 			case 1: case 2:
 				/* Parent dir is full or no free block */
-				GFS_free_in_bitmap(tino, GFS_superblock.inode_bitmap_loc,
-					GFS_superblock.block_bitmap_loc);
+				GFS_free_in_bitmap(tino, GFS_superblock->inode_bitmap_loc,
+					GFS_superblock->block_bitmap_loc);
 				return -3 - adrt;
 				break;
 			default:
@@ -218,8 +218,8 @@ static int64_t write_file_on_ptr_arr(uint32_t *parr,
 	{
 		if (parr[pidx] == INODE_INVALID_PTR)
 		{	/* If a pointer is invalid, allocate a new block (or, break) */
-			//if (GFS_alloc_in_bitmap(1U, &parr[pidx], GFS_superblock.block_bitmap_loc,
-			//	GFS_superblock.inode_loc) != 1U)
+			//if (GFS_alloc_in_bitmap(1U, &parr[pidx], GFS_superblock->block_bitmap_loc,
+			//	GFS_superblock->inode_loc) != 1U)
 				break;
 			//parr[pidx] += GFS_DATALOC_BLOCK;
 		}
@@ -280,7 +280,7 @@ long do_read(long fd, uint8_t *buf, uint32_t len)
 		return -1L;
 	if ((uintptr_t)buf >= KVA_MIN)
 		return -2L;
-	pinode = &(ccpu->fds[fd].fnode->inode);
+	pinode = ccpu->fds[fd].fnode->pinode;
 	if (len == 0U || ccpu->fds[fd].pos >= pinode->size)
 		return 0L;
 	if (pinode->size - ccpu->fds[fd].pos < len)
@@ -382,7 +382,7 @@ long do_write(long fd, const uint8_t *buf, uint32_t len)
 		return -2L;
 	if (len == 0U)
 		return 0L;
-	pinode = &(ccpu->fds[fd].fnode->inode);
+	pinode = ccpu->fds[fd].fnode->pinode;
 	if (len > UINT32_MAX - ccpu->fds[fd].pos)
 		len = UINT32_MAX - ccpu->fds[fd].pos;
 
@@ -394,7 +394,7 @@ long do_write(long fd, const uint8_t *buf, uint32_t len)
 		if (aptr == NULL)
 			return -3L;
 		naptr = GFS_alloc_in_bitmap(nblk - nblk0, aptr,
-			GFS_superblock.block_bitmap_loc, GFS_superblock.inode_loc);
+			GFS_superblock->block_bitmap_loc, GFS_superblock->inode_loc);
 		for (j = 0U; j < naptr; ++j)
 			aptr[j] += GFS_DATALOC_BLOCK;
 		/*
@@ -606,11 +606,11 @@ long do_lseek(long fd, long offset, int whence)
 	}
 	else if (whence == SEEK_END)
 	{
-		if ((unsigned long)((long)(ccpu->fds[fd].fnode->inode.size) + offset)
+		if ((unsigned long)((long)(ccpu->fds[fd].fnode->pinode->size) + offset)
 			>= UINT32_MAX)
 			return -2L;
 		ccpu->fds[fd].pos = (uint32_t)
-			((long)ccpu->fds[fd].fnode->inode.size + offset);
+			((long)ccpu->fds[fd].fnode->pinode->size + offset);
 		return (long)ccpu->fds[fd].pos;
 	}
 	else

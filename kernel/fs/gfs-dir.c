@@ -60,8 +60,8 @@ int GFS_add_dentry(GFS_inode_t *pinode, const char *fname, unsigned int ino)
 	{	/* There is free space in direct pointers */
 		if (pinode->dptr[i] == INODE_INVALID_PTR)
 		{	/* We need to allocate a new data block */
-			if (GFS_alloc_in_bitmap(1U, &bidx, GFS_superblock.block_bitmap_loc,
-				GFS_superblock.inode_loc) != 1U)
+			if (GFS_alloc_in_bitmap(1U, &bidx, GFS_superblock->block_bitmap_loc,
+				GFS_superblock->inode_loc) != 1U)
 				/* No free data block */
 				return 2;
 			bidx += GFS_DATALOC_BLOCK;
@@ -87,8 +87,8 @@ int GFS_add_dentry(GFS_inode_t *pinode, const char *fname, unsigned int ino)
 	{	/* Try to search the indirect pointer */
 		if (pinode->idptr == INODE_INVALID_PTR)
 		{	/* Allocate a new block for indirect pointers */
-			if (GFS_alloc_in_bitmap(1U, &idbidx, GFS_superblock.block_bitmap_loc,
-				GFS_superblock.inode_loc) != 1U)
+			if (GFS_alloc_in_bitmap(1U, &idbidx, GFS_superblock->block_bitmap_loc,
+				GFS_superblock->inode_loc) != 1U)
 				return 2;
 			idbidx += GFS_DATALOC_BLOCK;
 			for (i = 0U; i < BLOCK_SIZE / sizeof(uint32_t); ++i)
@@ -118,8 +118,8 @@ int GFS_add_dentry(GFS_inode_t *pinode, const char *fname, unsigned int ino)
 		{	/* There is free space */
 			if (idbbuf[i] == INODE_INVALID_PTR)
 			{	/* We need to allocate a new data block */
-				if (GFS_alloc_in_bitmap(1U, &bidx, GFS_superblock.block_bitmap_loc,
-					GFS_superblock.inode_loc) != 1U)
+				if (GFS_alloc_in_bitmap(1U, &bidx, GFS_superblock->block_bitmap_loc,
+					GFS_superblock->inode_loc) != 1U)
 					/* No free data block */
 					return 2;
 				bidx += GFS_DATALOC_BLOCK;
@@ -189,8 +189,8 @@ int do_mkdir(const char *stpath)
 		return 3;
 	if (search_dentry_in_dir_inode(&inode, tname) != DENTRY_INVALID_INO)
 		return 4;
-	if (GFS_alloc_in_bitmap(1U, &tino, GFS_superblock.inode_bitmap_loc,
-		GFS_superblock.block_bitmap_loc) != 1U)
+	if (GFS_alloc_in_bitmap(1U, &tino, GFS_superblock->inode_bitmap_loc,
+		GFS_superblock->block_bitmap_loc) != 1U)
 		return 5;
 	switch (adrt = GFS_add_dentry(&inode, tname, tino))
 	{
@@ -199,8 +199,8 @@ int do_mkdir(const char *stpath)
 		break;
 	case 2:
 		/* no free block */
-		if (GFS_free_in_bitmap(tino, GFS_superblock.inode_bitmap_loc,
-			GFS_superblock.block_bitmap_loc) != 0)
+		if (GFS_free_in_bitmap(tino, GFS_superblock->inode_bitmap_loc,
+			GFS_superblock->block_bitmap_loc) != 0)
 			GFS_panic("do_mkdir: failed to free %u inode", tino);
 		return 3;
 		break;
@@ -223,8 +223,8 @@ int do_mkdir(const char *stpath)
 	case 0:
 		break;
 	case 2:
-		GFS_free_in_bitmap(tino, GFS_superblock.inode_bitmap_loc,
-			GFS_superblock.block_bitmap_loc);
+		GFS_free_in_bitmap(tino, GFS_superblock->inode_bitmap_loc,
+			GFS_superblock->block_bitmap_loc);
 		GFS_panic("do_mkdir: No free block in GFS!");
 		/*
 		 * As the parent inode has not been wriiten to disk,
@@ -245,8 +245,8 @@ int do_mkdir(const char *stpath)
 	case 0:
 		break;
 	case 2:
-		GFS_free_in_bitmap(tino, GFS_superblock.inode_bitmap_loc,
-			GFS_superblock.block_bitmap_loc);
+		GFS_free_in_bitmap(tino, GFS_superblock->inode_bitmap_loc,
+			GFS_superblock->block_bitmap_loc);
 		GFS_panic("do_mkdir: No free block in GFS!");
 		/*
 		 * As the parent inode has not been wriiten to disk,
@@ -416,7 +416,7 @@ static unsigned int rm_dentries_on_ptr_arr(uint32_t *parr, unsigned int n)
 		else
 		{
 			if (GFS_free_in_bitmap(parr[i] - GFS_DATALOC_BLOCK,
-				GFS_superblock.block_bitmap_loc, GFS_superblock.inode_loc) != 0)
+				GFS_superblock->block_bitmap_loc, GFS_superblock->inode_loc) != 0)
 				GFS_panic("rm_dentries_on_ptr_arr: invalid parr[%u]: %u",
 					i, parr[i]);
 			parr[i] = INODE_INVALID_PTR;
@@ -470,7 +470,7 @@ int GFS_remove_file_or_dir(unsigned int ino)
 			else
 			{
 				if (GFS_free_in_bitmap(inode.idptr - GFS_DATALOC_BLOCK,
-					GFS_superblock.block_bitmap_loc, GFS_superblock.inode_loc) != 0)
+					GFS_superblock->block_bitmap_loc, GFS_superblock->inode_loc) != 0)
 				{
 					//GFS_panic("GFS_remove_file_or_dir: invalid .idptr: %u",
 					//	inode.idptr);
@@ -489,8 +489,8 @@ int GFS_remove_file_or_dir(unsigned int ino)
 		}
 		else
 		{
-			GFS_free_in_bitmap(ino, GFS_superblock.inode_bitmap_loc,
-				GFS_superblock.block_bitmap_loc);
+			GFS_free_in_bitmap(ino, GFS_superblock->inode_bitmap_loc,
+				GFS_superblock->block_bitmap_loc);
 			rt = 0;
 			goto rm_f_d_end;
 		}
@@ -508,7 +508,7 @@ int GFS_remove_file_or_dir(unsigned int ino)
 		{
 			if (inode.dptr[i] != INODE_INVALID_PTR)
 				if (GFS_free_in_bitmap(inode.dptr[i] - GFS_DATALOC_BLOCK,
-					GFS_superblock.block_bitmap_loc, GFS_superblock.inode_loc) != 0)
+					GFS_superblock->block_bitmap_loc, GFS_superblock->inode_loc) != 0)
 				{
 					//GFS_panic("GFS_remove_file_or_dir: invalid dptr[%u]: %u",
 					//	i, inode.dptr[i]);
@@ -528,14 +528,14 @@ int GFS_remove_file_or_dir(unsigned int ino)
 			{
 				if (idbbuf[i] != INODE_INVALID_PTR)
 					if (GFS_free_in_bitmap(idbbuf[i] - GFS_DATALOC_BLOCK,
-						GFS_superblock.block_bitmap_loc, GFS_superblock.inode_loc) != 0)
+						GFS_superblock->block_bitmap_loc, GFS_superblock->inode_loc) != 0)
 					{
 						rt = -5;
 						goto rm_f_d_end;
 					}
 			}
 			if (GFS_free_in_bitmap(inode.idptr - GFS_DATALOC_BLOCK,
-				GFS_superblock.block_bitmap_loc, GFS_superblock.inode_loc) != 0)
+				GFS_superblock->block_bitmap_loc, GFS_superblock->inode_loc) != 0)
 				{
 					rt = -6;
 					goto rm_f_d_end;
@@ -566,28 +566,28 @@ int GFS_remove_file_or_dir(unsigned int ino)
 				{
 					if (idbbuf[i] != INODE_INVALID_PTR)
 						if (GFS_free_in_bitmap(idbbuf[i] - GFS_DATALOC_BLOCK,
-							GFS_superblock.block_bitmap_loc, GFS_superblock.inode_loc) != 0)
+							GFS_superblock->block_bitmap_loc, GFS_superblock->inode_loc) != 0)
 						{
 							rt = -7;
 							goto rm_f_d_end;
 						}
 				}
 				if (GFS_free_in_bitmap(dibbuf[j] - GFS_DATALOC_BLOCK,
-					GFS_superblock.block_bitmap_loc, GFS_superblock.inode_loc) != 0)
+					GFS_superblock->block_bitmap_loc, GFS_superblock->inode_loc) != 0)
 				{
 					rt = -8;
 					goto rm_f_d_end;
 				}
 			}
 			if (GFS_free_in_bitmap(inode.diptr - GFS_DATALOC_BLOCK,
-				GFS_superblock.block_bitmap_loc, GFS_superblock.inode_loc) != 0)
+				GFS_superblock->block_bitmap_loc, GFS_superblock->inode_loc) != 0)
 			{
 				rt = -9;
 				goto rm_f_d_end;
 			}
 		}
-		GFS_free_in_bitmap(ino, GFS_superblock.inode_bitmap_loc,
-			GFS_superblock.block_bitmap_loc);
+		GFS_free_in_bitmap(ino, GFS_superblock->inode_bitmap_loc,
+			GFS_superblock->block_bitmap_loc);
 		rt = 0;
 		goto rm_f_d_end;
 	}

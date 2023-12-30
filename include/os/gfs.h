@@ -130,7 +130,7 @@ typedef struct flist_node_t {
 	/* Number of processes (threads) using it */
 	int16_t nproc;
 	/* inode */
-	GFS_inode_t inode;
+	GFS_inode_t *pinode;
 	struct flist_node_t *next;
 } flist_node_t;
 
@@ -143,6 +143,9 @@ typedef struct flist_node_t {
 
 /* Number of dir entries in a data block */
 #define DENT_PER_BLOCK (BLOCK_SIZE / sizeof(GFS_dentry_t))
+
+#define GFS_CACHE_BASE 0xffffffc05f000000UL
+#define GFS_CACHE_END 0xffffffc060000000ULL
 
 /* A 512 B buffer whose address is 8-B aligned */
 typedef uint64_t sector_buf_t[SECTOR_SIZE / sizeof(uint64_t)];
@@ -168,17 +171,29 @@ typedef struct {
 	uint32_t pos;
 } file_desc_t;
 
+typedef struct {
+	/*
+	 * `tag` is the block index in GFS.
+	 * `0` means this block is invalid.
+	 */
+	uint32_t tag;
+
+	uint32_t block[BLOCK_SIZE / sizeof(uint32_t)];
+} GFS_cache_block_t;
+
 extern unsigned int GFS_base_sec;
-extern GFS_superblock_t GFS_superblock;
+extern GFS_superblock_t *GFS_superblock;
 const uint8_t GFS_Magic[24U];
 
 extern flist_node_t *flist_head;
+
+extern GFS_inode_t *gfsc_inodes;
 
 /*
  * The offset of data blocks in GFS (unit: blocks).
  * It is used to convert block index in GFS between index in data blocks.
  */
-#define GFS_DATALOC_BLOCK (GFS_superblock.data_loc / SEC_PER_BLOCK)
+#define GFS_DATALOC_BLOCK (GFS_superblock->data_loc / SEC_PER_BLOCK)
 
 int GFS_read_sec(unsigned int sec_idx_in_GFS, unsigned int nsec, void* kva);
 int GFS_write_sec(unsigned int sec_idx_in_GFS, unsigned int nsec, void* kva);
@@ -227,6 +242,9 @@ long do_write(long fd, const uint8_t *buf, uint32_t len);
 long do_lseek(long fd, long offset, int whence);
 long do_hlink(const char *sfpath, const char *tfpath);
 
+void GFS_cache_init(void);
+void GFS_mount(void);
+
 /*
  * GFS_write/read_block: `bidx_in_GFS` is the block index in GFS.
  */
@@ -246,12 +264,12 @@ static inline int GFS_read_block(unsigned int bidx_in_GFS, void *kva)
  */
 static inline int GFS_write_data_block(unsigned int dbidx, void *kva)
 {
-	return GFS_write_block(dbidx + GFS_superblock.data_loc / SEC_PER_BLOCK, kva);
+	return GFS_write_block(dbidx + GFS_superblock->data_loc / SEC_PER_BLOCK, kva);
 }
 
 static inline int GFS_read_data_block(unsigned int dbidx, void *kva)
 {
-	return GFS_read_block(dbidx + GFS_superblock.data_loc / SEC_PER_BLOCK, kva);
+	return GFS_read_block(dbidx + GFS_superblock->data_loc / SEC_PER_BLOCK, kva);
 }
 
 #endif

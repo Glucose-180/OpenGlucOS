@@ -23,7 +23,6 @@ flist_node_t *flist_head = &flh;
 void flist_init(void)
 {
 	flist_node_t *p, *q;
-	GFS_inode_t inode0;
 
 	flist_head = &flh;
 
@@ -42,8 +41,7 @@ void flist_init(void)
 	 * from disk.
 	 */
 	flist_head->ino = DENTRY_INVALID_INO;
-	GFS_read_inode(0U, &inode0);
-	flist_head->inode = inode0;
+	flist_head->pinode = gfsc_inodes + 0;
 	flist_head->ino = 0U;
 }
 
@@ -62,7 +60,7 @@ flist_node_t *flist_inc_fnode(uint32_t ino, int wr)
 
 	if (ino == 0U)
 		return flist_head = &flh;
-	if (ino >= GFS_superblock.inode_num)
+	if (ino >= GFS_superblock->inode_num)
 		return NULL;
 	for (p = flist_head; p->next != NULL; p = p->next)
 		if (p->next->ino == ino)
@@ -76,7 +74,7 @@ flist_node_t *flist_inc_fnode(uint32_t ino, int wr)
 		}
 		p->next->ino = DENTRY_INVALID_INO;
 		p->next->next = NULL;
-		GFS_read_inode(ino, &(p->next->inode));
+		p->next->pinode = gfsc_inodes + ino;
 		p->next->ino = ino;
 		p->next->nwr = (wr ? 1 : 0);
 		p->next->nproc = 1U;
@@ -103,7 +101,7 @@ int flist_dec_fnode(uint32_t ino, int cwr)
 
 	if (ino == 0U)
 		return 0;
-	if (ino >= GFS_superblock.inode_num)
+	if (ino >= GFS_superblock->inode_num)
 		return 1;
 	for (p = flist_head; p->next != NULL; p = p->next)
 		if (p->next->ino == ino)

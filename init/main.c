@@ -354,22 +354,6 @@ int main(reg_t a0, reg_t a1)
     e1000_init();
     printk("> [INIT] E1000 device initialized successfully.\n");
 #endif
-
-	// Init Glucose file system
-	if ((cgfs_rt = GFS_check()) < 0)
-	{
-		GFS_init();
-		printk("> [INIT] GFS initialized successfully.\n");
-	}
-	else if (cgfs_rt > 0)
-		printk("> [INIT] An invalid GFS (%d) is found.\n", cgfs_rt);
-	if (cgfs_rt >= 0)
-		/*
-		 * `flist_init()` is called in `GFS_init()`, so if
-		 * `cgfs_rt < 0`, calling it again is unnecessary.
-		 */
-		flist_init();
-
 	// Init system call table (0_0)
 	init_syscall();
 	printk("> [INIT] System call initialized successfully.\n");
@@ -392,6 +376,22 @@ int main(reg_t a0, reg_t a1)
 		MULTITHREADING, TIMER_INTERVAL_MS, NCPU, NPF, NPSWAP,
 		(unsigned)(USEG_MAX >> 20), USTACK_NPG);
 #endif
+
+	// Init Glucose file system
+	if ((cgfs_rt = GFS_check()) < 0)
+	{
+		GFS_init();
+		printk("> [INIT] GFS initialized successfully.\n");
+	}
+	else if (cgfs_rt > 0)
+		printk("> [INIT] An invalid GFS (%d) is found.\n", cgfs_rt);
+	if (cgfs_rt >= 0)
+		/*
+		 * `flist_init()` is called in `GFS_init()`, so if
+		 * `cgfs_rt < 0`, calling it again is unnecessary.
+		 */
+		GFS_mount();
+
 
 	printk("> [INFO] Press any key to keep these information...\n");
 
