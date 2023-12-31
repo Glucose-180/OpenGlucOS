@@ -41,7 +41,7 @@ int GFS_read_sec(unsigned int sec_idx_in_GFS, unsigned int nsec, volatile void* 
  * `sec_idx_in_GFS` is the index of starting sector relative to `GFS_base_sec`.
  * Return: 0 (reserved).
  */
-int GFS_write_sec(unsigned int sec_idx_in_GFS, unsigned int nsec, volatile void* kva)
+int GFS_write_sec(unsigned int sec_idx_in_GFS, unsigned int nsec, const void* kva)
 {
 	unsigned int sidx;
 

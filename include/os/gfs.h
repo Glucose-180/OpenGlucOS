@@ -130,7 +130,7 @@ typedef struct flist_node_t {
 	/* Number of processes (threads) using it */
 	int16_t nproc;
 	/* inode */
-	volatile GFS_inode_t *pinode;
+	GFS_inode_t *pinode;
 	struct flist_node_t *next;
 } flist_node_t;
 
@@ -172,13 +172,12 @@ typedef struct {
 } file_desc_t;
 
 typedef struct {
+	uint64_t block[BLOCK_SIZE / sizeof(uint64_t)];
 	/*
 	 * `tag` is the block index in GFS.
 	 * `0` means this block is invalid.
 	 */
 	uint32_t tag;
-
-	uint32_t block[BLOCK_SIZE / sizeof(uint32_t)];
 } GFS_cache_block_t;
 
 extern unsigned int GFS_base_sec;
@@ -187,7 +186,7 @@ const uint8_t GFS_Magic[24U];
 
 extern flist_node_t *flist_head;
 
-extern volatile GFS_inode_t *gfsc_inodes;
+extern GFS_inode_t *gfsc_inodes;
 
 /*
  * The offset of data blocks in GFS (unit: blocks).
@@ -196,7 +195,7 @@ extern volatile GFS_inode_t *gfsc_inodes;
 #define GFS_DATALOC_BLOCK (GFS_superblock->data_loc / SEC_PER_BLOCK)
 
 int GFS_read_sec(unsigned int sec_idx_in_GFS, unsigned int nsec, volatile void* kva);
-int GFS_write_sec(unsigned int sec_idx_in_GFS, unsigned int nsec, volatile void* kva);
+int GFS_write_sec(unsigned int sec_idx_in_GFS, unsigned int nsec, const void* kva);
 
 int GFS_check(void);
 int GFS_init(void);
@@ -204,13 +203,14 @@ unsigned int GFS_alloc_in_bitmap(unsigned int n, unsigned int iarr[],
 	unsigned int start_sec, unsigned int end_sec);
 int GFS_free_in_bitmap(unsigned int bidx,
 	unsigned int start_sec, unsigned int end_sec);
-int GFS_read_inode(unsigned int ino, GFS_inode_t *pinode);
-int GFS_write_inode(unsigned int ino, volatile GFS_inode_t *pinode);
+int GFS_read_inode(unsigned int ino, volatile GFS_inode_t *pinode);
+int GFS_write_inode(unsigned int ino, const GFS_inode_t *pinode);
 unsigned int GFS_count_in_bitmap(unsigned int start_sec, unsigned int end_sec);
 
 int do_mkfs(int force);
 int do_fsinfo(void);
 void GFS_panic(const char *fmt, ...);
+void GFS_mount(void);
 
 unsigned int search_dentry_in_dir_inode
 	(const GFS_inode_t *pinode, const char *fname);
@@ -243,33 +243,33 @@ long do_lseek(long fd, long offset, int whence);
 long do_hlink(const char *sfpath, const char *tfpath);
 
 void GFS_cache_init(void);
-void GFS_mount(void);
+int gfsc_scan_and_inv(uint32_t tag);
+int gfsc_read_block(uint32_t bidx, void *kva);
+int gfsc_write_block(uint32_t bidx, const void *kva);
+
+uint64_t gfsc_wrhit, gfsc_rdhit, gfsc_wrmiss, gfsc_rdmiss;
 
 /*
  * GFS_write/read_block: `bidx_in_GFS` is the block index in GFS.
  */
 static inline int GFS_write_block(unsigned int bidx_in_GFS, void *kva)
 {
-	return GFS_write_sec(bidx_in_GFS * SEC_PER_BLOCK, SEC_PER_BLOCK, kva);
+	int rt;
+	/*{// Don't use cache
+		gfsc_scan_and_inv(bidx_in_GFS);
+		rt = GFS_write_sec(bidx_in_GFS * SEC_PER_BLOCK, SEC_PER_BLOCK, kva);
+	}*/
+	{// Use cache
+		rt = gfsc_write_block(bidx_in_GFS, kva);
+	}
+	return rt;
+
 }
 
 static inline int GFS_read_block(unsigned int bidx_in_GFS, void *kva)
 {
-	return GFS_read_sec(bidx_in_GFS * SEC_PER_BLOCK, SEC_PER_BLOCK, kva);
-}
-
-/*
- * GFS_write/read_data_block: `dbidx` is the block index
- * in data block.
- */
-static inline int GFS_write_data_block(unsigned int dbidx, void *kva)
-{
-	return GFS_write_block(dbidx + GFS_superblock->data_loc / SEC_PER_BLOCK, kva);
-}
-
-static inline int GFS_read_data_block(unsigned int dbidx, void *kva)
-{
-	return GFS_read_block(dbidx + GFS_superblock->data_loc / SEC_PER_BLOCK, kva);
+	//return GFS_read_sec(bidx_in_GFS * SEC_PER_BLOCK, SEC_PER_BLOCK, kva);
+	return gfsc_read_block(bidx_in_GFS, kva);
 }
 
 #endif

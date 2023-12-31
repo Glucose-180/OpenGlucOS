@@ -164,14 +164,14 @@ unsigned int GFS_alloc_in_bitmap(unsigned int n, unsigned int iarr[],
 	 * After GFS cache is implemented, it is unnecessary to read
 	 * the disk as bitmaps have been loaded into the cache.
 	 */
-	volatile uint64_t *sector_buf;
+	uint64_t *sector_buf;
 	uint64_t mask;
 	char flag_modified;	/* A sector is modified */
 
 	for (a_ymr = 0U, sidx = start_sec; sidx < end_sec && a_ymr < n; ++sidx)
 	{	/* Scan a sector (`sidx`) in bitmap */
 		//GFS_read_sec(sidx, 1U, sector_buf);
-		sector_buf = (volatile uint64_t*)(GFS_CACHE_BASE + sidx * SECTOR_SIZE);
+		sector_buf = (uint64_t*)(GFS_CACHE_BASE + sidx * SECTOR_SIZE);
 		flag_modified = 0;
 		for (i = 0U; i < SECTOR_SIZE / sizeof(uint64_t) && a_ymr < n; ++i)
 		{
@@ -211,7 +211,7 @@ int GFS_free_in_bitmap(unsigned int bidx,
 	 * After GFS cache is implemented, it is unnecessary to read
 	 * the disk as bitmaps have been loaded into the cache.
 	 */
-	volatile uint64_t *sector_buf;
+	uint64_t *sector_buf;
 	uint64_t mask;
 
 	if (end_sec <= start_sec ||
@@ -220,7 +220,7 @@ int GFS_free_in_bitmap(unsigned int bidx,
 	sidx = start_sec + (bidx / (SECTOR_SIZE * 8U));
 	bidx = bidx % (SECTOR_SIZE * 8U);
 	//GFS_read_sec(sidx, 1U, sector_buf);
-	sector_buf = (volatile uint64_t*)(GFS_CACHE_BASE + sidx * SECTOR_SIZE);
+	sector_buf = (uint64_t*)(GFS_CACHE_BASE + sidx * SECTOR_SIZE);
 
 	mask = ((uint64_t)1UL << 63) >> (bidx % 64U);
 	sector_buf[bidx / 64U] &= ~mask;
@@ -234,7 +234,7 @@ int GFS_free_in_bitmap(unsigned int bidx,
  * and write it to `pinode`.
  * Return 0 on success or -1 if the `ino` is illegal.
  */
-int GFS_read_inode(unsigned int ino, GFS_inode_t *pinode)
+int GFS_read_inode(unsigned int ino, volatile GFS_inode_t *pinode)
 {
 /*
 	unsigned int sidx;
@@ -264,7 +264,7 @@ int GFS_read_inode(unsigned int ino, GFS_inode_t *pinode)
  * GFS_write_inode: write `ino`-th inode to GFS disk.
  * Return 0 on success or -1 if the `ino` is illegal.
  */
-int GFS_write_inode(unsigned int ino, volatile GFS_inode_t *pinode)
+int GFS_write_inode(unsigned int ino, const GFS_inode_t *pinode)
 {
 	unsigned int sidx;
 /*
@@ -414,6 +414,10 @@ int do_fsinfo()
 			"Used data blocks: %u / %u (%u B)\n",
 			nui, GFS_superblock->inode_num, sizeof(GFS_inode_t),
 			nub, GFS_superblock->GFS_size / BLOCK_SIZE, BLOCK_SIZE
+		);
+		printk(
+			"GFS cache hit   : R %lu / %lu, W %lu / %lu\n",
+			gfsc_rdhit, gfsc_rdhit + gfsc_rdmiss, gfsc_wrhit, gfsc_wrhit + gfsc_wrmiss
 		);
 	}
 	return crt;

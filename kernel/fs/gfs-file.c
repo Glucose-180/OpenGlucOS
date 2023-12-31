@@ -163,7 +163,7 @@ long do_open(const char *fpath, int oflags)
  * Return the number of bytes read successfully.
  * NOTE: `start_pos` is the offset relative to the block pointed by `parr[0]`!
  */
-static int64_t read_file_on_ptr_arr(volatile uint32_t *parr,
+static int64_t read_file_on_ptr_arr(const uint32_t *parr,
 	unsigned int n, uint32_t start_pos, uint32_t len, uint8_t *buf)
 {
 	unsigned int start_pidx, end_pidx, pidx;
@@ -272,7 +272,7 @@ long do_read(long fd, uint8_t *buf, uint32_t len)
 	pcb_t *ccpu = cur_cpu();
 	unsigned int i;
 	int64_t rpos, r_ymr = 0L;
-	volatile GFS_inode_t *pinode;
+	const GFS_inode_t *pinode;
 	indblock_buf_t idbbuf, dibbuf;
 
 	if ((unsigned long)fd >= OFILE_MAX || ccpu->fds[fd].fnode == NULL
@@ -368,7 +368,7 @@ long do_write(long fd, const uint8_t *buf, uint32_t len)
 {
 	unsigned int nblk0, nblk;
 	uint32_t npd;
-	volatile GFS_inode_t *pinode;
+	GFS_inode_t *pinode;
 	indblock_buf_t idbbuf, dibbuf;
 	long rrt;
 	int64_t rpos, w_ymr = 0L;
