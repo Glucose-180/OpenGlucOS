@@ -14,8 +14,8 @@ static const uintptr_t Gfsc_base = GFS_CACHE_BASE;
 /* The first sector is for super block */
 static const uintptr_t Gfsc_inode_bitmap_base = GFS_CACHE_BASE + SECTOR_SIZE;
 static uintptr_t gfsc_block_bitmap_base;
-static GFS_cache_block_t *gfsc_blocks;
-GFS_inode_t *gfsc_inodes;
+static volatile GFS_cache_block_t *gfsc_blocks;
+volatile GFS_inode_t *gfsc_inodes;
 /* The number of blocks in cache, typically 3 k ~ 4 k */
 static unsigned int gfsc_blocks_num;
 

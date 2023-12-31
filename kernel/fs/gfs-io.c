@@ -17,7 +17,7 @@ static inline unsigned int umin(unsigned int x, unsigned int y)
  * `sec_idx_in_GFS` is the index of starting sector relative to `GFS_base_sec`.
  * Return: 0 (reserved).
  */
-int GFS_read_sec(unsigned int sec_idx_in_GFS, unsigned int nsec, void* kva)
+int GFS_read_sec(unsigned int sec_idx_in_GFS, unsigned int nsec, volatile void* kva)
 {
 	unsigned int sidx;
 
@@ -29,6 +29,10 @@ int GFS_read_sec(unsigned int sec_idx_in_GFS, unsigned int nsec, void* kva)
 		sd_read((unsigned int)kva2pa((uintptr_t)kva),
 			umin(GFS_base_sec + sec_idx_in_GFS + nsec - sidx, 64U), sidx);
 	}
+
+	__sync_synchronize();
+	__asm__ volatile ("":::"memory");
+
 	return 0;
 }
 
@@ -37,9 +41,12 @@ int GFS_read_sec(unsigned int sec_idx_in_GFS, unsigned int nsec, void* kva)
  * `sec_idx_in_GFS` is the index of starting sector relative to `GFS_base_sec`.
  * Return: 0 (reserved).
  */
-int GFS_write_sec(unsigned int sec_idx_in_GFS, unsigned int nsec, void* kva)
+int GFS_write_sec(unsigned int sec_idx_in_GFS, unsigned int nsec, volatile void* kva)
 {
 	unsigned int sidx;
+
+	__sync_synchronize();
+	__asm__ volatile ("":::"memory");
 
 	for (sidx = GFS_base_sec + sec_idx_in_GFS;
 		sidx < GFS_base_sec + sec_idx_in_GFS + nsec; sidx += 64U, kva += 64U * SECTOR_SIZE)

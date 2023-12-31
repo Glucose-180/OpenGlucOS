@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
 		sys_screen_write(buf, cnt);
 	}
 	rt = sys_close(fd);
-	printf("close() returned %d\n", rt);
+	printf("\nclose() returned %d\n", rt);
 
 	return 0;
 }

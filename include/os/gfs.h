@@ -130,7 +130,7 @@ typedef struct flist_node_t {
 	/* Number of processes (threads) using it */
 	int16_t nproc;
 	/* inode */
-	GFS_inode_t *pinode;
+	volatile GFS_inode_t *pinode;
 	struct flist_node_t *next;
 } flist_node_t;
 
@@ -187,7 +187,7 @@ const uint8_t GFS_Magic[24U];
 
 extern flist_node_t *flist_head;
 
-extern GFS_inode_t *gfsc_inodes;
+extern volatile GFS_inode_t *gfsc_inodes;
 
 /*
  * The offset of data blocks in GFS (unit: blocks).
@@ -195,8 +195,8 @@ extern GFS_inode_t *gfsc_inodes;
  */
 #define GFS_DATALOC_BLOCK (GFS_superblock->data_loc / SEC_PER_BLOCK)
 
-int GFS_read_sec(unsigned int sec_idx_in_GFS, unsigned int nsec, void* kva);
-int GFS_write_sec(unsigned int sec_idx_in_GFS, unsigned int nsec, void* kva);
+int GFS_read_sec(unsigned int sec_idx_in_GFS, unsigned int nsec, volatile void* kva);
+int GFS_write_sec(unsigned int sec_idx_in_GFS, unsigned int nsec, volatile void* kva);
 
 int GFS_check(void);
 int GFS_init(void);
@@ -205,7 +205,7 @@ unsigned int GFS_alloc_in_bitmap(unsigned int n, unsigned int iarr[],
 int GFS_free_in_bitmap(unsigned int bidx,
 	unsigned int start_sec, unsigned int end_sec);
 int GFS_read_inode(unsigned int ino, GFS_inode_t *pinode);
-int GFS_write_inode(unsigned int ino, const GFS_inode_t *pinode);
+int GFS_write_inode(unsigned int ino, volatile GFS_inode_t *pinode);
 unsigned int GFS_count_in_bitmap(unsigned int start_sec, unsigned int end_sec);
 
 int do_mkfs(int force);
