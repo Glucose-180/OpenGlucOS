@@ -408,6 +408,7 @@ static unsigned int rm_dentries_on_ptr_arr(uint32_t *parr, unsigned int n)
 					flag_left = 1;
 					GFS_panic("rm_dentries_on_ptr_arr: failed %d to remove "
 						"dir entry %s, %u", rmit, debbuf[j].fname, debbuf[j].ino);
+					return rm_ymr;
 				}
 			}
 		}
@@ -417,8 +418,11 @@ static unsigned int rm_dentries_on_ptr_arr(uint32_t *parr, unsigned int n)
 		{
 			if (GFS_free_in_bitmap(parr[i] - GFS_DATALOC_BLOCK,
 				GFS_superblock->block_bitmap_loc, GFS_superblock->inode_loc) != 0)
+			{
 				GFS_panic("rm_dentries_on_ptr_arr: invalid parr[%u]: %u",
 					i, parr[i]);
+				return rm_ymr;
+			}
 			parr[i] = INODE_INVALID_PTR;
 		}
 	}

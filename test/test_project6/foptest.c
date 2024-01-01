@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
 		rt = sys_read(fd, buf, cnt);
 		printf("read() returned %d\n", rt);
 		printf("read data: \n");
-		sys_screen_write(buf, cnt);
+		sys_screen_write(buf, rt);
 	}
 	rt = sys_close(fd);
 	printf("\nclose() returned %d\n", rt);
