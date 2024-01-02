@@ -10,7 +10,7 @@ DEBUG=1
 User_seg_max="0x800000"	# 8 MiB
 #User_seg_max="0x80000000"	# 2 GiB
 UPROC_MAX=32	# Number of user processes
-NIC=0			# Support NIC driver
+NIC=1			# Support NIC driver
 GFS_IMG="/home/stu/Ktemp/glucos-img"	# Image file for GFS to protect my SSD
 
 VIEW=""
