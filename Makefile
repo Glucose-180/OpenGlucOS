@@ -3,6 +3,7 @@
 # -----------------------------------------------------------------------
 
 PROJECT_IDX	= 6
+VERSION_IDX = 0
 
 OS_NAME = GlucOS
 USER_NAME = glucose180
@@ -99,7 +100,8 @@ DIR_KERNEL      = ./kernel
 DIR_LIBS        = ./libs
 DIR_TINYLIBC    = ./tiny_libc
 DIR_TEST        = ./test
-DIR_TEST_PROJ   = $(DIR_TEST)/test_project$(PROJECT_IDX)
+#DIR_TEST_PROJ   = $(DIR_TEST)/test_project$(PROJECT_IDX)
+DIR_TEST_PROJ   = $(DIR_TEST)/test_v$(VERSION_IDX)
 
 BOOTLOADER_ENTRYPOINT   = 0x50200000
 KERNEL_ENTRYPOINT       = 0xffffffc050202000
@@ -136,7 +138,7 @@ SRC_LIBC    = $(wildcard ./tiny_libc/*.c)
 OBJ_LIBC    = $(patsubst %.c, %.o, $(foreach file, $(SRC_LIBC), $(DIR_BUILD)/$(notdir $(file))))
 LIB_TINYC   = $(DIR_BUILD)/libtinyc.a
 
-SRC_SHELL	= $(DIR_TEST)/shell.c
+#SRC_SHELL	= $(DIR_TEST)/shell.c
 #SRC_USER    = $(SRC_SHELL) $(wildcard $(DIR_TEST_PROJ)/*.c)
 SRC_USER    = $(wildcard $(DIR_TEST_PROJ)/*.c)
 ELF_USER    = $(patsubst %.c, %, $(foreach file, $(SRC_USER), $(DIR_BUILD)/$(notdir $(file))))
