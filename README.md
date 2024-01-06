@@ -150,7 +150,7 @@ glucose180@GlucOS:/$
 
   不管怎说，历经 4 个月的艰辛终于把沉重的操作系统研讨课牵引到了终点。感谢大家的支持！希望 GlucOS 的源代码能为今后修读该研讨课的同学提供帮助，如有问题欢迎与作者交流：zhongjian21@mails.ucas.ac.cn。
 
-<img src="E:/OneDrive/UCAS-5/操作系统（研讨课）/OpenGlucOS/images/image-20240102140738340.jpg" alt="image-20240102140738340" style="zoom:80%;" />
+<img src="images/image-20240102140738340.jpg" alt="image-20240102140738340" style="zoom:80%;" />
 
 （图：HXD3D0141 牵引由昆明站始发的 Z54 次列车进北京西站。拍摄于 2023 年 9 月 2 日。）
 
